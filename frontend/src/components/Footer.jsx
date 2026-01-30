@@ -1,0 +1,9 @@
+export default function Footer() {
+  return (
+    <footer className="bg-gray-900 text-gray-400 text-sm">
+      <div className="max-w-7xl mx-auto px-4 py-6 text-center">
+        © 2026 SmartBin Waste Management with Segregation and Gamified System.
+      </div>
+    </footer>
+  );
+}
