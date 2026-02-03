@@ -1,0 +1,331 @@
+import { useState } from "react";
+import Navbar from "../../components/Navbar";
+import Sidebar from "../../components/Sidebar";
+
+import {
+    Trash2,
+    CheckCircle,
+    AlertTriangle,
+    XCircle,
+    Bell,
+    Star,
+    MapPin,
+    Search,
+    TrendingUp,
+    Filter
+} from "lucide-react";
+
+const statusColors = {
+    good: {
+        border: "border-green-300",
+        badge: "bg-green-100 text-green-700",
+        bar: "bg-green-600",
+        icon: CheckCircle,
+        iconColor: "text-green-600",
+    },
+    warning: {
+        border: "border-yellow-300",
+        badge: "bg-yellow-100 text-yellow-700",
+        bar: "bg-yellow-500",
+        icon: AlertTriangle,
+        iconColor: "text-yellow-600",
+    },
+    critical: {
+        border: "border-red-300",
+        badge: "bg-red-100 text-red-700",
+        bar: "bg-red-600",
+        icon: XCircle,
+        iconColor: "text-red-600",
+    },
+};
+
+const householdRecords = [
+    {
+        id: "HH-24680135",
+        name: "Dela Cruz Family",
+        address: "Green St.",
+        disposals: 48,
+        points: 1240,
+        status: "compliant",
+    },
+    {
+        id: "HH-13579246",
+        name: "Santos Family",
+        address: "Sunshine Ave.",
+        disposals: 35,
+        points: 920,
+        status: "compliant",
+    },
+    {
+        id: "HH-86420975",
+        name: "Reyes Household",
+        address: "Eco Lane",
+        disposals: 22,
+        points: 450,
+        status: "warning",
+    },
+    {
+        id: "HH-97531468",
+        name: "Garcia Family",
+        address: "Clean Rd.",
+        disposals: 12,
+        points: 180,
+        status: "non-compliant",
+    },
+    {
+        id: "HH-75391482",
+        name: "Martinez Family",
+        address: "Fresh Blvd.",
+        disposals: 41,
+        points: 1050,
+        status: "compliant",
+    },
+    {
+        id: "HH-15948673",
+        name: "Lopez Household",
+        address: "Nature St.",
+        disposals: 18,
+        points: 380,
+        status: "warning",
+    },
+    {
+        id: "HH-25948673",
+        name: "Lopez Household",
+        address: "Nature St.",
+        disposals: 18,
+        points: 380,
+        status: "warning",
+    },
+];
+
+
+
+const typeColors = {
+    Biodegradable: "bg-green-600",
+    "Non-biodegradable": "bg-orange-600",
+    Recyclable: "bg-blue-600",
+};
+
+
+const statusStyles = {
+    compliant: "bg-green-100 text-green-700",
+    warning: "bg-yellow-100 text-yellow-700",
+    "non-compliant": "bg-red-100 text-red-700",
+};
+
+const statusIcons = {
+    compliant: <CheckCircle size={16} />,
+    warning: <AlertTriangle size={16} />,
+    "non-compliant": <XCircle size={16} />,
+};
+
+const bins = [
+    {
+        id: "BIN-001",
+        location: "Rizal St.",
+        type: "Biodegradable",
+        personel: "Jeffry Agustin",
+        lastEmptied: "2026-01-23 08:00 AM",
+    },
+    {
+        id: "BIN-002",
+        location: "Mabini St.",
+        type: "Biodegradable",
+        personel: "Queenie Legaspi",
+        lastEmptied: "2026-01-24 10:30 AM",
+    },
+    {
+        id: "BIN-003",
+        location: "Luna St.",
+        type: "Biodegradable",
+        personel: "Masaki Saito",
+        lastEmptied: "2026-01-22 02:00 PM",
+    },
+    {
+        id: "BIN-004",
+        location: "Rizal St.",
+        type: "Non-biodegradable",
+        personel: "Jeffry Agustin",
+        lastEmptied: "2026-01-23 08:00 AM",
+    },
+    {
+        id: "BIN-005",
+        location: "Mabini St.",
+        type: "Non-biodegradable",
+        personel: "Queenie Legaspi",
+        lastEmptied: "2026-01-24 10:30 AM",
+    },
+    {
+        id: "BIN-006",
+        location: "Luna St.",
+        type: "Non-biodegradable",
+        personel: "Masaki Saito",
+        lastEmptied: "2026-01-22 02:00 PM",
+    },
+];
+
+function getStatusFromFill(fill) {
+    if (fill >= 90) return "critical";
+    if (fill >= 61) return "warning";
+    return "good";
+}
+
+export default function HouseholdInfo() {
+
+    const [search, setSearch] = useState("");
+    const [filter, setFilter] = useState("all");
+
+    const filteredData = householdRecords.filter((h) => {
+        const matchSearch =
+            h.name.toLowerCase().includes(search.toLowerCase()) ||
+            h.id.toLowerCase().includes(search.toLowerCase());
+
+        const matchFilter = filter === "all" || h.status === filter;
+
+        return matchSearch && matchFilter;
+    });
+
+
+    return (
+        <div className="flex-1">
+            <Navbar />
+            <div className="flex min-h-screen bg-gray-50">
+                <Sidebar />
+
+                <main className="w-full p-4 sm:p-6 space-y-6">
+
+                    {/* HEADER */}
+                    <div>
+                        <h1 className="text-lg sm:text-3xl font-bold">
+                            Bin Fill Capacity Monitoring
+                        </h1>
+                        <p className="text-gray-500 text-xl sm:text-lg">
+                            Monitor smart bin capacity across the community
+                        </p>
+                    </div>
+
+
+                    {/* BIN CARDS */}
+                    <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
+                        {bins.map((bin) => {
+                            const status = getStatusFromFill(bin.fill);
+                            const style = statusColors[status];
+                            const StatusIcon = style.icon;
+
+                            return (
+                                <div
+                                    key={bin.id}
+                                    className={`bg-white rounded-xl border ${style.border} p-6 shadow-sm`}
+                                >
+                                    <div className="flex justify-between items-start">
+                                        <div>
+                                            <h3 className="font-bold">{bin.id}</h3>
+                                            <p className="flex items-center gap-1 text-sm text-gray-500">
+                                                <MapPin size={14} />
+                                                {bin.location}
+                                            </p>
+                                        </div>
+                                        <StatusIcon className={`${style.iconColor}`} />
+                                    </div>
+
+                                    <span
+                                        className={`mt-3 inline-block px-3 py-1 text-xs text-white rounded-full ${typeColors[bin.type]}`}
+                                    >
+                                        {bin.type}
+                                    </span>
+
+                                    <div className="mt-4 text-sm space-y-1">
+                                        <p>Personel: <strong>{bin.personel}</strong></p>
+                                        <p>Time Collected: <strong>{bin.lastEmptied}</strong></p>
+                                    </div>
+
+                                    <button className="w-full mt-4 bg-gray-900 text-white py-2 rounded-lg hover:bg-gray-800 flex items-center justify-center gap-2">
+                                        <Star size={16} />
+                                        Assign Points
+                                    </button>
+                                </div>
+                            );
+                        })}
+                    </div>
+
+
+                    <section className="bg-white rounded-2xl shadow p-6">
+                        {/* Header */}
+                        <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4 mb-6">
+                            <h2 className="text-lg md:text-xl font-bold text-gray-900">
+                                Household Records
+                            </h2>
+
+                            <div className="flex flex-col sm:flex-row gap-3 w-full sm:w-auto">
+                                {/* Search */}
+                                <div className="relative">
+                                    <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" size={18} />
+                                    <input
+                                        type="text"
+                                        placeholder="Search households..."
+                                        value={search}
+                                        onChange={(e) => setSearch(e.target.value)}
+                                        className="pl-10 pr-4 py-2 border rounded-lg w-full sm:w-64 focus:ring-2 focus:ring-green-500"
+                                    />
+                                </div>
+
+                                {/* Filter */}
+                                <div className="relative">
+                                    <Filter className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" size={18} />
+                                    <select
+                                        value={filter}
+                                        onChange={(e) => setFilter(e.target.value)}
+                                        className="pl-10 pr-4 py-2 border rounded-lg bg-white focus:ring-2 focus:ring-green-500"
+                                    >
+                                        <option value="all">All Status</option>
+                                        <option value="compliant">Compliant</option>
+                                        <option value="warning">Warning</option>
+                                        <option value="non-compliant">Non‑Compliant</option>
+                                    </select>
+                                </div>
+                            </div>
+                        </div>
+
+                        {/* Table */}
+                        <div className="overflow-x-auto">
+                            <table className="w-full min-w-[800px]">
+                                <thead className="bg-gray-50 text-left">
+                                    <tr>
+                                        <th className="px-4 py-3 text-sm font-semibold">Household ID</th>
+                                        <th className="px-4 py-3 text-sm font-semibold">Name</th>
+                                        <th className="px-4 py-3 text-sm font-semibold">Address</th>
+                                        <th className="px-4 py-3 text-sm font-semibold">Disposals</th>
+                                        <th className="px-4 py-3 text-sm font-semibold">Points</th>
+                                        <th className="px-4 py-3 text-sm font-semibold">Status</th>
+                                    </tr>
+                                </thead>
+
+                                <tbody>
+                                    {filteredData.map((item) => (
+                                        <tr key={item.id} className="hover:bg-gray-50">
+                                            <td className="px-4 py-3 font-mono text-sm">{item.id}</td>
+                                            <td className="px-4 py-3 font-medium">{item.name}</td>
+                                            <td className="px-4 py-3 text-gray-600">{item.address}</td>
+                                            <td className="px-4 py-3">{item.disposals}</td>
+                                            <td className="px-4 py-3 font-bold text-green-600">
+                                                {item.points}
+                                            </td>
+                                            <td className="px-4 py-3">
+                                                <span
+                                                    className={`inline-flex items-center gap-2 px-3 py-1 rounded-full text-sm font-medium ${statusStyles[item.status]}`}
+                                                >
+                                                    {statusIcons[item.status]}
+                                                    {item.status.replace("-", " ")}
+                                                </span>
+                                            </td>
+                                        </tr>
+                                    ))}
+                                </tbody>
+                            </table>
+                        </div>
+                    </section>
+                </main>
+            </div>
+        </div>
+    );
+}

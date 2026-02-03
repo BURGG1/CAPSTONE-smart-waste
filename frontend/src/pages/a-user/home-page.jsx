@@ -14,6 +14,7 @@ import Navbar from "../../components/Navbar";
 import Sidebar from "../../components/Sidebar";
 
 
+// household information
 const household = {
     id: "HH-24680135",
     name: "Dela Cruz Family",
@@ -29,6 +30,7 @@ const household = {
     },
 };
 
+// waste stats
 const wasteStats = [
     {
         type: "Biodegradable",
@@ -53,6 +55,7 @@ const wasteStats = [
     },
 ];
 
+// for household information to
 const infoItems = [
     {
         label: "Household Name",
@@ -187,7 +190,7 @@ export default function HouseholdProfile() {
                     </div>
 
                     {/* Waste Segregation Statistics */}
-                    <div className="mt-8 bg-white rounded-xl shadow p-6">
+                    {/* <div className="mt-8 bg-white rounded-xl shadow p-6">
                         <h2 className="text-lg font-semibold mb-6">
                             Waste Segregation Statistics
                         </h2>
@@ -229,7 +232,7 @@ export default function HouseholdProfile() {
                                 </div>
                             ))}
                         </div>
-                    </div>
+                    </div> */}
                 </main>
             </div>
         </div>
