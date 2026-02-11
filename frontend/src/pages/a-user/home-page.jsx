@@ -11,7 +11,7 @@ import {
 } from "lucide-react";
 
 import Navbar from "../../components/Navbar";
-import Sidebar from "../../components/Sidebar";
+import NavigationShell from "../../navigation/mainNav";
 
 
 // household information
@@ -96,7 +96,7 @@ export default function HouseholdProfile() {
         <div className="flex-1">
             <Navbar />
             <div className="flex min-h-screen bg-gray-50">
-                <Sidebar />
+                <NavigationShell />
 
                 <main className="p-4 sm:p-6">
                     {/* Page Header */}
@@ -105,64 +105,26 @@ export default function HouseholdProfile() {
                         View and manage your household information
                     </p>
 
-                    {/* Top Cards */}
-                    <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
-                        {/* QR Code */}
-                        <div className="bg-white rounded-xl shadow p-6">
-                            <h3 className="font-semibold mb-4 text-center">
-                                Household QR Code
-                            </h3>
-                            <div className="flex justify-center mb-4">
-                                <div className="w-40 h-40 bg-gray-100 flex items-center justify-center rounded-lg">
-                                    QR CODE
-                                </div>
-                            </div>
-                            <p className="text-center text-sm text-gray-500">
-                                Household ID
-                            </p>
-                            <p className="text-center font-semibold text-green-600">
-                                {household.id}
-                            </p>
+                  
+                    {/* Reward Points */}
+                    <div className="bg-green-600 mt-8 text-white rounded-xl shadow p-6">
+                        <div className="flex items-center gap-2 mb-6">
+                            <Award size={20} />
+                            <h3 className="font-semibold">Reward Points</h3>
                         </div>
-
-                        {/* Compliance */}
-                        <div className="bg-green-50 border border-green-200 rounded-xl shadow p-6">
-                            <div className="flex items-center gap-2 text-green-600 mb-4">
-                                <CheckCircle size={20} />
-                                <h3 className="font-semibold">Compliance Status</h3>
-                            </div>
-                            <h2 className="text-3xl font-bold text-green-700 mb-2">
-                                {household.compliance}
-                            </h2>
-                            <p className="text-green-600 mb-6">
-                                Keep up the great work!
-                            </p>
-                            <p className="text-xs text-gray-500">
-                                Based on Republic Act No. 9003
-                            </p>
-                        </div>
-
-                        {/* Reward Points */}
-                        <div className="bg-green-600 text-white rounded-xl shadow p-6">
-                            <div className="flex items-center gap-2 mb-6">
-                                <Award size={20} />
-                                <h3 className="font-semibold">Reward Points</h3>
-                            </div>
-                            <h2 className="text-4xl font-bold mb-2">
-                                {household.points.total}
-                            </h2>
-                            <p className="text-green-100 mb-8">
-                                Total Points Earned
-                            </p>
-                            <div className="flex justify-between text-sm">
-                                <span>This Month</span>
-                                <span className="font-semibold">
-                                    +{household.points.thisMonth} points
-                                </span>
-                            </div>
+                        <h2 className="text-4xl font-bold mb-2">
+                            {household.points.total}
+                        </h2>
+                        <p className="text-green-100 mb-8">
+                            Total Points Earned
+                        </p>
+                        <div className="flex justify-between text-sm">
+                            <span>This Month</span>
+                            <span className="font-semibold">
+                                +{household.points.thisMonth} points
+                            </span>
                         </div>
                     </div>
-
                     {/* Household Information */}
                     <div className="mt-8 bg-white rounded-xl shadow p-6">
                         <h2 className="text-lg font-semibold mb-6">

@@ -1,6 +1,6 @@
-import Sidebar from "../../components/Sidebar";
 import Navbar from "../../components/Navbar";
 import { Star, TrendingUp, Gift } from "lucide-react";
+import NavigationShell from "../../navigation/mainNav";
 
 
 
@@ -99,7 +99,7 @@ export default function Rewards() {
             <Navbar />
 
             <div className="flex min-h-screen bg-gray-50">
-                <Sidebar />
+                <NavigationShell />
 
                 <main className="w-full p-4 sm:p-6 space-y-8">
                     {/* Header */}

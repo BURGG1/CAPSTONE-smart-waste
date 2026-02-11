@@ -8,7 +8,7 @@ export default function Navbar() {
 
   const handleLogin = () => {
     setIsLoggedIn(true);
-    navigate("/home-page"); 
+    navigate("/Login"); 
   };
 
   const handleLogout = () => {
@@ -28,8 +28,8 @@ export default function Navbar() {
 
         {isLoggedIn ? (
           <button
-            onClick={handleLogout}
-            className="flex items-center gap-1 text-red-500 cursor-pointer font-medium"
+          onClick={handleLogout}
+          className="flex items-center gap-1 text-red-500 cursor-pointer font-medium"
           >
             <LogOut size={16} />
             Logout

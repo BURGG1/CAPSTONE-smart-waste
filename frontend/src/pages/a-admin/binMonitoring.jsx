@@ -1,5 +1,5 @@
 import Navbar from "../../components/Navbar";
-import Sidebar from "../../components/Sidebar";
+import NavigationShell from "../../navigation/mainNav";
 
 import {
   Trash2,
@@ -51,7 +51,7 @@ const alertData = {
 
 const stats = [
   {
-    title: "Total Households",
+    title: "Total Bins",
     value: 6,
     icon: Trash,
     iconBg: "bg-blue-100",
@@ -59,7 +59,7 @@ const stats = [
     percentage: null,
   },
   {
-    title: "Compliant",
+    title: "Normal",
     value: 3,
     icon: CheckCircle,
     iconBg: "bg-green-100",
@@ -77,7 +77,7 @@ const stats = [
     percentColor: "text-yellow-600",
   },
   {
-    title: "Non-Compliant",
+    title: "Critical",
     value: 1,
     icon: XCircle,
     iconBg: "bg-red-100",
@@ -162,7 +162,7 @@ export default function BinMonitoring() {
     <div className="flex-1">
       <Navbar />
       <div className="flex min-h-screen bg-gray-50">
-        <Sidebar />
+        <NavigationShell />
 
         <main className="w-full p-4 sm:p-6 space-y-6">
 

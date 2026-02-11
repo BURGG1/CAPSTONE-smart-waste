@@ -1,4 +1,4 @@
-import Sidebar from "../../components/Sidebar";
+import NavigationShell from "../../navigation/mainNav";
 import Navbar from "../../components/Navbar";
 import {
   Trophy,
@@ -73,10 +73,8 @@ const getTierByRank = (rank) => {
   return null;
 };
 
-
 export default function Leaderboard() {
 
-// dito sinosort yung rawData
   const rankedData = [...rawData]
     .sort((a, b) => b.points - a.points)
     .map((item, index) => ({
@@ -91,7 +89,7 @@ export default function Leaderboard() {
     <div className="flex-1">
       <Navbar />
       <div className="flex min-h-screen bg-gray-50">
-        <Sidebar />
+        <NavigationShell />
 
         <main className="w-full p-4 sm:p-6 space-y-8">
           {/* Header */}
@@ -103,9 +101,9 @@ export default function Leaderboard() {
           </div>
 
           {/* ===================== PODIUM ===================== */}
-          <section className="bg-gradient-to-b from-green-50 to-white rounded-xl p-6 shadow">
-            <div className="flex flex-col md:flex-row items-end justify-center gap-6">
-              {[2, 1, 3].map((pos) => {
+          <section className="w-full bg-gradient-to-b from-green-50 to-white rounded-xl p-6 shadow">
+            <div className="w-full flex flex-col justify-center p-10 lg:flex-row items-end gap-6">
+              {[2, 1, 3].map((pos) => { 
                 const item = podiumData.find((i) => i.rank === pos);
                 if (!item) return null;
 
@@ -165,7 +163,6 @@ export default function Leaderboard() {
             </div>
           </section>
 
-          {/* ===================== TABLE ===================== */}
           <section className="bg-white rounded-xl shadow overflow-hidden">
             <div className="p-6 border-b">
               <h2 className="text-xl font-bold">All Rankings</h2>
