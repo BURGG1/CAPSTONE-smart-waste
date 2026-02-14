@@ -2,6 +2,8 @@ import { useState } from "react";
 import Navbar from "../../components/Navbar";
 import AssignPointsModal from "../../components/AssignPointsModal";
 import NavigationShell from "../../navigation/mainNav";
+import Footer from "../../components/Footer";
+
 
 import {
     Trash2,
@@ -41,62 +43,42 @@ const statusColors = {
     },
 };
 
-const householdRecords = [
+const BinInformation = [
     {
-        id: "HH-24680135",
-        name: "Dela Cruz Family",
-        address: "Green St.",
-        disposals: 48,
-        points: 1240,
-        status: "compliant",
+        id: "BIN-001",
+        category: "Biodegradable",
+        capacity: 500,
+        location: "Rizal St.",
     },
     {
-        id: "HH-13579246",
-        name: "Santos Family",
-        address: "Sunshine Ave.",
-        disposals: 35,
-        points: 920,
-        status: "compliant",
+        id: "BIN-002",
+        category: "Non-Biodegradable",
+        capacity: 500,
+        location: "Rizal St.",
     },
     {
-        id: "HH-86420975",
-        name: "Reyes Household",
-        address: "Eco Lane",
-        disposals: 22,
-        points: 450,
-        status: "warning",
+        id: "BIN-003",
+        category: "Biodegradable",
+        capacity: 500,
+        location: "Mabini St.",
     },
     {
-        id: "HH-97531468",
-        name: "Garcia Family",
-        address: "Clean Rd.",
-        disposals: 12,
-        points: 180,
-        status: "non-compliant",
+        id: "BIN-004",
+        category: "Non-Biodegradable",
+        capacity: 500,
+        location: "Mabini St.",
     },
     {
-        id: "HH-75391482",
-        name: "Martinez Family",
-        address: "Fresh Blvd.",
-        disposals: 41,
-        points: 1050,
-        status: "compliant",
+        id: "BIN-005",
+        category: "Biodegradable",
+        capacity: 500,
+        location: "Bonifacio St.",
     },
     {
-        id: "HH-15948673",
-        name: "Lopez Household",
-        address: "Nature St.",
-        disposals: 18,
-        points: 380,
-        status: "warning",
-    },
-    {
-        id: "HH-25948673",
-        name: "Lopez Household",
-        address: "Nature St.",
-        disposals: 18,
-        points: 380,
-        status: "warning",
+        id: "BIN-006",
+        category: "Non-Biodegradable",
+        capacity: 500,
+        location: "Bonifacio St.",
     },
 ];
 
@@ -134,12 +116,16 @@ export default function WasteBin() {
     const [search, setSearch] = useState("");
     const [filter, setFilter] = useState("all");
 
-    const filteredData = householdRecords.filter((h) => {
+    const [location, setLocation] = useState("");
+    const [category, setCategory] = useState("Biodegradable");
+    const [capacity, setCapacity] = useState("100L");
+
+    const filteredData = BinInformation.filter((h) => {
         const matchSearch =
-            h.name.toLowerCase().includes(search.toLowerCase()) ||
+            h.category.toLowerCase().includes(search.toLowerCase()) ||
             h.id.toLowerCase().includes(search.toLowerCase());
 
-        const matchFilter = filter === "all" || h.status === filter;
+        const matchFilter = filter === "all" || h.category === filter;
 
         return matchSearch && matchFilter;
     });
@@ -148,26 +134,96 @@ export default function WasteBin() {
     return (
         <div className="flex-1">
             <Navbar />
-            <div className="flex min-h-screen bg-gray-50">
-                <NavigationShell />
-
-                <main className="w-full p-4 sm:p-6 space-y-6">
-
-                    {/* HEADER */}
-                    <div>
-                        <h1 className="text-lg sm:text-3xl font-bold">
-                           Waste bin Segregation Management
+            <div className="flex flex-col min-h-screen bg-gray-50 md:flex-row">
+                <div className="flex gap-4">
+                    {/* FOR MOBILE */}
+                    <NavigationShell />
+                    <div className="py-2 md:hidden">
+                        <h1 className="text-lg sm:text-3xl font-bold text-gray-900">
+                            Waste bin Segregation Management
                         </h1>
-                        <p className="text-gray-500 text-xl sm:text-lg">
-                            Monitor household compliance  
+                        <p className="text-gray-500 text-xs sm:text-lg ">
+                            Handle and Manage Smart bin Information
                         </p>
                     </div>
 
+                </div>
+
+                <main className="w-full p-4 sm:p-6 space-y-6">
+
+                    <div className="hidden md:block">
+                        <h1 className="text-lg sm:text-3xl font-bold text-gray-900">
+                            Waste bin Segregation Management
+                        </h1>
+                        <p className="text-gray-500 text-xs sm:text-lg ">
+                            Handle and Manage Smart bin Information
+                        </p>
+                    </div>
+
+                    <section className="bg-white rounded-xl p-6 shadow">
+                        <h2 className="text-lg font-semibold mb-6 flex items-center gap-2">
+                            <Plus className="text-green-600" />
+                            Add Bin
+                        </h2>
+
+                        <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+                            {/* category */}
+                            <select
+                                value={category}
+                                onChange={(e) => setCategory(e.target.value)}
+                                className="py-2 border rounded-lg bg-white focus:ring-2 focus:ring-green-500"
+                            >
+                                <option value="">Bin Type:</option>
+                                <option value="Biodegradable">Biodegradable</option>
+                                <option value="NonBiodegradable">Non-Biodegradable</option>
+
+                            </select>
+                            {/* capacity */}
+
+                            <select
+                                value={capacity}
+                                onChange={(e) => setCapacity(e.target.value)}
+                                className="py-2 border rounded-lg bg-white focus:ring-2 focus:ring-green-500"
+                            >
+                                <option value="">Capacity</option>
+                                <option value="100">100L</option>
+                                <option value="500">500L</option>
+                            </select>
+
+                            {/* location */}
+
+                            <select
+                                value={location}
+                                onChange={(e) => setLocation(e.target.value)}
+                                className="py-2 border rounded-lg bg-white focus:ring-2 focus:ring-green-500"
+                            >
+                                <option value="all">Bin Location</option>
+                                <option value="compliant">Rizal St.</option>
+                                <option value="warning">Mabini St.</option>
+                                <option value="non-compliant">Bonifacio St.</option>
+                            </select>
+
+                        </div>
+                        {/* Buttons */}
+                        <div className="mt-3 flex justify-end  gap-2">
+
+                            <button className="cursor-pointer px-5 mt-auto bg-green-600 flex items-center justify-center gap-1 text-white rounded-lg p-2 hover:bg-green-700 transition">
+                                <Plus size={16} />
+                                Add Bin
+                            </button>
+
+                            {/* <button className="cursor-pointer mt-auto bg-gray-400 flex items-center justify-center gap-1 text-black rounded-lg p-2 hover:bg-gray-500 transition">
+                                Cancel
+                            </button> */}
+
+                        </div>
+                    </section>
+
                     <section className="bg-white rounded-2xl shadow p-6">
-                        {/* Header */}
+
                         <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4 mb-6">
                             <h2 className="text-lg md:text-xl font-bold text-gray-900">
-                                Household Records
+                                Bin Information
                             </h2>
 
                             <div className="flex flex-col sm:flex-row gap-3 w-full sm:w-auto">
@@ -176,7 +232,7 @@ export default function WasteBin() {
                                     <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" size={18} />
                                     <input
                                         type="text"
-                                        placeholder="Search households..."
+                                        placeholder="Search Bin..."
                                         value={search}
                                         onChange={(e) => setSearch(e.target.value)}
                                         className="pl-10 pr-4 py-2 border rounded-lg w-full sm:w-64 focus:ring-2 focus:ring-green-500"
@@ -191,20 +247,13 @@ export default function WasteBin() {
                                         onChange={(e) => setFilter(e.target.value)}
                                         className="pl-10 pr-4 py-2 border rounded-lg bg-white focus:ring-2 focus:ring-green-500"
                                     >
-                                        <option value="all">All Status</option>
-                                        <option value="compliant">Compliant</option>
-                                        <option value="warning">Warning</option>
-                                        <option value="non-compliant">Non‑Compliant</option>
+                                        <option value="all">Category</option>
+                                        <option value="Biodegradable">Biodegradable</option>
+                                        <option value="Non-Biodegradable">Non-Biodegradable</option>
                                     </select>
                                 </div>
 
-                                <div className="relative">
-                                    <button
-                                        className="bg-green-300 w-10 h-10 p-2 rounded-lg cursor-pointer"
-                                    >
-                                        <Plus />
-                                    </button>
-                                </div>
+
                             </div>
                         </div>
 
@@ -213,11 +262,10 @@ export default function WasteBin() {
                             <table className="w-full min-w-[800px]">
                                 <thead className="bg-gray-50 text-left">
                                     <tr>
-                                        <th className="px-4 py-3 text-sm font-semibold">Household ID</th>
-                                        <th className="px-4 py-3 text-sm font-semibold">Name</th>
-                                        <th className="px-4 py-3 text-sm font-semibold">Address</th>
-                                        <th className="px-4 py-3 text-sm font-semibold">Disposals</th>
-                                        <th className="px-4 py-3 text-sm font-semibold">Points</th>
+                                        <th className="px-4 py-3 text-sm font-semibold">Bin ID</th>
+                                        <th className="px-4 py-3 text-sm font-semibold">Bin Type</th>
+                                        <th className="px-4 py-3 text-sm font-semibold">Capacity</th>
+                                        <th className="px-4 py-3 text-sm font-semibold">Location</th>
                                         <th className="px-4 py-3 text-sm font-semibold">Action</th>
                                     </tr>
                                 </thead>
@@ -226,19 +274,16 @@ export default function WasteBin() {
                                     {filteredData.map((item) => (
                                         <tr key={item.id} className="hover:bg-gray-50">
                                             <td className="px-4 py-3 font-mono text-sm">{item.id}</td>
-                                            <td className="px-4 py-3 font-medium">{item.name}</td>
-                                            <td className="px-4 py-3 text-gray-600">{item.address}</td>
-                                            <td className="px-4 py-3">{item.disposals}</td>
-                                            <td className="px-4 py-3 font-bold text-green-600">
-                                                {item.points}
-                                            </td>
+                                            <td className="px-4 py-3 font-medium">{item.category}</td>
+                                            <td className="px-4 py-3 text-gray-600">{item.capacity}<span>L</span></td>
+                                            <td className="px-4 py-3">{item.location}</td>
                                             <td className="flex flex-row gap-2">
-                                                <button className="bg-blue-300 px-3 py-1 rounded-lg">
+                                                {/* <button className="bg-blue-300 px-3 py-1 rounded-lg">
                                                     View
-                                                </button>
-                                                {/* <button className="bg-green-400 px-3 py-1 rounded-lg">
-                                                    Edit
                                                 </button> */}
+                                                <button className="bg-green-400 px-3 py-1 rounded-lg">
+                                                    Edit
+                                                </button>
                                             </td>
 
                                         </tr>
@@ -247,13 +292,10 @@ export default function WasteBin() {
                             </table>
                         </div>
                     </section>
-
-                   
-
                 </main>
-
-              
             </div>
+            <Footer/>
         </div>
+
     );
 }

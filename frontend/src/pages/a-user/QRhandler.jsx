@@ -98,11 +98,11 @@ export default function QRhandler() {
             <div className="flex min-h-screen bg-gray-50">
                 <NavigationShell />
 
-                <main className="p-4 sm:p-6">
+                <main className="w-full pb-20 px-4 sm:p-6">
                     {/* Page Header */}
                     <h1 className="text-2xl font-bold mb-1">QR code</h1>
                     <p className="text-gray-500 mb-6">
-                        View and manage your household information
+                       QR Code Verification for Households 
                     </p>
 
                     {/* Top Cards */}

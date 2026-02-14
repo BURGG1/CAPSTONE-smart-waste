@@ -15,9 +15,9 @@ import { useState } from "react";
 
 const userMenu = [
     { name: "QR-Code", icon: QrCode, path: "/qrcode" },
-    { name: "My Profile", icon: Home, path: "/home-page" },
     { name: "Rewards", icon: Gift, path: "/rewards" },
     { name: "Leaderboard", icon: Trophy, path: "/leaderboard" },
+    { name: "My Profile", icon: Home, path: "/home-page" },
 ];
 
 const adminMenu = [

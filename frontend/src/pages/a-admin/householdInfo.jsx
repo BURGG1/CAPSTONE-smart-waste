@@ -2,6 +2,8 @@ import { useState } from "react";
 import Navbar from "../../components/Navbar";
 import AssignPointsModal from "../../components/AssignPointsModal";
 import NavigationShell from "../../navigation/mainNav";
+import Footer from "../../components/Footer";
+import AddHousehold from "../../components/AddHouseholdModal";
 
 import {
     Trash2,
@@ -174,7 +176,10 @@ function getStatusFromFill(fill) {
 
 export default function HouseholdInfo() {
 
-    const [openModal, setOpenModal] = useState(false)
+    const [openPointsModal, setOpenPointsModal] = useState(false)
+    const [openAddModal, setOpenAddModal] = useState(false)
+
+
     const [search, setSearch] = useState("");
     const [filter, setFilter] = useState("all");
 
@@ -190,24 +195,36 @@ export default function HouseholdInfo() {
 
 
     return (
+
         <div className="flex-1">
             <Navbar />
-            <div className="flex min-h-screen bg-gray-50">
-                <NavigationShell />
-
-                <main className="w-full p-4 sm:p-6 space-y-6">
-
-                    {/* HEADER */}
-                    <div>
-                        <h1 className="text-lg sm:text-3xl font-bold">
+            <div className="flex flex-col min-h-screen bg-gray-50 md:flex-row">
+                <div className="flex gap-4">
+                    {/* FOR MOBILE */}
+                    <NavigationShell />
+                    <div className="py-2 md:hidden">
+                        <h1 className="text-lg sm:text-3xl font-bold text-gray-900">
                             Household Information Management
                         </h1>
-                        <p className="text-gray-500 text-xl sm:text-lg">
-                            Monitor smart bin capacity across the community
+                        <p className="text-gray-500 text-xs sm:text-lg ">
+                            Manage household Information of the community
                         </p>
                     </div>
 
-                    <section className="bg-white rounded-2xl shadow p-6">
+                </div>
+
+                <main className="w-full p-4 sm:p-6 space-y-6">
+
+                    <div className="hidden md:block">
+                        <h1 className="text-lg sm:text-3xl font-bold text-gray-900">
+                            Household Information Management
+                        </h1>
+                        <p className="text-gray-500 text-xs sm:text-lg ">
+                            Manage household Information of the community
+                        </p>
+                    </div>
+
+                    <section className="w-full bg-white rounded-2xl shadow p-6">
                         {/* Header */}
                         <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4 mb-6">
                             <h2 className="text-lg md:text-xl font-bold text-gray-900">
@@ -244,7 +261,8 @@ export default function HouseholdInfo() {
 
                                 <div className="relative">
                                     <button
-                                        className="bg-green-300 w-10 h-10 p-2 rounded-lg cursor-pointer"
+                                        onClick={() => setOpenAddModal(true)}
+                                        className="bg-green-600 text-white w-10 h-10 p-2 rounded-lg cursor-pointer hover:bg-green-700"
                                     >
                                         <Plus />
                                     </button>
@@ -327,7 +345,7 @@ export default function HouseholdInfo() {
                                     </div>
 
                                     <button
-                                        onClick={() => setOpenModal(true)}
+                                        onClick={() => setOpenPointsModal(true)}
                                         className="w-full mt-4 bg-gray-900 cursor-pointer text-white py-2 rounded-lg hover:bg-gray-800 flex items-center justify-center gap-2">
                                         <Star size={16} />
                                         Assign Points
@@ -340,10 +358,17 @@ export default function HouseholdInfo() {
                 </main>
 
                 <AssignPointsModal
-                    isOpen={openModal}
-                    onClose={() => setOpenModal(false)}
+                    isOpen={openPointsModal}
+                    onClose={() => setOpenPointsModal(false)}
+                />
+
+                <AddHousehold
+                    isOpen={openAddModal}
+                    onClose={() => setOpenAddModal(false)}
                 />
             </div>
+            <Footer/>
         </div>
+
     );
 }

@@ -101,7 +101,7 @@ export default function Rewards() {
             <div className="flex min-h-screen bg-gray-50">
                 <NavigationShell />
 
-                <main className="w-full p-4 sm:p-6 space-y-8">
+                <main className="w-full pb-20 px-4 sm:p-6 space-y-8">
                     {/* Header */}
                     <div>
                         <h1 className="text-2xl font-bold">Rewards & Achievements</h1>

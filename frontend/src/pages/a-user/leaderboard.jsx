@@ -91,7 +91,7 @@ export default function Leaderboard() {
       <div className="flex min-h-screen bg-gray-50">
         <NavigationShell />
 
-        <main className="w-full p-4 sm:p-6 space-y-8">
+        <main className="w-full pb-20 px-4 sm:p-6 space-y-8">
           {/* Header */}
           <div>
             <h1 className="text-2xl font-bold">Community Leaderboard</h1>
@@ -101,9 +101,39 @@ export default function Leaderboard() {
           </div>
 
           {/* ===================== PODIUM ===================== */}
-          <section className="w-full bg-gradient-to-b from-green-50 to-white rounded-xl p-6 shadow">
-            <div className="w-full flex flex-col justify-center p-10 lg:flex-row items-end gap-6">
-              {[2, 1, 3].map((pos) => { 
+          <section className="w-full bg-gradient-to-b from-green-50 to-white rounded-xl p-4 sm:p-6 shadow">
+
+            {/* ===== MOBILE PODIUM ===== */}
+            <div className="flex flex-col gap-4 lg:hidden">
+              {[1, 2, 3].map((pos) => {
+                const item = podiumData.find((i) => i.rank === pos);
+                if (!item) return null;
+
+                return (
+                  <div
+                    key={item.rank}
+                    className="bg-white rounded-xl shadow p-4 flex items-center gap-4"
+                  >
+                    <div className="w-12 h-12 rounded-full bg-green-100 flex items-center justify-center font-bold">
+                      #{item.rank}
+                    </div>
+
+                    <div className="flex-1">
+                      <h3 className="font-semibold">{item.family}</h3>
+                      <p className="text-sm text-green-600 font-bold">
+                        {item.points} pts
+                      </p>
+                    </div>
+
+                    {item.rank === 1 && <Trophy className="text-yellow-500" />}
+                  </div>
+                );
+              })}
+            </div>
+
+            {/* ===== DESKTOP PODIUM ===== */}
+            <div className="hidden lg:flex w-full justify-center items-end gap-6 p-10">
+              {[2, 1, 3].map((pos) => {
                 const item = podiumData.find((i) => i.rank === pos);
                 if (!item) return null;
 
@@ -112,25 +142,18 @@ export default function Leaderboard() {
                 return (
                   <div
                     key={item.rank}
-                    className={`flex flex-col items-center ${
-                      item.rank === 1 ? "-mt-6" : ""
-                    }`}
+                    className={`flex flex-col items-center ${item.rank === 1 ? "-mt-6" : ""
+                      }`}
                   >
-                    {/* Medal */}
                     <div
                       className={`w-20 h-20 rounded-full border-4 flex items-center justify-center mb-3 ${style.ring}`}
                     >
                       {item.rank === 1 ? <Trophy /> : <Medal />}
                     </div>
 
-                    {/* Card */}
                     <div className="bg-white rounded-xl shadow px-6 py-4 text-center min-w-[180px]">
                       <p className="text-2xl font-bold">
-                        {item.rank === 1
-                          ? "1st"
-                          : item.rank === 2
-                          ? "2nd"
-                          : "3rd"}
+                        {item.rank === 1 ? "1st" : item.rank === 2 ? "2nd" : "3rd"}
                       </p>
                       <h3 className="font-semibold">{item.family}</h3>
                       <p className="text-green-600 font-bold mt-1">
@@ -138,23 +161,17 @@ export default function Leaderboard() {
                       </p>
                     </div>
 
-                    {/* Podium Block */}
                     <div
                       className={`w-full mt-4 rounded-t-xl ${style.podium}`}
                       style={{
                         height:
-                          item.rank === 1
-                            ? "120px"
-                            : item.rank === 2
-                            ? "90px"
-                            : "70px",
+                          item.rank === 1 ? "120px" : item.rank === 2 ? "90px" : "70px",
                       }}
                     />
                   </div>
                 );
               })}
             </div>
-
             <div className="mt-8 flex justify-center">
               <div className="flex items-center gap-2 bg-white px-4 py-2 rounded-full shadow text-sm font-medium">
                 <Star className="text-yellow-400" size={16} />
@@ -162,6 +179,7 @@ export default function Leaderboard() {
               </div>
             </div>
           </section>
+
 
           <section className="bg-white rounded-xl shadow overflow-hidden">
             <div className="p-6 border-b">

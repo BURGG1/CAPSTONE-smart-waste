@@ -1,5 +1,6 @@
 import Navbar from "../../components/Navbar";
 import NavigationShell from "../../navigation/mainNav";
+import Footer from "../../components/Footer";
 
 import {
   Trash2,
@@ -161,17 +162,28 @@ export default function BinMonitoring() {
   return (
     <div className="flex-1">
       <Navbar />
-      <div className="flex min-h-screen bg-gray-50">
-        <NavigationShell />
+      <div className="flex flex-col min-h-screen bg-gray-50 md:flex-row">
+
+        <div className="flex gap-4">
+          {/* FOR MOBILE */}
+          <NavigationShell />
+          <div className="py-2 md:hidden">
+            <h1 className="text-lg sm:text-3xl font-bold text-gray-900">
+              Bin Fill Capacity Monitoring
+            </h1>
+            <p className="text-gray-500 text-xs sm:text-lg ">
+              Monitor smart bin capacity across the community
+            </p>
+          </div>
+        </div>
 
         <main className="w-full p-4 sm:p-6 space-y-6">
 
-          {/* HEADER */}
-          <div>
-            <h1 className="text-lg sm:text-3xl font-bold">
+          <div className="hidden md:block">
+            <h1 className="text-lg sm:text-3xl font-bold text-gray-900">
               Bin Fill Capacity Monitoring
             </h1>
-            <p className="text-gray-500 text-xl sm:text-lg">
+            <p className="text-gray-500 text-xs sm:text-lg ">
               Monitor smart bin capacity across the community
             </p>
           </div>
@@ -224,7 +236,6 @@ export default function BinMonitoring() {
                       <p className="text-sm text-gray-500">{item.title}</p>
                     </div>
                   </div>
-
 
                 </div>
               );
@@ -341,6 +352,7 @@ export default function BinMonitoring() {
           </div>
         </main>
       </div>
+      <Footer/>
     </div>
   );
 }

@@ -3,7 +3,7 @@ import {
     CheckCircle,
     AlertTriangle,
     XCircle,
-    Medal,Trophy, Star
+    Medal, Trophy, Star
 } from "lucide-react";
 import {
     PieChart,
@@ -21,6 +21,8 @@ import {
 import { useState } from "react";
 import Navbar from "../../components/Navbar";
 import NavigationShell from "../../navigation/mainNav";
+import Footer from "../../components/Footer";
+
 
 const householdRecords = [
     {
@@ -82,7 +84,7 @@ const householdRecords = [
 ];
 
 
-// Stat cards
+// STAT CARD
 const stats = [
     {
         title: "Total Households",
@@ -93,7 +95,7 @@ const stats = [
         percentage: null,
     },
     {
-        title: "Compliant",
+        title: "Properly Segregating",
         value: 3,
         icon: CheckCircle,
         iconBg: "bg-green-100",
@@ -102,16 +104,7 @@ const stats = [
         percentColor: "text-green-600",
     },
     {
-        title: "Warning",
-        value: 2,
-        icon: AlertTriangle,
-        iconBg: "bg-yellow-100",
-        iconColor: "text-yellow-600",
-        percentage: "33%",
-        percentColor: "text-yellow-600",
-    },
-    {
-        title: "Non-Compliant",
+        title: "For Improvement",
         value: 1,
         icon: XCircle,
         iconBg: "bg-red-100",
@@ -149,67 +142,67 @@ const statusIcons = {
 };
 
 const rawData = [
-  {
-    family: "Santos Family",
-    householdId: "HH-13579246",
-    disposals: 62,
-    points: 1580,
-    trend: "up",
-    isYou: false,
-  },
-  {
-    family: "Martinez Family",
-    householdId: "HH-75391482",
-    disposals: 54,
-    points: 1350,
-    trend: "up",
-    isYou: false,
-  },
-  {
-    family: "Dela Cruz Family",
-    householdId: "HH-24680135",
-    disposals: 48,
-    points: 1240,
-    trend: "up",
-    isYou: true,
-  },
-  {
-    family: "Lopez Household",
-    householdId: "HH-15948673",
-    disposals: 38,
-    points: 920,
-    trend: "down",
-    isYou: false,
-  },
+    {
+        family: "Santos Family",
+        householdId: "HH-13579246",
+        disposals: 62,
+        points: 1580,
+        trend: "up",
+        isYou: false,
+    },
+    {
+        family: "Martinez Family",
+        householdId: "HH-75391482",
+        disposals: 54,
+        points: 1350,
+        trend: "up",
+        isYou: false,
+    },
+    {
+        family: "Dela Cruz Family",
+        householdId: "HH-24680135",
+        disposals: 48,
+        points: 1240,
+        trend: "up",
+        isYou: true,
+    },
+    {
+        family: "Lopez Household",
+        householdId: "HH-15948673",
+        disposals: 38,
+        points: 920,
+        trend: "down",
+        isYou: false,
+    },
 ];
 
 
 const medalStyles = {
-  Gold: {
-    ring: "border-yellow-400 text-yellow-500",
-    podium: "bg-yellow-400",
-  },
-  Silver: {
-    ring: "border-gray-300 text-gray-400",
-    podium: "bg-gray-300",
-  },
-  Bronze: {
-    ring: "border-orange-400 text-orange-500",
-    podium: "bg-orange-400",
-  },
+    Gold: {
+        ring: "border-yellow-400 text-yellow-500",
+        podium: "bg-yellow-400",
+    },
+    Silver: {
+        ring: "border-gray-300 text-gray-400",
+        podium: "bg-gray-300",
+    },
+    Bronze: {
+        ring: "border-orange-400 text-orange-500",
+        podium: "bg-orange-400",
+    },
 };
 
 const tierStyles = {
-  Gold: "bg-yellow-100 text-yellow-700",
-  Silver: "bg-gray-100 text-gray-700",
-  Bronze: "bg-orange-100 text-orange-700",
+    Gold: "bg-yellow-100 text-yellow-700",
+    Silver: "bg-gray-100 text-gray-700",
+    Bronze: "bg-orange-100 text-orange-700",
 };
 
 const getTierByRank = (rank) => {
-  if (rank === 1) return "Gold";
-  if (rank === 2) return "Silver";
-  if (rank === 3) return "Bronze";
-  return null;
+    if (rank === 1) return "Gold";
+    if (rank === 2) return "Silver";
+    if (rank === 3) return "Bronze";
+    return null;
 };
 
 
@@ -218,14 +211,14 @@ const getTierByRank = (rank) => {
 export default function ComplianceDashboard() {
 
     const rankedData = [...rawData]
-    .sort((a, b) => b.points - a.points)
-    .map((item, index) => ({
-      ...item,
-      rank: index + 1,
-      tier: getTierByRank(index + 1),
-    }));
+        .sort((a, b) => b.points - a.points)
+        .map((item, index) => ({
+            ...item,
+            rank: index + 1,
+            tier: getTierByRank(index + 1),
+        }));
 
-  const podiumData = rankedData.slice(0, 3);
+    const podiumData = rankedData.slice(0, 3);
 
     const [search, setSearch] = useState("");
     const [filter, setFilter] = useState("all");
@@ -242,23 +235,38 @@ export default function ComplianceDashboard() {
 
 
     return (
-        <div className="flex-1">
+        <div className="min-h-screen flex flex-col">
             <Navbar />
 
-            <div className="flex min-h-screen bg-gray-50">
-                <NavigationShell />
+            <div className="flex flex-col min-h-screen bg-gray-50 md:flex-row">
 
-                <main className="w-full p-4 sm:p-6 space-y-6">
+                <div className="flex gap-4">
+                    {/* FOR MOBILE */}
+                    <NavigationShell />
+                    <div className="py-2 md:hidden">
+                        <h1 className="text-lg sm:text-3xl font-bold text-gray-900">
+                            Dashboard
+                        </h1>
+                        <p className="text-gray-500 text-xs sm:text-lg ">
+                            Monitor overall waste segregation compliance
+                        </p>
+                    </div>
+
+                </div>
+
+                <main className="flex-1 w-full p-4 sm:p-6 space-y-6">
+
+                    <div className="hidden md:block">
+                        <h1 className="text-lg sm:text-3xl font-bold text-gray-900">
+                            Dashboard
+                        </h1>
+                        <p className="text-gray-500 text-xs sm:text-lg ">
+                            Monitor overall waste segregation compliance
+                        </p>
+                    </div>
+
+
                     <section className="flex flex-col gap-5">
-                        {/* Header */}
-                        <div>
-                            <h1 className="text-lg sm:text-3xl font-bold text-gray-900">
-                                Dashboard
-                            </h1>
-                            <p className="text-gray-500 text-xs sm:text-lg ">
-                                Monitor household waste segregation compliance
-                            </p>
-                        </div>
 
                         {/* Stat Cards */}
                         <div className="w-full flex flex-col lg:flex-row gap-4">
@@ -359,9 +367,42 @@ export default function ComplianceDashboard() {
 
                     </section>
 
-                    {/* ===================== PODIUM ===================== */}
-                    <section className="w-full bg-gradient-to-b from-green-50 to-white rounded-xl p-6 shadow">
-                        <div className="w-full flex flex-col justify-center p-10 lg:flex-row items-end gap-6">
+                    <section className="w-full bg-gradient-to-b from-green-50 to-white rounded-xl p-4 sm:p-6 shadow">
+
+                        {/* ===== MOBILE PODIUM ===== */}
+                        <div className="flex flex-col gap-4 lg:hidden">
+                            <h3 className="text-lg font-semibold mb-4">
+                                Leaderboard
+                            </h3>
+
+                            {[1, 2, 3].map((pos) => {
+                                const item = podiumData.find((i) => i.rank === pos);
+                                if (!item) return null;
+
+                                return (
+                                    <div
+                                        key={item.rank}
+                                        className="bg-white rounded-xl shadow p-4 flex items-center gap-4"
+                                    >
+                                        <div className="w-12 h-12 rounded-full bg-green-100 flex items-center justify-center font-bold">
+                                            #{item.rank}
+                                        </div>
+
+                                        <div className="flex-1">
+                                            <h3 className="font-semibold">{item.family}</h3>
+                                            <p className="text-sm text-green-600 font-bold">
+                                                {item.points} pts
+                                            </p>
+                                        </div>
+
+                                        {item.rank === 1 && <Trophy className="text-yellow-500" />}
+                                    </div>
+                                );
+                            })}
+                        </div>
+
+                        {/* ===== DESKTOP PODIUM ===== */}
+                        <div className="hidden lg:flex w-full justify-center items-end gap-6 p-10">
                             {[2, 1, 3].map((pos) => {
                                 const item = podiumData.find((i) => i.rank === pos);
                                 if (!item) return null;
@@ -374,21 +415,15 @@ export default function ComplianceDashboard() {
                                         className={`flex flex-col items-center ${item.rank === 1 ? "-mt-6" : ""
                                             }`}
                                     >
-                                        {/* Medal */}
                                         <div
                                             className={`w-20 h-20 rounded-full border-4 flex items-center justify-center mb-3 ${style.ring}`}
                                         >
                                             {item.rank === 1 ? <Trophy /> : <Medal />}
                                         </div>
 
-                                        {/* Card */}
                                         <div className="bg-white rounded-xl shadow px-6 py-4 text-center min-w-[180px]">
                                             <p className="text-2xl font-bold">
-                                                {item.rank === 1
-                                                    ? "1st"
-                                                    : item.rank === 2
-                                                        ? "2nd"
-                                                        : "3rd"}
+                                                {item.rank === 1 ? "1st" : item.rank === 2 ? "2nd" : "3rd"}
                                             </p>
                                             <h3 className="font-semibold">{item.family}</h3>
                                             <p className="text-green-600 font-bold mt-1">
@@ -396,19 +431,16 @@ export default function ComplianceDashboard() {
                                             </p>
                                         </div>
 
-                                        {/* Podium Block */}
                                         <div
                                             className={`w-full mt-4 rounded-t-xl ${style.podium}`}
                                             style={{
                                                 height:
-                                                    item.rank === 1
-                                                        ? "120px"
-                                                        : item.rank === 2
-                                                            ? "90px"
-                                                            : "70px",
+                                                    item.rank === 1 ? "120px" : item.rank === 2 ? "90px" : "70px",
                                             }}
                                         />
                                     </div>
+
+
                                 );
                             })}
                         </div>
@@ -421,8 +453,10 @@ export default function ComplianceDashboard() {
                         </div>
                     </section>
 
+
                 </main>
             </div>
+            <Footer/>
         </div>
     );
 }

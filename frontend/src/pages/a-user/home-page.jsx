@@ -98,7 +98,7 @@ export default function HouseholdProfile() {
             <div className="flex min-h-screen bg-gray-50">
                 <NavigationShell />
 
-                <main className="p-4 sm:p-6">
+                <main className="w-full pb-20 px-4 sm:p-6">
                     {/* Page Header */}
                     <h1 className="text-2xl font-bold mb-1">Household Profile</h1>
                     <p className="text-gray-500 mb-6">

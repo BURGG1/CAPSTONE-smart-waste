@@ -4,6 +4,7 @@ import { useState } from "react";
 const disposalLogs = [
     {
         id: 1,
+        houseId: "HH-15948671",
         date: "2026-02-01",
         time: "09:52:08",
         resident: "Dela Cruz Family",
@@ -13,6 +14,7 @@ const disposalLogs = [
     },
     {
         id: 2,
+        houseId: "HH-15948672",
         date: "2026-02-01",
         time: "09:35:12",
         resident: "Lopez Household",
@@ -22,6 +24,7 @@ const disposalLogs = [
     },
     {
         id: 3,
+        houseId: "HH-15948674",
         date: "2026-01-31",
         time: "08:12:44",
         resident: "Reyes Family",
@@ -29,8 +32,9 @@ const disposalLogs = [
         points: 0,
         status: "Flagged",
     },
-     {
+    {
         id: 4,
+        houseId: "HH-15948673",
         date: "2026-01-31",
         time: "08:12:44",
         resident: "Reyes Family",
@@ -85,18 +89,17 @@ export default function AssignPointsModal({ isOpen, onClose }) {
                 {/* TABLE */}
                 <div className="overflow-x-auto">
                     <table className="w-full text-sm">
-                        <thead className="bg-gray-100 text-left">
+                        <thead className="bg-gray-100">
                             <tr>
                                 <th className="px-6 py-3">#</th>
                                 <th>Date & Time</th>
+                                <th>Household ID</th>
                                 <th>Resident</th>
-                                <th>Status</th>
-                                <th>Points</th>
-                                <th className="text-right px-6">Actions</th>
+                                <th>Actions</th>
                             </tr>
                         </thead>
 
-                        <tbody>
+                        <tbody className="text-center">
                             {filteredLogs.map((log) => (
                                 <tr key={log.id}>
                                     <td className="px-6 py-3 font-medium">#{log.id}</td>
@@ -106,25 +109,14 @@ export default function AssignPointsModal({ isOpen, onClose }) {
                                         <p className="text-xs text-gray-500">{log.time}</p>
                                     </td>
 
+                                    <td>{log.houseId}</td>
+
+
                                     <td>{log.resident}</td>
 
+
                                     <td>
-                                        <span
-                                            className={`px-3 py-1 rounded-full text-xs font-medium ${log.status === "Compliant"
-                                                    ? "bg-green-100 text-green-700"
-                                                    : "bg-red-100 text-red-700"
-                                                }`}
-                                        >
-                                            {log.status}
-                                        </span>
-                                    </td>
-
-                                    <td className="font-semibold text-green-600">
-                                        +{log.points}
-                                    </td>
-
-                                    <td className="px-6">
-                                        <div className="flex justify-end gap-2">
+                                        <div className="flex justify-center gap-2">
                                             <button className="flex cursor-pointer items-center gap-1 px-3 py-1.5 rounded-lg bg-green-600 text-white text-xs hover:bg-green-700">
                                                 <PlusCircle size={14} />
                                                 Add Points

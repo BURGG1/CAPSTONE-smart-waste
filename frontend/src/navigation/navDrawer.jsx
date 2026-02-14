@@ -8,7 +8,7 @@ export function MobileDrawer({ menu }) {
   return (
     <>
       {/* Top Bar */}
-      <div className="lg:hidden h-14 bg-white border-b flex items-center px-4">
+      <div className="lg:hidden h-14 bg-white-100 flex items-center px-4">
         <button onClick={() => setOpen(true)}>
           <Menu />
         </button>
@@ -24,7 +24,7 @@ export function MobileDrawer({ menu }) {
 
       {/* Drawer */}
       <aside
-        className={`fixed top-0 left-0 h-full w-64 bg-white z-50 p-4
+        className={`fixed top-15 left-0 h-full w-64 bg-white z-50 p-4
         transform transition-transform
         ${open ? "translate-x-0" : "-translate-x-full"}`}
       >
