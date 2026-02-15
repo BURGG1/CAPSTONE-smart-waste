@@ -3,7 +3,7 @@ import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 
 export default function Navbar() {
-  const [isLoggedIn, setIsLoggedIn] = useState(false);
+  const [isLoggedIn, setIsLoggedIn] = useState(true);
   const navigate = useNavigate();
 
   const handleLogin = () => {
@@ -12,12 +12,12 @@ export default function Navbar() {
   };
 
   const handleLogout = () => {
-    setIsLoggedIn(false);
-    navigate("/"); 
+    localStorage.removeItem("role")
+    navigate("/Login"); 
   };
 
   return (
-    <header className="w-full bg-white border-b border-gray-200 sticky top-0 z-100">
+    <header className="w-full bg-white border-b border-gray-200 sticky top-0 z-99">
       <div className="max-w-full px-4 py-4 flex justify-between items-center">
         <div className="flex items-center gap-2">
           <div className="w-9 h-9 bg-green-500 rounded-lg flex items-center justify-center">

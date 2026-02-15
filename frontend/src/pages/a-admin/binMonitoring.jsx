@@ -1,6 +1,8 @@
 import Navbar from "../../components/Navbar";
 import NavigationShell from "../../navigation/mainNav";
+import SetSched from "../../components/setCollectionSched";
 import Footer from "../../components/Footer";
+import { useState } from "react";
 
 import {
   Trash2,
@@ -158,6 +160,7 @@ function getStatusFromFill(fill) {
 }
 
 export default function BinMonitoring() {
+ const [openSchedModal, setOpenSchedModal] = useState(false)
 
   return (
     <div className="flex-1">
@@ -299,7 +302,9 @@ export default function BinMonitoring() {
                   </span>
 
                   {status !== "good" && (
-                    <button className="w-full mt-4 bg-gray-900 text-white py-2 rounded-lg hover:bg-gray-800 flex items-center justify-center gap-2">
+                    <button
+                      onClick={() => setOpenSchedModal(true)}
+                      className="w-full mt-4 bg-gray-900 text-white py-2 rounded-lg hover:bg-gray-800 flex items-center justify-center gap-2">
                       <Calendar size={16} />
                       Schedule Collection
                     </button>
@@ -345,14 +350,17 @@ export default function BinMonitoring() {
                   <p className="font-bold">Critical (90–100%)</p>
                   <p className="text-sm text-gray-500"> Immediate collection required</p>
                 </div>
-
-
               </div>
             </div>
           </div>
         </main>
       </div>
-      <Footer/>
+
+      <SetSched
+        isOpen={openSchedModal}
+        onClose={() => setOpenSchedModal(false)}
+      />
+      <Footer />
     </div>
   );
 }

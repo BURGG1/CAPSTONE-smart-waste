@@ -29,7 +29,7 @@ const adminMenu = [
 ]
 
 export default function NavigationShell() {
-    const role = "admin"
+    const role = localStorage.getItem("role") || "user";
     const isAdmin = role === "admin";
 
     return (

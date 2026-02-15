@@ -5,15 +5,34 @@ import {
   Mail,
   Lock,
   User,
+  Eye,
+  EyeOff
+
 } from "lucide-react";
 
-export default function AuthPage() {
-  const [mode, setMode] = useState("login"); 
-    const navigate = useNavigate();
 
+
+export default function AuthPage() {
+  const [form, setForm] = useState({ email: "", password: "" });
+  const navigate = useNavigate();
+  const [access, setAccess] = useState();
+
+
+  // temporary login
   const handleLogin = () => {
-    navigate("/home-page"); 
+    if (form.email === "admin" && form.password === "admin1234") {
+      localStorage.setItem("role", "admin");
+      navigate("/dashboard");
+    } else {
+      localStorage.setItem("role", "user");
+       navigate("/qrcode");
+    }
   };
+
+
+  const handleChange = (e) =>
+    setForm({ ...form, [e.target.name]: e.target.value });
+
 
   return (
     <div className="min-h-screen w-full flex items-center justify-center bg-gray-100 px-4">
@@ -37,86 +56,62 @@ export default function AuthPage() {
 
           <h2 className="text-lg font-medium">Welcome Back!</h2>
 
-          
-
-          {/* FORM */}
-          <form className="space-y-4 text-left">
-
-            {/* FULL NAME (REGISTER ONLY) */}
-            {mode === "register" && (
-              <Input
-                label="Full Name"
-                placeholder="Enter your full name"
-                icon={<User size={18} />}
-              />
-            )}
-
-            {/* EMAIL */}
-            <Input
-              label="Email"
-              placeholder="Enter your email"
-              icon={<Mail size={18} />}
-            />
-
-            {/* PASSWORD */}
-            <Input
-              label="Password"
-              placeholder={
-                mode === "login"
-                  ? "Enter your password"
-                  : "Create a password"
-              }
-              type="password"
-              icon={<Lock size={18} />}
-            />
-
-            {/* CONFIRM PASSWORD (REGISTER ONLY) */}
-            {mode === "register" && (
-              <Input
-                label="Confirm Password"
-                placeholder="Confirm your password"
-                type="password"
-                icon={<Lock size={18} />}
-              />
-            )}
-
-            {/* BUTTON */}
-            <button
-              onClick={handleLogin}  
-              type="button"
-              className="w-full cursor-pointer bg-green-600 hover:bg-green-700 text-white font-medium py-3 rounded-lg transition"
-            >
-              {mode === "login" ? "Login" : "Register"}
-            </button>
-          </form>
-
-          {/* FOOTER */}
-          {mode === "login" && (
-            <p className="text-sm text-gray-500">
-              Forgot your password?{" "}
-              <span className="text-green-600 font-medium cursor-pointer">
-                Reset here
+          {/* Email */}
+          <div className="space-y-1">
+            <label className="block text-start text-bold text-sm mb-1">Email</label>
+            <div className="flex items-center gap-2 rounded-lg px-3 py-2 bg-gray-50">
+              <span>
+                <Mail size={18} />
               </span>
-            </p>
-          )}
+              <input
+                type="email"
+                name="email"
+                value={form.email}
+                onChange={handleChange}
+                placeholder="Enter your email"
+                className="w-full bg-transparent outline-none pl-4"
+                required
+              />
+
+            </div>
+          </div>
+
+          {/* Password */}
+          <div className="relative">
+            <label className="block text-sm text-start mb-1">Password</label>
+            <div className="flex items-center gap-2 rounded-lg px-3 py-2 bg-gray-50">
+              <span>
+                <Lock size={18} />
+              </span>
+              <input
+                type="password"
+                name="password"
+                value={form.password}
+                onChange={handleChange}
+                placeholder="Enter your password"
+                className="w-full bg-transparent outline-none pl-4"
+                required
+              />
+            </div>
+
+          </div>
+
+          <button
+            onClick={handleLogin}
+            type="button"
+            className="w-full cursor-pointer bg-green-600 hover:bg-green-700 text-white font-medium py-3 rounded-lg transition"
+          >
+            Login
+          </button>
+
+          <p className="text-sm text-gray-500">
+            Forgot your password?{" "}
+            <span className="text-green-600 font-medium cursor-pointer">
+              Reset here
+            </span>
+          </p>
+
         </div>
-      </div>
-    </div>
-  );
-}
-
-
-function Input({ label, placeholder, icon, type = "text" }) {
-  return (
-    <div className="space-y-1">
-      <label className="text-sm font-medium">{label}</label>
-      <div className="flex items-center gap-2 rounded-lg px-3 py-2 bg-gray-50">
-        <span className="text-gray-400">{icon}</span>
-        <input
-          type={type}
-          placeholder={placeholder}
-          className="w-full bg-transparent outline-none text-sm"
-        />
       </div>
     </div>
   );

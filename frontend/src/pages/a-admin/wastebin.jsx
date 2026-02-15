@@ -232,7 +232,7 @@ export default function WasteBin() {
                                     <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" size={18} />
                                     <input
                                         type="text"
-                                        placeholder="Search Bin..."
+                                        placeholder="Search Bin ID..."
                                         value={search}
                                         onChange={(e) => setSearch(e.target.value)}
                                         className="pl-10 pr-4 py-2 border rounded-lg w-full sm:w-64 focus:ring-2 focus:ring-green-500"

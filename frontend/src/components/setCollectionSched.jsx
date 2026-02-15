@@ -1,15 +1,15 @@
-import { X, Calendar, Flag, Plus, PlusCircle, Asterisk } from "lucide-react";
+import { X, Calendar, Flag, Plus, PlusCircle, Filter , Asterisk } from "lucide-react";
 import { useState } from "react";
 
 
 
-export default function AddHousehold({ isOpen, onClose }) {
+export default function SetSched({ isOpen, onClose }) {
 
     if (!isOpen) return null;
 
 
     return (
-        <div className="fixed inset-0 z-99 bg-black/40 flex items-center justify-center p-4">
+        <div className="fixed inset-0 z-100 bg-black/40 flex items-center justify-center p-4">
             <div className="bg-white w-full max-w-lg rounded-2xl shadow-lg overflow-hidden">
 
                 {/* HEADER */}
@@ -19,6 +19,7 @@ export default function AddHousehold({ isOpen, onClose }) {
                         <X className="text-gray-500 cursor-pointer hover:text-gray-800" />
                     </button>
                 </div>
+
 
                 <main className="flex justify-center p-5 items-center">
 
@@ -30,10 +31,22 @@ export default function AddHousehold({ isOpen, onClose }) {
                                 <Asterisk className="text-red-500 w-4 h-4" />
                             </div>
                             <input
-                                type="text"
+                                type="date"
                                 className="flex-1 px-3 py-2 text-black rounded-lg border"
                                 placeholder="ex. Janice S. Dela Cruz.."
                             />
+                        </div>
+                        {/* Date */}
+                        <div className="relative">
+                            <Filter className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" size={18} />
+                            <select
+
+                                className="pl-10 pr-4 py-2 border rounded-lg bg-white focus:ring-2 focus:ring-green-500"
+                            >
+                                <option value="all">Category</option>
+                                <option value="Biodegradable">Biodegradable</option>
+                                <option value="Non-Biodegradable">Non-Biodegradable</option>
+                            </select>
                         </div>
                         {/* Address */}
                         <div className="flex flex-col">
