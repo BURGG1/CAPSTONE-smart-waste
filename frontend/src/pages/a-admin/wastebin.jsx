@@ -103,6 +103,51 @@ const statusIcons = {
     "non-compliant": <XCircle size={16} />,
 };
 
+const bins = [
+    {
+        id: "BIN-001",
+        location: "Rizal St.",
+        type: "Biodegradable",
+        personel: "Jeffry Agustin",
+        lastEmptied: "2026-01-23 08:00 AM",
+    },
+    {
+        id: "BIN-002",
+        location: "Mabini St.",
+        type: "Biodegradable",
+        personel: "Queenie Legaspi",
+        lastEmptied: "2026-01-24 10:30 AM",
+    },
+    {
+        id: "BIN-003",
+        location: "Luna St.",
+        type: "Biodegradable",
+        personel: "Masaki Saito",
+        lastEmptied: "2026-01-22 02:00 PM",
+    },
+    {
+        id: "BIN-004",
+        location: "Rizal St.",
+        type: "Non-biodegradable",
+        personel: "Jeffry Agustin",
+        lastEmptied: "2026-01-23 08:00 AM",
+    },
+    {
+        id: "BIN-005",
+        location: "Mabini St.",
+        type: "Non-biodegradable",
+        personel: "Queenie Legaspi",
+        lastEmptied: "2026-01-24 10:30 AM",
+    },
+    {
+        id: "BIN-006",
+        location: "Luna St.",
+        type: "Non-biodegradable",
+        personel: "Masaki Saito",
+        lastEmptied: "2026-01-22 02:00 PM",
+    },
+];
+
 
 function getStatusFromFill(fill) {
     if (fill >= 90) return "critical";
@@ -113,6 +158,8 @@ function getStatusFromFill(fill) {
 export default function WasteBin() {
 
     const [openModal, setOpenModal] = useState(false)
+    const [openPointsModal, setOpenPointsModal] = useState(false)
+
     const [search, setSearch] = useState("");
     const [filter, setFilter] = useState("all");
 
@@ -292,9 +339,65 @@ export default function WasteBin() {
                             </table>
                         </div>
                     </section>
+
+                    <section className="bg-white rounded-xl p-6 shadow">
+                        <h2 className="text-lg md:text-xl font-bold text-gray-900">
+                            Counter Information
+                        </h2>
+                        {/* BIN CARDS */}
+                        <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6 mt-5">
+                            {bins.map((bin) => {
+                                const status = getStatusFromFill(bin.fill);
+                                const style = statusColors[status];
+                                const StatusIcon = style.icon;
+
+                                return (
+                                    <div
+                                        key={bin.id}
+                                        className={`bg-white rounded-xl border p-6 shadow-md`}
+                                    >
+                                        <div className="flex justify-between items-start">
+                                            <div>
+                                                <h3 className="font-bold">{bin.id}</h3>
+                                                <p className="flex items-center gap-1 text-sm text-gray-500">
+                                                    <MapPin size={14} />
+                                                    {bin.location}
+                                                </p>
+                                            </div>
+                                            <StatusIcon className={`${style.iconColor}`} />
+                                        </div>
+
+                                        <span
+                                            className={`mt-3 inline-block px-3 py-1 text-xs text-white rounded-full ${typeColors[bin.type]}`}
+                                        >
+                                            {bin.type}
+                                        </span>
+
+                                        <div className="mt-4 text-sm space-y-1">
+                                            <p>Last Collected: <strong>{bin.lastEmptied}</strong></p>
+                                        </div>
+
+                                        <button
+                                            onClick={() => setOpenPointsModal(true)}
+                                            className="w-full mt-4 bg-green-600 cursor-pointer text-white py-2 rounded-lg hover:bg-green-700 flex items-center justify-center gap-2">
+
+                                            View
+                                        </button>
+                                    </div>
+                                );
+                            })}
+                        </div>
+                    </section>
                 </main>
             </div>
-            <Footer/>
+
+
+            <AssignPointsModal
+                isOpen={openPointsModal}
+                onClose={() => setOpenPointsModal(false)}
+            />
+
+            <Footer />
         </div>
 
     );

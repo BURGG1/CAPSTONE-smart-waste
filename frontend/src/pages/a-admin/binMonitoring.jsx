@@ -160,7 +160,9 @@ function getStatusFromFill(fill) {
 }
 
 export default function BinMonitoring() {
- const [openSchedModal, setOpenSchedModal] = useState(false)
+  const [openSchedModal, setOpenSchedModal] = useState(false)
+  const [activeBinId, setActiveBinId] = useState(null)
+
 
   return (
     <div className="flex-1">
@@ -302,12 +304,20 @@ export default function BinMonitoring() {
                   </span>
 
                   {status !== "good" && (
-                    <button
-                      onClick={() => setOpenSchedModal(true)}
-                      className="w-full mt-4 bg-gray-900 text-white py-2 rounded-lg hover:bg-gray-800 flex items-center justify-center gap-2">
-                      <Calendar size={16} />
-                      Schedule Collection
-                    </button>
+                    <div className="relative mt-4">
+
+                      <button
+                        onClick={() => setActiveBinId(bin.id)}
+                        className="w-full bg-gray-900 text-white py-2 rounded-lg"
+                      >
+                        Schedule Collection
+                      </button>
+
+                      <SetSched
+                        isOpen={activeBinId === bin.id}
+                        onClose={() => setActiveBinId(null)}
+                      />
+                    </div>
 
                   )}
                 </div>

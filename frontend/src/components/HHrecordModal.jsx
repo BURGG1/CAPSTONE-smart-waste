@@ -45,7 +45,7 @@ const disposalLogs = [
 
 ];
 
-export default function AssignPointsModal({ isOpen, onClose }) {
+export default function HouseholdRecordModal({ isOpen, onClose }) {
     const [fromDate, setFromDate] = useState("");
     const [toDate, setToDate] = useState("");
 
@@ -66,7 +66,7 @@ export default function AssignPointsModal({ isOpen, onClose }) {
 
                 {/* HEADER */}
                 <div className="flex justify-between items-center px-6 py-4 border-b">
-                    <h2 className="text-lg font-bold">Assign Points / Flag Residents</h2>
+                    <h2 className="text-lg font-bold">MALI PA</h2>
                     <button onClick={onClose}>
                         <X className="text-gray-500 cursor-pointer hover:text-gray-800" />
                     </button>

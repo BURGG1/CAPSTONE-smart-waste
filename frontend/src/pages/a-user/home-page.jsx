@@ -18,7 +18,7 @@ import NavigationShell from "../../navigation/mainNav";
 const household = {
     id: "HH-24680135",
     name: "Dela Cruz Family",
-    address: "123 Green Street, Barangay Sunshine, Metro City",
+    address: "0543, Rizal Street",
     contact: "+63 917 123 4567",
     members: 5,
     registeredSince: "January 15, 2026",

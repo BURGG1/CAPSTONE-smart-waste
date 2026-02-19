@@ -18,6 +18,7 @@ import {
     TrendingUp,
     Filter
 } from "lucide-react";
+import HouseholdRecordModal from "../../components/HHrecordModal";
 
 const statusColors = {
     good: {
@@ -45,57 +46,57 @@ const statusColors = {
 
 const householdRecords = [
     {
-        id: "HH-24680135",
+        id: "HH-202610001",
         name: "Dela Cruz Family",
-        address: "Green St.",
+        address: "Rizal St.",
         disposals: 48,
         points: 1240,
         status: "compliant",
     },
     {
-        id: "HH-13579246",
+        id: "HH-202610002",
         name: "Santos Family",
-        address: "Sunshine Ave.",
+        address: "Rizal St",
         disposals: 35,
         points: 920,
         status: "compliant",
     },
     {
-        id: "HH-86420975",
+        id: "HH-202610003",
         name: "Reyes Household",
-        address: "Eco Lane",
+        address: "Mabini St",
         disposals: 22,
         points: 450,
         status: "warning",
     },
     {
-        id: "HH-97531468",
+        id: "HH-202610004",
         name: "Garcia Family",
-        address: "Clean Rd.",
+        address: "Mabini St",
         disposals: 12,
         points: 180,
         status: "non-compliant",
     },
     {
-        id: "HH-75391482",
+        id: "HH-202610005",
         name: "Martinez Family",
-        address: "Fresh Blvd.",
+        address: "Mabini St",
         disposals: 41,
         points: 1050,
         status: "compliant",
     },
     {
-        id: "HH-15948673",
+        id: "HH-202610006",
         name: "Lopez Household",
-        address: "Nature St.",
+        address: "Bonifacio St",
         disposals: 18,
         points: 380,
         status: "warning",
     },
     {
-        id: "HH-25948673",
+        id: "HH-202610007",
         name: "Lopez Household",
-        address: "Nature St.",
+        address: "Bonifacio St",
         disposals: 18,
         points: 380,
         status: "warning",
@@ -123,50 +124,7 @@ const statusIcons = {
     "non-compliant": <XCircle size={16} />,
 };
 
-const bins = [
-    {
-        id: "BIN-001",
-        location: "Rizal St.",
-        type: "Biodegradable",
-        personel: "Jeffry Agustin",
-        lastEmptied: "2026-01-23 08:00 AM",
-    },
-    {
-        id: "BIN-002",
-        location: "Mabini St.",
-        type: "Biodegradable",
-        personel: "Queenie Legaspi",
-        lastEmptied: "2026-01-24 10:30 AM",
-    },
-    {
-        id: "BIN-003",
-        location: "Luna St.",
-        type: "Biodegradable",
-        personel: "Masaki Saito",
-        lastEmptied: "2026-01-22 02:00 PM",
-    },
-    {
-        id: "BIN-004",
-        location: "Rizal St.",
-        type: "Non-biodegradable",
-        personel: "Jeffry Agustin",
-        lastEmptied: "2026-01-23 08:00 AM",
-    },
-    {
-        id: "BIN-005",
-        location: "Mabini St.",
-        type: "Non-biodegradable",
-        personel: "Queenie Legaspi",
-        lastEmptied: "2026-01-24 10:30 AM",
-    },
-    {
-        id: "BIN-006",
-        location: "Luna St.",
-        type: "Non-biodegradable",
-        personel: "Masaki Saito",
-        lastEmptied: "2026-01-22 02:00 PM",
-    },
-];
+
 
 function getStatusFromFill(fill) {
     if (fill >= 90) return "critical";
@@ -176,8 +134,9 @@ function getStatusFromFill(fill) {
 
 export default function HouseholdInfo() {
 
-    const [openPointsModal, setOpenPointsModal] = useState(false)
+    const [openHHModal, setOpenHHModal] = useState(false)
     const [openAddModal, setOpenAddModal] = useState(false)
+    const [activeHousehold, setactiveHousehold] = useState(null)
 
 
     const [search, setSearch] = useState("");
@@ -295,10 +254,21 @@ export default function HouseholdInfo() {
                                                 {item.points}
                                             </td>
                                             <td className="flex flex-row gap-2">
-                                                <button className="bg-blue-300 px-3 py-1 rounded-lg">
+                                                 <button
+                                                    onClick={() => setactiveHousehold(item.id)}
+                                                    className="cursor-pointer bg-blue-300 px-3 py-1 rounded-lg"
+                                                >
                                                     View
                                                 </button>
-                                                {/* <button className="bg-green-400 px-3 py-1 rounded-lg">
+
+                                                <HouseholdRecordModal
+                                                    isOpen={activeHousehold === item.id}
+                                                    onClose={() => setactiveHousehold(null)}
+                                                />
+                                                {/* <button className="bg-blue-300 px-3 py-1 rounded-lg">
+                                                    View
+                                                </button>
+                                                <button className="bg-green-400 px-3 py-1 rounded-lg">
                                                     Edit
                                                 </button> */}
                                             </td>
@@ -310,57 +280,8 @@ export default function HouseholdInfo() {
                         </div>
                     </section>
 
-                    {/* BIN CARDS */}
-                    <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
-                        {bins.map((bin) => {
-                            const status = getStatusFromFill(bin.fill);
-                            const style = statusColors[status];
-                            const StatusIcon = style.icon;
-
-                            return (
-                                <div
-                                    key={bin.id}
-                                    className={`bg-white rounded-xl border ${style.border} p-6 shadow-sm`}
-                                >
-                                    <div className="flex justify-between items-start">
-                                        <div>
-                                            <h3 className="font-bold">{bin.id}</h3>
-                                            <p className="flex items-center gap-1 text-sm text-gray-500">
-                                                <MapPin size={14} />
-                                                {bin.location}
-                                            </p>
-                                        </div>
-                                        <StatusIcon className={`${style.iconColor}`} />
-                                    </div>
-
-                                    <span
-                                        className={`mt-3 inline-block px-3 py-1 text-xs text-white rounded-full ${typeColors[bin.type]}`}
-                                    >
-                                        {bin.type}
-                                    </span>
-
-                                    <div className="mt-4 text-sm space-y-1">
-                                        <p>Personel: <strong>{bin.personel}</strong></p>
-                                        <p>Time Collected: <strong>{bin.lastEmptied}</strong></p>
-                                    </div>
-
-                                    <button
-                                        onClick={() => setOpenPointsModal(true)}
-                                        className="w-full mt-4 bg-gray-900 cursor-pointer text-white py-2 rounded-lg hover:bg-gray-800 flex items-center justify-center gap-2">
-                                        <Star size={16} />
-                                        Assign Points
-                                    </button>
-                                </div>
-                            );
-                        })}
-                    </div>
-
                 </main>
 
-                <AssignPointsModal
-                    isOpen={openPointsModal}
-                    onClose={() => setOpenPointsModal(false)}
-                />
 
                 <AddHousehold
                     isOpen={openAddModal}
