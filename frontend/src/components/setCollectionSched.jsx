@@ -41,7 +41,7 @@ export default function SetSched({ isOpen, onClose }) {
                 />
 
                 <button
-                    className="w-full bg-green-600 text-white py-2 rounded-md text-sm"
+                    className="w-full cursor-pointer bg-green-600 text-white py-2 rounded-md text-sm"
                     onClick={onClose}
                 >
                     Confirm

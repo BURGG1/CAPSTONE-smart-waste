@@ -1,4 +1,5 @@
-import { X, Calendar, Flag, PlusCircle } from "lucide-react";
+
+import { X, Calendar, Flag, PlusCircle, Asterisk, Camera } from "lucide-react";
 import { useState } from "react";
 
 const disposalLogs = [
@@ -45,7 +46,7 @@ const disposalLogs = [
 
 ];
 
-export default function HouseholdRecordModal({ isOpen, onClose }) {
+export function ViewRewardModal({ isOpen, onClose }) {
     const [fromDate, setFromDate] = useState("");
     const [toDate, setToDate] = useState("");
 
@@ -66,7 +67,7 @@ export default function HouseholdRecordModal({ isOpen, onClose }) {
 
                 {/* HEADER */}
                 <div className="flex justify-between items-center px-6 py-4 border-b">
-                    <h2 className="text-lg font-bold">MALI PA</h2>
+                    <h2 className="text-lg font-bold">Reward History</h2>
                     <button onClick={onClose}>
                         <X className="text-gray-500 cursor-pointer hover:text-gray-800" />
                     </button>

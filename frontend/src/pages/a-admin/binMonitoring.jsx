@@ -308,7 +308,7 @@ export default function BinMonitoring() {
 
                       <button
                         onClick={() => setActiveBinId(bin.id)}
-                        className="w-full bg-gray-900 text-white py-2 rounded-lg"
+                        className="w-full cursor-pointer bg-gray-900 text-white py-2 rounded-lg"
                       >
                         Schedule Collection
                       </button>
@@ -365,11 +365,6 @@ export default function BinMonitoring() {
           </div>
         </main>
       </div>
-
-      <SetSched
-        isOpen={openSchedModal}
-        onClose={() => setOpenSchedModal(false)}
-      />
       <Footer />
     </div>
   );

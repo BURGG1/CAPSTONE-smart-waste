@@ -14,10 +14,12 @@ import {
     Star,
     MapPin,
     Search,
+    Asterisk,
     Plus,
     TrendingUp,
     Filter
 } from "lucide-react";
+import ConfirmationModal from "../../components/confirmationModal";
 
 const statusColors = {
     good: {
@@ -157,6 +159,8 @@ function getStatusFromFill(fill) {
 
 export default function WasteBin() {
 
+    const [openConModal, setOpenConModal] = useState(false)
+
     const [openModal, setOpenModal] = useState(false)
     const [openPointsModal, setOpenPointsModal] = useState(false)
 
@@ -214,47 +218,61 @@ export default function WasteBin() {
                         </h2>
 
                         <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
-                            {/* category */}
-                            <select
-                                value={category}
-                                onChange={(e) => setCategory(e.target.value)}
-                                className="py-2 border rounded-lg bg-white focus:ring-2 focus:ring-green-500"
-                            >
-                                <option value="">Bin Type:</option>
-                                <option value="Biodegradable">Biodegradable</option>
-                                <option value="NonBiodegradable">Non-Biodegradable</option>
 
-                            </select>
-                            {/* capacity */}
+                            <div className="flex items-center">
+                                {/* category */}
+                                <Asterisk className="text-red-500 w-4 h-4" />
+                                <select
+                                    value={category}
+                                    onChange={(e) => setCategory(e.target.value)}
+                                    className="w-full py-2 border rounded-lg bg-white focus:ring-2 focus:ring-green-500"
+                                >
+                                    <option value="">Bin Type:</option>
+                                    <option value="Biodegradable">Biodegradable</option>
+                                    <option value="NonBiodegradable">Non-Biodegradable</option>
 
-                            <select
-                                value={capacity}
-                                onChange={(e) => setCapacity(e.target.value)}
-                                className="py-2 border rounded-lg bg-white focus:ring-2 focus:ring-green-500"
-                            >
-                                <option value="">Capacity</option>
-                                <option value="100">100L</option>
-                                <option value="500">500L</option>
-                            </select>
+                                </select>
 
-                            {/* location */}
+                            </div>
 
-                            <select
-                                value={location}
-                                onChange={(e) => setLocation(e.target.value)}
-                                className="py-2 border rounded-lg bg-white focus:ring-2 focus:ring-green-500"
-                            >
-                                <option value="all">Bin Location</option>
-                                <option value="compliant">Rizal St.</option>
-                                <option value="warning">Mabini St.</option>
-                                <option value="non-compliant">Bonifacio St.</option>
-                            </select>
+                            <div className="flex items-center">
+                                {/* capacity */}
+                                <Asterisk className="text-red-500 w-4 h-4" />
+                                <select
+                                    value={capacity}
+                                    onChange={(e) => setCapacity(e.target.value)}
+                                    className="w-full py-2 border rounded-lg bg-white focus:ring-2 focus:ring-green-500"
+                                >
+                                    <option value="">Capacity</option>
+                                    <option value="100">100L</option>
+                                    <option value="500">500L</option>
+                                </select>
+
+                            </div>
+
+                            <div className="flex items-center">
+
+                                {/* location */}
+                                <Asterisk className="text-red-500 w-4 h-4" />
+                                <select
+                                    value={location}
+                                    onChange={(e) => setLocation(e.target.value)}
+                                    className="w-full py-2 border rounded-lg bg-white focus:ring-2 focus:ring-green-500"
+                                >
+                                    <option value="all">Bin Location</option>
+                                    <option value="compliant">Rizal St.</option>
+                                    <option value="warning">Mabini St.</option>
+                                    <option value="non-compliant">Bonifacio St.</option>
+                                </select>
+                            </div>
 
                         </div>
                         {/* Buttons */}
                         <div className="mt-3 flex justify-end  gap-2">
 
-                            <button className="cursor-pointer px-5 mt-auto bg-green-600 flex items-center justify-center gap-1 text-white rounded-lg p-2 hover:bg-green-700 transition">
+                            <button
+                                onClick={() => setOpenConModal(true)}
+                                className="cursor-pointer px-5 mt-auto bg-green-600 flex items-center justify-center gap-1 text-white rounded-lg p-2 hover:bg-green-700 transition">
                                 <Plus size={16} />
                                 Add Bin
                             </button>
@@ -390,7 +408,12 @@ export default function WasteBin() {
                     </section>
                 </main>
             </div>
-
+            <ConfirmationModal
+                isOpen={openConModal}
+                onClose={() => {
+                    setOpenConModal(false);
+                }}
+            />
 
             <AssignPointsModal
                 isOpen={openPointsModal}
