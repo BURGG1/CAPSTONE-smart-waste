@@ -3,7 +3,7 @@ import { useState } from "react";
 
 
 
-export default function AddHousehold({ isOpen, onClose }) {
+export default function EditHousehold({ isOpen, onClose }) {
 
     if (!isOpen) return null;
 
@@ -14,7 +14,7 @@ export default function AddHousehold({ isOpen, onClose }) {
 
                 {/* HEADER */}
                 <div className="flex justify-between items-center px-6 py-4 border-b">
-                    <h2 className="text-lg font-bold">Register Household</h2>
+                    <h2 className="text-lg font-bold">Update Household Information</h2>
                     <button onClick={onClose}>
                         <X className="text-gray-500 cursor-pointer hover:text-gray-800" />
                     </button>
@@ -36,7 +36,6 @@ export default function AddHousehold({ isOpen, onClose }) {
                             />
                         </div>
 
-                        {/* Member */}
                         <div className="flex flex-col">
                             <div className="flex items-center">
                                 <p className="text-lg text-black-500 text-semibold">Family Member</p>
@@ -44,11 +43,9 @@ export default function AddHousehold({ isOpen, onClose }) {
                             <input
                                 type="email"
                                 className="flex-1 px-3 py-2 text-black rounded-lg border"
-                                placeholder="ex. 5"
-                
+                                placeholder="ex. 5.."
                             />
-                        </div>  
-                        
+                        </div>
                         {/* Address */}
                         <div className="flex flex-col">
                             <div className="flex items-center">
@@ -76,26 +73,13 @@ export default function AddHousehold({ isOpen, onClose }) {
                                     </div>
                                     <input
                                         type="text"
-
                                         className="flex-1 px-3 py-2 text-black rounded-lg border"
                                         placeholder="ex. Rizal St.."
                                     />
                                 </div>
                             </div>
 
-                        </div>
-                        {/* Contact Number */}
-                        <div className="flex flex-col">
-                            <div className="flex items-center">
-                                <p className="text-lg text-black-500 text-semibold">Contact Number</p>
-                                <Asterisk className="text-red-500 w-4 h-4" />
-                            </div>
-                            <input
-                                type="tel"
-                                className="flex-1 px-3 py-2 text-black rounded-lg border"
-                                placeholder="ex. 0913-123-4314.."
-                            />
-                        </div>
+                        </div>                       
                         {/* Email */}
                         <div className="flex flex-col">
                             <div className="flex items-center">
@@ -109,7 +93,7 @@ export default function AddHousehold({ isOpen, onClose }) {
                         </div>
 
                         <button className="cursor-pointer mt-5 bg-green-600 flex items-center justify-center gap-1 text-white rounded-lg p-2 hover:bg-green-700 transition">
-                            Register
+                            Update Information
                         </button>
                     </div>
 

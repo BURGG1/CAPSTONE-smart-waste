@@ -2,48 +2,71 @@
 import { X, Calendar, Flag, PlusCircle, Asterisk, Camera } from "lucide-react";
 import { useState } from "react";
 
-const disposalLogs = [
+const rewardLogs = [
     {
         id: 1,
-        houseId: "HH-202610001",
-        date: "2026-02-01",
-        time: "09:52:08",
-        resident: "Dela Cruz Family",
-        duration: "38s",
-        points: 20,
-        status: "Compliant",
+        date: "2026-02-18",
+        rewardName: "Free Clinical Checkup",
+        householdId: "HH-202610001",
+        householdName: "Joel Dela Cruz",
+        stockUpdate: -1,
     },
     {
         id: 2,
-        houseId: "HH-202610002",
-        date: "2026-02-01",
-        time: "09:35:12",
-        resident: "Lopez Household",
-        duration: "41s",
-        points: 20,
-        status: "Compliant",
+        date: "2026-02-18",
+        rewardName: "Vitamins/Medicine",
+        householdId: "HH-202610002",
+        householdName: "Martin Lopez",
+        stockUpdate: -1,
     },
     {
         id: 3,
-        houseId: "HH-202610003",
-        date: "2026-01-31",
-        time: "08:12:44",
-        resident: "Reyes Family",
-        duration: "52s",
-        points: 0,
-        status: "Flagged",
+        date: "2026-02-17",
+        rewardName: "Free Clinical Checkup",
+        householdId: "HH-202610003",
+        householdName: "Ramon Reyes",
+        stockUpdate: -1,
     },
     {
         id: 4,
-        houseId: "HH-202610004",
-        date: "2026-01-31",
-        time: "08:12:44",
-        resident: "Reyes Family",
-        duration: "52s",
-        points: 0,
-        status: "Flagged",
+        date: "2026-02-16",
+        rewardName: "50% off to Barangay Clearance",
+        householdId: "HH-202610004",
+        householdName: "Remedio Delo Santos",
+        stockUpdate: -1,
     },
-
+    {
+        id: 5,
+        date: "2026-02-15",
+        rewardName: "50% off to Business Permit",
+        householdId: "HH-202610005",
+        householdName: "Cecilia Garcia",
+        stockUpdate: -1,
+    },
+    {
+        id: 6,
+        date: "2026-02-14",
+        rewardName: "50% off to Business Permit",
+        householdId: "HH-202610006",
+        householdName: "Rolando Martinez",
+        stockUpdate: -1,
+    },
+    {
+        id: 7,
+        date: "2026-02-13",
+        rewardName: "50% off to Barangay Clearance",
+        householdId: "HH-202610007",
+        householdName: "Rolando Martinez",
+        stockUpdate: -1,
+    },
+    {
+        id: 8,
+        date: "2026-02-12",
+        rewardName: "Vitamins/Medicine",
+        householdId: "HH-202610008",
+        householdName: "Joel Dela Cruz",
+        stockUpdate: -1,
+    },
 ];
 
 export function ViewRewardModal({ isOpen, onClose }) {
@@ -52,7 +75,7 @@ export function ViewRewardModal({ isOpen, onClose }) {
 
     if (!isOpen) return null;
 
-    const filteredLogs = disposalLogs.filter((log) => {
+    const filteredLogs = rewardLogs.filter((log) => {
         if (!fromDate && !toDate) return true;
         const logDate = new Date(log.date);
         return (
@@ -92,43 +115,27 @@ export function ViewRewardModal({ isOpen, onClose }) {
                     <table className="w-full text-sm">
                         <thead className="bg-gray-100">
                             <tr>
-                                <th className="px-6 py-3">Disposal order</th>
-                                <th>Date & Time</th>
+                                <th className="py-3">Date</th>
+                                <th>Reward Name</th>
                                 <th>Household ID</th>
                                 <th>Resident</th>
-                                <th>Actions</th>
+                                <th className="px-4">Stock</th>
                             </tr>
                         </thead>
 
                         <tbody className="text-center">
                             {filteredLogs.map((log) => (
                                 <tr key={log.id}>
-                                    <td className="px-6 py-3 font-medium">#{log.id}</td>
+                                    <td className="py-3 font-medium">#{log.date}</td>
 
                                     <td>
-                                        <p>{log.date}</p>
-                                        <p className="text-xs text-gray-500">{log.time}</p>
+                                        {log.rewardName}
                                     </td>
+                                    <td>{log.householdId}</td>
 
-                                    <td>{log.houseId}</td>
+                                    <td>{log.householdName}</td>
 
-
-                                    <td>{log.resident}</td>
-
-
-                                    <td>
-                                        <div className="flex justify-center gap-2">
-                                            <button className="flex cursor-pointer items-center gap-1 px-3 py-1.5 rounded-lg bg-green-600 text-white text-xs hover:bg-green-700">
-                                                <PlusCircle size={14} />
-                                                Add Points
-                                            </button>
-
-                                            <button className="flex cursor-pointer items-center gap-1 px-3 py-1.5 rounded-lg bg-yellow-100 text-yellow-700 text-xs hover:bg-yellow-200">
-                                                <Flag size={14} />
-                                                Flag
-                                            </button>
-                                        </div>
-                                    </td>
+                                    <td className="text-red-500">{log.stockUpdate}</td>
                                 </tr>
                             ))}
 

@@ -4,43 +4,43 @@ import { useState } from "react";
 const disposalLogs = [
     {
         id: 1,
-        houseId: "HH-202610001",
+        counter: 7,
+        binID: "BIN-001",
         date: "2026-02-01",
         time: "09:52:08",
         resident: "Dela Cruz Family",
         duration: "38s",
         points: 20,
-        status: "Compliant",
     },
     {
         id: 2,
-        houseId: "HH-202610002",
+        counter: 7,
+        binID: "BIN-002",
         date: "2026-02-01",
         time: "09:35:12",
-        resident: "Lopez Household",
+        resident: "Dela Cruz Family",
         duration: "41s",
         points: 20,
-        status: "Compliant",
     },
     {
         id: 3,
-        houseId: "HH-202610003",
+        counter: 14,
+        binID: "BIN-002",
         date: "2026-01-31",
         time: "08:12:44",
-        resident: "Reyes Family",
+        resident: "Dela Cruz Family",
         duration: "52s",
         points: 0,
-        status: "Flagged",
     },
     {
         id: 4,
-        houseId: "HH-202610004",
+        counter: 14,
+        binID: "BIN-001",
         date: "2026-01-31",
         time: "08:12:44",
-        resident: "Reyes Family",
+        resident: "Dela Cruz Family",
         duration: "52s",
         points: 0,
-        status: "Flagged",
     },
 
 ];
@@ -66,15 +66,15 @@ export default function HouseholdRecordModal({ isOpen, onClose }) {
 
                 {/* HEADER */}
                 <div className="flex justify-between items-center px-6 py-4 border-b">
-                    <h2 className="text-lg font-bold">MALI PA</h2>
+                    <h2 className="text-lg font-bold">Dela Cruz <span>Records</span></h2>
                     <button onClick={onClose}>
                         <X className="text-gray-500 cursor-pointer hover:text-gray-800" />
                     </button>
                 </div>
 
                 {/* FILTER */}
-                <div className="w-full flex flex-col sm:flex-row gap-4 px-6 py-4 border-b">
-                    <div className=" flex items-center gap-2 w-auto sm:w-full">
+                <div className="w-full flex flex-col md:flex-row gap-4 px-6 py-4 border-b">
+                    <div className=" flex-1 flex items-center gap-2 w-auto">
                         <Calendar size={16} />
                         <p>Date Collected:</p>
                         <input
@@ -84,6 +84,13 @@ export default function HouseholdRecordModal({ isOpen, onClose }) {
                             className="border rounded-lg px-3 py-2 text-sm w-50"
                         />
                     </div>
+                    <div className="flex-1 flex justify-end gap-2">
+                        <button className="flex cursor-pointer items-center gap-1 px-3 py-1.5 rounded-lg bg-green-600 text-white text-xs hover:bg-green-700">
+                            <PlusCircle size={14} />
+                            Add Points
+                        </button>
+
+                    </div>
                 </div>
 
                 {/* TABLE */}
@@ -91,43 +98,26 @@ export default function HouseholdRecordModal({ isOpen, onClose }) {
                     <table className="w-full text-sm">
                         <thead className="bg-gray-100">
                             <tr>
-                                <th className="px-6 py-3">Disposal order</th>
+                                <th className="py-3">Bin ID</th>
+                                <th >Disposal order</th>
                                 <th>Date & Time</th>
-                                <th>Household ID</th>
                                 <th>Resident</th>
-                                <th>Actions</th>
                             </tr>
                         </thead>
 
                         <tbody className="text-center">
                             {filteredLogs.map((log) => (
                                 <tr key={log.id}>
-                                    <td className="px-6 py-3 font-medium">#{log.id}</td>
 
+                                    <td className=" py-3 font-medium">#{log.binID}</td>
+                                    <td className=" py-3 font-medium">#{log.counter}</td>
                                     <td>
                                         <p>{log.date}</p>
                                         <p className="text-xs text-gray-500">{log.time}</p>
                                     </td>
 
-                                    <td>{log.houseId}</td>
-
-
                                     <td>{log.resident}</td>
-
-
-                                    <td>
-                                        <div className="flex justify-center gap-2">
-                                            <button className="flex cursor-pointer items-center gap-1 px-3 py-1.5 rounded-lg bg-green-600 text-white text-xs hover:bg-green-700">
-                                                <PlusCircle size={14} />
-                                                Add Points
-                                            </button>
-
-                                            <button className="flex cursor-pointer items-center gap-1 px-3 py-1.5 rounded-lg bg-yellow-100 text-yellow-700 text-xs hover:bg-yellow-200">
-                                                <Flag size={14} />
-                                                Flag
-                                            </button>
-                                        </div>
-                                    </td>
+                                   
                                 </tr>
                             ))}
 
