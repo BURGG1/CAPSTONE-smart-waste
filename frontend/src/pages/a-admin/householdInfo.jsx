@@ -47,60 +47,47 @@ const statusColors = {
 const householdRecords = [
     {
         id: "HH-202610001",
-        name: "Dela Cruz Family",
+        name: "Joey Dela Cruz",
         address: "Rizal St.",
         disposals: 48,
         points: 1240,
-        status: "compliant",
     },
     {
         id: "HH-202610002",
-        name: "Santos Family",
+        name: "Remedios Delo Santos",
         address: "Rizal St",
         disposals: 35,
         points: 920,
-        status: "compliant",
     },
     {
         id: "HH-202610003",
-        name: "Reyes Household",
+        name: "Ramon Reyes",
         address: "Mabini St",
         disposals: 22,
         points: 450,
-        status: "warning",
     },
     {
         id: "HH-202610004",
-        name: "Garcia Family",
+        name: "Cecilia Garcia",
         address: "Mabini St",
         disposals: 12,
         points: 180,
-        status: "non-compliant",
     },
     {
         id: "HH-202610005",
-        name: "Martinez Family",
+        name: "Rolando Martinez",
         address: "Mabini St",
         disposals: 41,
         points: 1050,
-        status: "compliant",
     },
     {
         id: "HH-202610006",
-        name: "Lopez Household",
+        name: "Martin Lopez",
         address: "Bonifacio St",
         disposals: 18,
         points: 380,
-        status: "warning",
     },
-    {
-        id: "HH-202610007",
-        name: "Lopez Household",
-        address: "Bonifacio St",
-        disposals: 18,
-        points: 380,
-        status: "warning",
-    },
+   
 ];
 
 
@@ -203,23 +190,9 @@ export default function HouseholdInfo() {
                                     />
                                 </div>
 
-                                {/* Filter */}
-                                <div className="relative">
-                                    <Filter className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" size={18} />
-                                    <select
-                                        value={filter}
-                                        onChange={(e) => setFilter(e.target.value)}
-                                        className="pl-10 pr-4 py-2 border rounded-lg bg-white focus:ring-2 focus:ring-green-500"
-                                    >
-                                        <option value="all">All Status</option>
-                                        <option value="compliant">Compliant</option>
-                                        <option value="warning">Warning</option>
-                                        <option value="non-compliant">Non‑Compliant</option>
-                                    </select>
-                                </div>
-
                                 <div className="relative">
                                     <button
+                                        title="Register household"
                                         onClick={() => setOpenAddModal(true)}
                                         className="bg-green-600 text-white w-10 h-10 p-2 rounded-lg cursor-pointer hover:bg-green-700"
                                     >

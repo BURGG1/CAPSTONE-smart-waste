@@ -6,7 +6,7 @@ import NavigationShell from "../../navigation/mainNav";
 
 // Points summary
 const POINTS = {
-    total: 1234,
+    total: 1240,
     tier: "Silver",
     maxTierPoints: 1500,
     remaining: 260,

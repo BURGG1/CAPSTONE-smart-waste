@@ -144,25 +144,6 @@ export default function QRhandler() {
 
                     </div>
 
-                    {/* Reward Points */}
-                    <div className="bg-green-600 mt-8 text-white rounded-xl shadow p-6">
-                        <div className="flex items-center gap-2 mb-6">
-                            <Award size={20} />
-                            <h3 className="font-semibold">Reward Points</h3>
-                        </div>
-                        <h2 className="text-4xl font-bold mb-2">
-                            {household.points.total}
-                        </h2>
-                        <p className="text-green-100 mb-8">
-                            Total Points Earned
-                        </p>
-                        <div className="flex justify-between text-sm">
-                            <span>This Month</span>
-                            <span className="font-semibold">
-                                +{household.points.thisMonth} points
-                            </span>
-                        </div>
-                    </div>
                   
                 </main>
             </div>

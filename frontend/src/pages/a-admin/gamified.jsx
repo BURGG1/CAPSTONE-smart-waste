@@ -28,9 +28,9 @@ const MONTHLY = {
 // Redeemable items
 const REWARDS = [
     { id: 1, name: "Free Clinical Checkup", points: 200, stocks: 15 },
-    { id: 2, name: "50% off to Barangay indigency", points: 350, stocks: 8 },
-    { id: 3, name: "Plant Seedlings", points: 150, stocks: 20 },
-    { id: 4, name: "Compost Bin", points: 500, stocks: 5 },
+    { id: 2, name: "50% off to Barangay Clearance", points: 350, stocks: 8 },
+    { id: 3, name: "Vitamins/Medicine", points: 150, stocks: 20 },
+    { id: 4, name: "50% off to Business Permit", points: 500, stocks: 5 },
 ];
 
 // Derived values

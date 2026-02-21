@@ -29,13 +29,13 @@ function App() {
         <Route path="/qrcode" element={<QRhandler />} />
         <Route path="/home-page" element={<HouseholdProfile />} />
         <Route path="/rewards" element={<Rewards />} />
-        <Route path="/gamified" element={<Gamified />} />
         <Route path="/leaderboard" element={<Leaderboard />} />
         {/* Admin */}
         <Route path="/dashboard" element={<ComplianceDashboard />} />
         <Route path="/wastebin" element={<WasteBin />} />
         <Route path="/binMonitoring" element={<BinMonitoring />} />
         <Route path="/householdInfo" element={<HouseholdInfo />} />
+        <Route path="/gamified" element={<Gamified />} />
       </Routes>
     </Router>
   )

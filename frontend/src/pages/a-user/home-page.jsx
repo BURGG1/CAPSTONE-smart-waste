@@ -7,20 +7,24 @@ import {
     Phone,
     Users,
     Calendar,
+    Mail,
     TrendingUp,
 } from "lucide-react";
 
 import Navbar from "../../components/Navbar";
 import NavigationShell from "../../navigation/mainNav";
+import EditHousehold from "../../components/EditHouseholdModal";
+import { useState } from "react";
 
 
 // household information
 const household = {
-    id: "HH-24680135",
-    name: "Dela Cruz Family",
-    address: "0543, Rizal Street",
+    id: "HH-202610002",
+    name: "Remedios Delo Santos",
+    address: "0543, Mabini Street",
     contact: "+63 917 123 4567",
     members: 5,
+    email: "remediosdelosantos@gmail.com",
     registeredSince: "January 15, 2026",
     totalDisposals: 48,
     compliance: "Excellent",
@@ -83,14 +87,17 @@ const infoItems = [
         icon: Calendar,
     },
     {
-        label: "Total Disposals",
-        value: `${household.totalDisposals} times`,
-        icon: TrendingUp,
+        label: "Email",
+        value: `${household.email}`,
+        icon: Mail,
     },
 ];
 
 
 export default function HouseholdProfile() {
+    const [operEditModal, setEditModal] = useState(false);
+
+
     return (
 
         <div className="flex-1">
@@ -105,7 +112,7 @@ export default function HouseholdProfile() {
                         View and manage your household information
                     </p>
 
-                  
+
                     {/* Reward Points */}
                     <div className="bg-green-600 mt-8 text-white rounded-xl shadow p-6">
                         <div className="flex items-center gap-2 mb-6">
@@ -151,6 +158,20 @@ export default function HouseholdProfile() {
                         </div>
                     </div>
 
+                    <div className="w-full flex items-center justify-center mt-4">
+
+                        <button
+                            onClick={() => setEditModal(true)}
+                            className="text-gray-400 cursor-pointer hover:underline" >
+                            Update information
+                        </button>
+
+                    </div>
+
+                    <EditHousehold
+                        isOpen={operEditModal}
+                        onClose={() => setEditModal(false)}
+                    />
                     {/* Waste Segregation Statistics */}
                     {/* <div className="mt-8 bg-white rounded-xl shadow p-6">
                         <h2 className="text-lg font-semibold mb-6">

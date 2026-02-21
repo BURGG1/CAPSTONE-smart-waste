@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useRef, useEffect } from "react";
 import Navbar from "../../components/Navbar";
 import AssignPointsModal from "../../components/AssignPointsModal";
 import NavigationShell from "../../navigation/mainNav";
@@ -19,6 +19,7 @@ import {
     TrendingUp,
     Filter
 } from "lucide-react";
+
 import ConfirmationModal from "../../components/confirmationModal";
 
 const statusColors = {
@@ -168,8 +169,8 @@ export default function WasteBin() {
     const [filter, setFilter] = useState("all");
 
     const [location, setLocation] = useState("");
-    const [category, setCategory] = useState("Biodegradable");
-    const [capacity, setCapacity] = useState("100L");
+    const [category, setCategory] = useState("");
+    const [capacity, setCapacity] = useState("");
 
     const filteredData = BinInformation.filter((h) => {
         const matchSearch =
@@ -180,6 +181,30 @@ export default function WasteBin() {
 
         return matchSearch && matchFilter;
     });
+
+    // temporary ----------------------------------------------------------------------------------
+    const inputRef = useRef(null);
+    const [isEditing, setIsEditing] = useState(false);
+    const [editingId, setEditingId] = useState(null);
+    const [editedLocation, setEditedLocation] = useState("");
+
+    const handleSave = (id) => {
+        setBins((prev) =>
+            prev.map((item) =>
+                item.id === id
+                    ? { ...item, location: editedLocation }
+                    : item
+            )
+        );
+
+        setEditingId(null);
+    };
+
+    useEffect(() => {
+        if (editingId && inputRef.current) {
+            inputRef.current.focus();
+        }
+    }, [editingId]);
 
 
     return (
@@ -276,11 +301,6 @@ export default function WasteBin() {
                                 <Plus size={16} />
                                 Add Bin
                             </button>
-
-                            {/* <button className="cursor-pointer mt-auto bg-gray-400 flex items-center justify-center gap-1 text-black rounded-lg p-2 hover:bg-gray-500 transition">
-                                Cancel
-                            </button> */}
-
                         </div>
                     </section>
 
@@ -340,17 +360,47 @@ export default function WasteBin() {
                                         <tr key={item.id} className="hover:bg-gray-50">
                                             <td className="px-4 py-3 font-mono text-sm">{item.id}</td>
                                             <td className="px-4 py-3 font-medium">{item.category}</td>
-                                            <td className="px-4 py-3 text-gray-600">{item.capacity}<span>L</span></td>
-                                            <td className="px-4 py-3">{item.location}</td>
-                                            <td className="flex flex-row gap-2">
-                                                {/* <button className="bg-blue-300 px-3 py-1 rounded-lg">
-                                                    View
-                                                </button> */}
-                                                <button className="bg-green-400 px-3 py-1 rounded-lg">
-                                                    Edit
-                                                </button>
+                                            <td className="px-4 py-3 text-gray-600">
+                                                {item.capacity}<span>L</span>
                                             </td>
 
+                                            <td className="px-4 py-3">
+                                                <input
+                                                    className="outline-none pl-2"
+                                                    type="text"
+                                                    ref={editingId === item.id ? inputRef : null}
+                                                    value={editingId === item.id ? editedLocation : item.location}
+                                                    disabled={editingId !== item.id}
+                                                    onChange={(e) => setEditedLocation(e.target.value)}
+
+                                                />
+                                            </td>
+
+                                            <td className="flex flex-row gap-2">
+                                                {isEditing == true && editingId === item.id ? (
+                                                    <button
+                                                        className="bg-blue-600 cursor-pointer text-white px-3 py-1 rounded-lg"
+                                                        onClick={() => {
+                                                            setIsEditing(false);
+                                                            setOpenConModal(true);
+                                                            handleSave(item.id);
+                                                        }}
+                                                    >
+                                                        Save
+                                                    </button>
+                                                ) : (
+                                                    <button
+                                                        className="bg-green-600 text-white cursor-pointer px-3 py-1 rounded-lg"
+                                                        onClick={() => {
+                                                            setIsEditing(true);
+                                                            setEditingId(item.id);
+                                                            setEditedLocation(item.location);
+                                                        }}
+                                                    >
+                                                        Edit
+                                                    </button>
+                                                )}
+                                            </td>
                                         </tr>
                                     ))}
                                 </tbody>

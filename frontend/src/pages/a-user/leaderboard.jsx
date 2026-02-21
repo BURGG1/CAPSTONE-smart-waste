@@ -11,7 +11,8 @@ import {
 
 const rawData = [
   {
-    family: "Santos Family",
+    family: "Joel Dela Cruz",
+    address: "Rizal St.",
     householdId: "HH-13579246",
     disposals: 62,
     points: 1580,
@@ -19,7 +20,8 @@ const rawData = [
     isYou: false,
   },
   {
-    family: "Martinez Family",
+    family: "Rolando Martinez",
+    address: "Mabini St.",
     householdId: "HH-75391482",
     disposals: 54,
     points: 1350,
@@ -27,7 +29,8 @@ const rawData = [
     isYou: false,
   },
   {
-    family: "Dela Cruz Family",
+    family: "Remedios Delo Santos",
+    address: "Mabini St.",
     householdId: "HH-24680135",
     disposals: 48,
     points: 1240,
@@ -36,6 +39,7 @@ const rawData = [
   },
   {
     family: "Lopez Household",
+    address: "Bonifacio St.",
     householdId: "HH-15948673",
     disposals: 38,
     points: 920,
@@ -120,6 +124,9 @@ export default function Leaderboard() {
 
                     <div className="flex-1">
                       <h3 className="font-semibold">{item.family}</h3>
+                      <p className="text-xs text-gray-400">
+                        {item.address}
+                      </p>
                       <p className="text-sm text-green-600 font-bold">
                         {item.points} pts
                       </p>
@@ -158,6 +165,9 @@ export default function Leaderboard() {
                       <h3 className="font-semibold">{item.family}</h3>
                       <p className="text-green-600 font-bold mt-1">
                         {item.points} pts
+                      </p>
+                      <p className="text-xs text-gray-400">
+                        {item.address}
                       </p>
                     </div>
 

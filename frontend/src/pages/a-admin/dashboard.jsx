@@ -47,7 +47,7 @@ const householdRecords = [
         address: "Eco Lane",
         disposals: 22,
         points: 450,
-        status: "warning",
+        status: "compliant",
     },
     {
         id: "HH-97531468",
@@ -55,7 +55,7 @@ const householdRecords = [
         address: "Clean Rd.",
         disposals: 12,
         points: 180,
-        status: "non-compliant",
+        status: "compliant",
     },
     {
         id: "HH-75391482",
@@ -71,48 +71,59 @@ const householdRecords = [
         address: "Nature St.",
         disposals: 18,
         points: 380,
-        status: "warning",
+        status: "compliant",
     },
-    {
-        id: "HH-25948673",
-        name: "Lopez Household",
-        address: "Nature St.",
-        disposals: 18,
-        points: 380,
-        status: "warning",
-    },
+
 ];
 
 
-// STAT CARD
+const totalHouseholds = householdRecords.length;
+
+const compliantCount = householdRecords.filter(
+    (h) => h.status === "compliant"
+).length;
+
+// Include warning as "For Improvement"
+const nonCompliantCount = householdRecords.filter(
+    (h) => h.status !== "compliant"
+).length;
+
+const compliantPercent = totalHouseholds
+    ? Math.round((compliantCount / totalHouseholds) * 100)
+    : 0;
+
+const nonCompliantPercent = totalHouseholds
+    ? Math.round((nonCompliantCount / totalHouseholds) * 100)
+    : 0;
+
 const stats = [
     {
         title: "Total Households",
-        value: 6,
+        value: totalHouseholds,
         icon: Users,
         iconBg: "bg-blue-100",
         iconColor: "text-blue-600",
-        percentage: null,
     },
     {
         title: "Properly Segregating",
-        value: 3,
+        value: compliantCount,
         icon: CheckCircle,
         iconBg: "bg-green-100",
         iconColor: "text-green-600",
-        percentage: "50%",
+        percentage: `${compliantPercent}%`,
         percentColor: "text-green-600",
     },
     {
         title: "For Improvement",
-        value: 1,
+        value: nonCompliantCount,
         icon: XCircle,
         iconBg: "bg-red-100",
         iconColor: "text-red-600",
-        percentage: "17%",
+        percentage: `${nonCompliantPercent}%`,
         percentColor: "text-red-600",
     },
 ];
+
 
 // Pie chart data
 const wasteDistribution = [
@@ -123,10 +134,10 @@ const wasteDistribution = [
 
 // Bar chart data
 const monthlyCompliance = [
-    { month: "Jan", compliant: 85, nonCompliant: 15 },
-    { month: "Feb", compliant: 88, nonCompliant: 12 },
-    { month: "Mar", compliant: 92, nonCompliant: 8 },
-    { month: "Apr", compliant: 90, nonCompliant: 10 },
+    { month: "Jan", compliant: 85, nonCompliant: 1 },
+    { month: "Feb", compliant: 88, nonCompliant: 1 },
+    { month: "Mar", compliant: 92, nonCompliant: 2 },
+    { month: "Apr", compliant: 90, nonCompliant: 1 },
 ];
 
 const statusStyles = {
@@ -140,10 +151,11 @@ const statusIcons = {
     warning: <AlertTriangle size={16} />,
     "non-compliant": <XCircle size={16} />,
 };
-
+// for leaderboard --------------------
 const rawData = [
     {
-        family: "Santos Family",
+        family: "Joel Dela Cruz",
+        address: "Rizal St.",
         householdId: "HH-13579246",
         disposals: 62,
         points: 1580,
@@ -151,7 +163,8 @@ const rawData = [
         isYou: false,
     },
     {
-        family: "Martinez Family",
+        family: "Rolando Martinez",
+        address: "Mabini St.",
         householdId: "HH-75391482",
         disposals: 54,
         points: 1350,
@@ -159,7 +172,8 @@ const rawData = [
         isYou: false,
     },
     {
-        family: "Dela Cruz Family",
+        family: "Remedios Delo Santos",
+        address: "Mabini St.",
         householdId: "HH-24680135",
         disposals: 48,
         points: 1240,
@@ -168,6 +182,7 @@ const rawData = [
     },
     {
         family: "Lopez Household",
+        address: "Bonifacio St.",
         householdId: "HH-15948673",
         disposals: 38,
         points: 920,
@@ -350,13 +365,13 @@ export default function ComplianceDashboard() {
                                             <Bar
                                                 dataKey="compliant"
                                                 fill="#10b981"
-                                                name="Compliant %"
+                                                name="Properly Segregating %"
                                                 radius={[6, 6, 0, 0]}
                                             />
                                             <Bar
                                                 dataKey="nonCompliant"
                                                 fill="#ef4444"
-                                                name="Non-Compliant %"
+                                                name="Need Improvement  %"
                                                 radius={[6, 6, 0, 0]}
                                             />
                                         </BarChart>
@@ -390,6 +405,9 @@ export default function ComplianceDashboard() {
 
                                         <div className="flex-1">
                                             <h3 className="font-semibold">{item.family}</h3>
+                                            <p className="text-xs text-gray-400">
+                                                {item.address}
+                                            </p>
                                             <p className="text-sm text-green-600 font-bold">
                                                 {item.points} pts
                                             </p>
@@ -425,9 +443,12 @@ export default function ComplianceDashboard() {
                                             <p className="text-2xl font-bold">
                                                 {item.rank === 1 ? "1st" : item.rank === 2 ? "2nd" : "3rd"}
                                             </p>
-                                            <h3 className="font-semibold">{item.family}</h3>
+                                            <h3 className="font-bold">{item.family}</h3>
                                             <p className="text-green-600 font-bold mt-1">
                                                 {item.points} pts
+                                            </p>
+                                            <p className="text-xs text-gray-400">
+                                                {item.address}
                                             </p>
                                         </div>
 
@@ -456,7 +477,7 @@ export default function ComplianceDashboard() {
 
                 </main>
             </div>
-            <Footer/>
+            <Footer />
         </div>
     );
 }

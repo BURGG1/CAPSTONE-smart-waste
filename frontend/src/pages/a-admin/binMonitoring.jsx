@@ -102,7 +102,7 @@ const statusIcons = {
   "non-compliant": <XCircle size={16} />,
 };
 
-const bins = [
+const initialBins = [
   {
     id: "BIN-001",
     location: "Rizal St.",
@@ -160,8 +160,26 @@ function getStatusFromFill(fill) {
 }
 
 export default function BinMonitoring() {
-  const [openSchedModal, setOpenSchedModal] = useState(false)
+  const [bins, setBins] = useState(initialBins);
   const [activeBinId, setActiveBinId] = useState(null)
+
+  const handleSchedule = (binId, data) => {
+    setBins((prevBins) =>
+      prevBins.map((bin) =>
+        bin.id === binId
+          ? {
+            ...bin,
+            schedule: {
+              collector: data.personel,
+              date: data.date,
+            },
+          }
+          : bin
+      )
+    );
+
+    setActiveBinId(null); // close modal after scheduling
+  };
 
 
   return (
@@ -306,19 +324,27 @@ export default function BinMonitoring() {
                   {status !== "good" && (
                     <div className="relative mt-4">
 
-                      <button
-                        onClick={() => setActiveBinId(bin.id)}
-                        className="w-full cursor-pointer bg-gray-900 text-white py-2 rounded-lg"
-                      >
-                        Schedule Collection
-                      </button>
+                      {!bin.schedule ? (
+                        <button
+                          onClick={() => setActiveBinId(bin.id)}
+                          className="w-full cursor-pointer bg-gray-900 text-white py-2 rounded-lg"
+                        >
+                          Schedule Collection
+                        </button>
+                      ) : (
+                        <div className="bg-green-100 p-3 rounded-lg text-sm">
+                          <p><strong>Collector:</strong> {bin.schedule.collector}</p>
+                          <p><strong>Date:</strong> {bin.schedule.date}</p>
+                        </div>
+                      )}
 
                       <SetSched
                         isOpen={activeBinId === bin.id}
                         onClose={() => setActiveBinId(null)}
+                        onConfirm={(data) => handleSchedule(bin.id, data)}
                       />
-                    </div>
 
+                    </div>
                   )}
                 </div>
               );
