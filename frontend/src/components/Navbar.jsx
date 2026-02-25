@@ -7,12 +7,12 @@ export default function Navbar() {
   const navigate = useNavigate();
 
   const handleLogin = () => {
-    navigate("/Login"); 
+    navigate("/"); 
   };
 
   const handleLogout = () => {
     localStorage.removeItem("role")
-    navigate("/Login"); 
+    navigate("/"); 
   };
 
   return (

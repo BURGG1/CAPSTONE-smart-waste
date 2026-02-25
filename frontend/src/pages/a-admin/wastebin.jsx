@@ -1,6 +1,5 @@
 import { useState, useRef, useEffect } from "react";
 import Navbar from "../../components/Navbar";
-import AssignPointsModal from "../../components/AssignPointsModal";
 import NavigationShell from "../../navigation/mainNav";
 import Footer from "../../components/Footer";
 
@@ -21,6 +20,7 @@ import {
 } from "lucide-react";
 
 import ConfirmationModal from "../../components/confirmationModal";
+import CounterInfoModal from "../../components/CounterInfoModal";
 
 const statusColors = {
     good: {
@@ -149,6 +149,7 @@ const bins = [
         personel: "Masaki Saito",
         lastEmptied: "2026-01-22 02:00 PM",
     },
+
 ];
 
 
@@ -160,10 +161,12 @@ function getStatusFromFill(fill) {
 
 export default function WasteBin() {
 
+    // for confirmation modal
     const [openConModal, setOpenConModal] = useState(false)
 
-    const [openModal, setOpenModal] = useState(false)
-    const [openPointsModal, setOpenPointsModal] = useState(false)
+    // for counter modal -----------------
+    const [activeBin, setActiveBin] = useState(null)
+    const [openCounterModal, setOpenCounterModal] = useState(false)
 
     const [search, setSearch] = useState("");
     const [filter, setFilter] = useState("all");
@@ -171,8 +174,49 @@ export default function WasteBin() {
     const [location, setLocation] = useState("");
     const [category, setCategory] = useState("");
     const [capacity, setCapacity] = useState("");
+    // temporary
+    const [binsData, setBinsData] = useState([
+        {
+            id: "BIN-001",
+            category: "Biodegradable",
+            capacity: 500,
+            location: "Rizal St.",
+        },
+        {
+            id: "BIN-002",
+            category: "Non-Biodegradable",
+            capacity: 500,
+            location: "Rizal St.",
+        },
+        {
+            id: "BIN-003",
+            category: "Biodegradable",
+            capacity: 500,
+            location: "Mabini St.",
+        },
+        {
+            id: "BIN-004",
+            category: "Non-Biodegradable",
+            capacity: 500,
+            location: "Mabini St.",
+        },
+        {
+            id: "BIN-005",
+            category: "Biodegradable",
+            capacity: 500,
+            location: "Bonifacio St.",
+        },
+        {
+            id: "BIN-006",
+            category: "Non-Biodegradable",
+            capacity: 500,
+            location: "Bonifacio St.",
+        },
+        
 
-    const filteredData = BinInformation.filter((h) => {
+    ]);
+
+    const filteredData = binsData.filter((h) => {
         const matchSearch =
             h.category.toLowerCase().includes(search.toLowerCase()) ||
             h.id.toLowerCase().includes(search.toLowerCase());
@@ -189,7 +233,7 @@ export default function WasteBin() {
     const [editedLocation, setEditedLocation] = useState("");
 
     const handleSave = (id) => {
-        setBins((prev) =>
+        setBinsData((prev) =>
             prev.map((item) =>
                 item.id === id
                     ? { ...item, location: editedLocation }
@@ -239,7 +283,7 @@ export default function WasteBin() {
                     <section className="bg-white rounded-xl p-6 shadow">
                         <h2 className="text-lg font-semibold mb-6 flex items-center gap-2">
                             <Plus className="text-green-600" />
-                            Add Bin
+                            Add Bin Information
                         </h2>
 
                         <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
@@ -298,12 +342,12 @@ export default function WasteBin() {
                             <button
                                 onClick={() => setOpenConModal(true)}
                                 className="cursor-pointer px-5 mt-auto bg-green-600 flex items-center justify-center gap-1 text-white rounded-lg p-2 hover:bg-green-700 transition">
-                                <Plus size={16} />
-                                Add Bin
+                                {/* <Plus size={16} /> */}
+                                Add
                             </button>
                         </div>
                     </section>
-
+                    {/* Bin infromation */}
                     <section className="bg-white rounded-2xl shadow p-6">
 
                         <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4 mb-6">
@@ -343,7 +387,7 @@ export default function WasteBin() {
                         </div>
 
                         {/* Table */}
-                        <div className="overflow-x-auto">
+                        <div className="max-h-[400px] overflow-y-auto overflow-x-auto">
                             <table className="w-full min-w-[800px]">
                                 <thead className="bg-gray-50 text-left">
                                     <tr>
@@ -357,14 +401,14 @@ export default function WasteBin() {
 
                                 <tbody>
                                     {filteredData.map((item) => (
-                                        <tr key={item.id} className="hover:bg-gray-50">
-                                            <td className="px-4 py-3 font-mono text-sm">{item.id}</td>
+                                        <tr key={item.id} className="hover:bg-gray-50 text-sm md:text-[16px]">
+                                            <td className="px-4 py-3">{item.id}</td>
                                             <td className="px-4 py-3 font-medium">{item.category}</td>
                                             <td className="px-4 py-3 text-gray-600">
                                                 {item.capacity}<span>L</span>
                                             </td>
 
-                                            <td className="px-4 py-3">
+                                            <td className="px-4 py-3 w-30">
                                                 <input
                                                     className="outline-none pl-2"
                                                     type="text"
@@ -407,7 +451,7 @@ export default function WasteBin() {
                             </table>
                         </div>
                     </section>
-
+                    {/* COUNTER SECTION --------------- */}
                     <section className="bg-white rounded-xl p-6 shadow">
                         <h2 className="text-lg md:text-xl font-bold text-gray-900">
                             Counter Information
@@ -432,7 +476,7 @@ export default function WasteBin() {
                                                     {bin.location}
                                                 </p>
                                             </div>
-                                            <StatusIcon className={`${style.iconColor}`} />
+                                           
                                         </div>
 
                                         <span
@@ -445,12 +489,18 @@ export default function WasteBin() {
                                             <p>Last Collected: <strong>{bin.lastEmptied}</strong></p>
                                         </div>
 
-                                        <button
-                                            onClick={() => setOpenPointsModal(true)}
-                                            className="w-full mt-4 bg-green-600 cursor-pointer text-white py-2 rounded-lg hover:bg-green-700 flex items-center justify-center gap-2">
+                                        <div>
+                                            <button
+                                                onClick={() => {
+                                                    setActiveBin(bin);
+                                                    setOpenCounterModal(true);
+                                                }}
+                                                className="w-full mt-4 bg-gray-900 cursor-pointer text-white py-2 rounded-lg hover:bg-gray-800 flex items-center justify-center gap-2">
 
-                                            View
-                                        </button>
+                                                View
+                                            </button>
+
+                                        </div>
                                     </div>
                                 );
                             })}
@@ -465,10 +515,12 @@ export default function WasteBin() {
                 }}
             />
 
-            <AssignPointsModal
-                isOpen={openPointsModal}
-                onClose={() => setOpenPointsModal(false)}
+            <CounterInfoModal
+                isOpen={openCounterModal}
+                onClose={() => setOpenCounterModal(false)}
+                bin ={activeBin}
             />
+
 
             <Footer />
         </div>

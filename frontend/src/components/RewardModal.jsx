@@ -69,21 +69,23 @@ const rewardLogs = [
     },
 ];
 
-export function ViewRewardModal({ isOpen, onClose }) {
+export function ViewRewardModal({ isOpen, onClose, rName }) {
     const [fromDate, setFromDate] = useState("");
     const [toDate, setToDate] = useState("");
 
     if (!isOpen) return null;
 
     const filteredLogs = rewardLogs.filter((log) => {
-        if (!fromDate && !toDate) return true;
-        const logDate = new Date(log.date);
-        return (
-            (!fromDate || logDate >= new Date(fromDate)) &&
-            (!toDate || logDate <= new Date(toDate))
-        );
-    });
+        const matchesReward = !rName || log.rewardName === rName;
 
+        const logDate = new Date(log.date);
+        const matchesDate =
+            (!fromDate || logDate >= new Date(fromDate)) &&
+            (!toDate || logDate <= new Date(toDate));
+
+        return matchesReward && matchesDate;
+    });
+    
     return (
         <div className="fixed inset-0 z-50 bg-black/40 flex items-center justify-center p-4">
             <div className="bg-white w-full max-w-5xl rounded-2xl shadow-lg overflow-hidden">

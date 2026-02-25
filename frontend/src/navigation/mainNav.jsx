@@ -31,12 +31,10 @@ const adminMenu = [
 export default function NavigationShell() {
     const role = localStorage.getItem("role") || "user";
     const isAdmin = role === "admin";
-
     return (
         <>
             <Sidebar menu={isAdmin ? adminMenu : userMenu} />
-            {console.log("role:", role, "isAdmin:", isAdmin)}
-
+            
             {isAdmin ? (
                 <MobileDrawer menu={adminMenu} />
             ) : (

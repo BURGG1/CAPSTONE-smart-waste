@@ -51,45 +51,31 @@ const penaltiesData = {
 const recentActivityData = [
     {
         type: "Earned points",
+        via: "Rule 1. Return of recyclable material",
+        amount: "2kg",
         date: "2026-01-24",
-        points: 20,
+        points: 30,
     },
     {
-        type: "Redeemed Eco Bag",
+        type: "Redeemed Reward",
+        via: "Vitamins/Medicine",
+        amount: "1pc",
         date: "2026-01-23",
-        points: -200,
+        points: -500,
     },
     {
         type: "Earned points",
+        via: "Rule 2. 10-days Streak",
         date: "2026-01-22",
-        points: 55,
+        points: 30,
     },
     {
         type: "Earned points",
+        via: "Rule 1. Return of recyclable material",
+        amount: "3kg",
         date: "2026-01-22",
-        points: 55,
+        points: 45,
     },
-    {
-        type: "Earned points",
-        date: "2026-01-22",
-        points: 55,
-    },
-    {
-        type: "Earned points",
-        date: "2026-01-22",
-        points: 55,
-    },
-    {
-        type: "Earned points",
-        date: "2026-01-22",
-        points: 55,
-    },
-    {
-        type: "Earned points",
-        date: "2026-01-22",
-        points: 55,
-    },
-
 ];
 
 
@@ -264,6 +250,8 @@ export default function Rewards() {
                                 >
                                     <div>
                                         <p className="font-medium">{activity.type}</p>
+                                        <p className="text-xs">{activity.via}
+                                            <span className={activity.amount == null ? "hidden" : "inline-flex"}> - {activity.amount}</span></p>
                                         <p className="text-xs text-gray-500">{activity.date}</p>
                                     </div>
 

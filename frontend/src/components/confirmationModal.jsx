@@ -3,7 +3,7 @@ import { useState } from "react";
 
 
 
-export default function ConfirmationModal({ isOpen, onClose }) {
+export default function ConfirmationModal({ isOpen, onClose, onConfirm }) {
 
     if (!isOpen) return null;
 
@@ -26,7 +26,7 @@ export default function ConfirmationModal({ isOpen, onClose }) {
                     <h1 className="text-lg font-bold">Are you sure to continue this action?</h1>
                     <div className="flex gap-3 items-center">
                         <button
-                            onClick={onClose}
+                            onClick={onConfirm}
                             className="bg-green-600 cursor-pointer text-white p-2 px-5 rounded-lg">
                             Confirm
                         </button>

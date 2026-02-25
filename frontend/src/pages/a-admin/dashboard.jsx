@@ -3,7 +3,9 @@ import {
     CheckCircle,
     AlertTriangle,
     XCircle,
-    Medal, Trophy, Star
+    Medal, Trophy, Star,
+    Trash2,
+    TrendingUp
 } from "lucide-react";
 import {
     PieChart,
@@ -79,11 +81,11 @@ const householdRecords = [
 
 const totalHouseholds = householdRecords.length;
 
+// automation compliant
 const compliantCount = householdRecords.filter(
     (h) => h.status === "compliant"
 ).length;
 
-// Include warning as "For Improvement"
 const nonCompliantCount = householdRecords.filter(
     (h) => h.status !== "compliant"
 ).length;
@@ -96,32 +98,52 @@ const nonCompliantPercent = totalHouseholds
     ? Math.round((nonCompliantCount / totalHouseholds) * 100)
     : 0;
 
+
+// dashboard data-------------------------------
 const stats = [
     {
         title: "Total Households",
+        subtitle: "",
         value: totalHouseholds,
         icon: Users,
         iconBg: "bg-blue-100",
         iconColor: "text-blue-600",
     },
     {
-        title: "Properly Segregating",
-        value: compliantCount,
-        icon: CheckCircle,
-        iconBg: "bg-green-100",
-        iconColor: "text-green-600",
-        percentage: `${compliantPercent}%`,
-        percentColor: "text-green-600",
+        title: "Total Bins",
+        subtitle: "",
+        value: 6,
+        icon: Trash2,
+        iconBg: "bg-blue-100",
+        iconColor: "text-blue-600",
     },
+
     {
-        title: "For Improvement",
-        value: nonCompliantCount,
-        icon: XCircle,
-        iconBg: "bg-red-100",
-        iconColor: "text-red-600",
-        percentage: `${nonCompliantPercent}%`,
-        percentColor: "text-red-600",
+        title: "Average Bin Capacity",
+        subtitle: "2 Critical",
+        value: "58%",
+        icon: TrendingUp,
+        iconBg: "bg-blue-100",
+        iconColor: "text-blue-600",
     },
+    // {
+    //     title: "Properly Segregating",
+    //     value: compliantCount,
+    //     icon: CheckCircle,
+    //     iconBg: "bg-green-100",
+    //     iconColor: "text-green-600",
+    //     percentage: `${compliantPercent}%`,
+    //     percentColor: "text-green-600",
+    // },
+    // {
+    //     title: "For Improvement",
+    //     value: nonCompliantCount,
+    //     icon: XCircle,
+    //     iconBg: "bg-red-100",
+    //     iconColor: "text-red-600",
+    //     percentage: `${nonCompliantPercent}%`,
+    //     percentColor: "text-red-600",
+    // },
 ];
 
 
@@ -140,18 +162,8 @@ const monthlyCompliance = [
     { month: "Apr", compliant: 90, nonCompliant: 1 },
 ];
 
-const statusStyles = {
-    compliant: "bg-green-100 text-green-700",
-    warning: "bg-yellow-100 text-yellow-700",
-    "non-compliant": "bg-red-100 text-red-700",
-};
 
-const statusIcons = {
-    compliant: <CheckCircle size={16} />,
-    warning: <AlertTriangle size={16} />,
-    "non-compliant": <XCircle size={16} />,
-};
-// for leaderboard --------------------
+// for leaderboard lahat ng nasa baba --------------------
 const rawData = [
     {
         family: "Joel Dela Cruz",
@@ -190,8 +202,6 @@ const rawData = [
         isYou: false,
     },
 ];
-
-
 const medalStyles = {
     Gold: {
         ring: "border-yellow-400 text-yellow-500",
@@ -206,13 +216,11 @@ const medalStyles = {
         podium: "bg-orange-400",
     },
 };
-
 const tierStyles = {
     Gold: "bg-yellow-100 text-yellow-700",
     Silver: "bg-gray-100 text-gray-700",
     Bronze: "bg-orange-100 text-orange-700",
 };
-
 const getTierByRank = (rank) => {
     if (rank === 1) return "Gold";
     if (rank === 2) return "Silver";
@@ -290,7 +298,7 @@ export default function ComplianceDashboard() {
                                 return (
                                     <div
                                         key={item.title}
-                                        className="w-full bg-white rounded-xl shadow-sm p-5 flex justify-between items-center"
+                                        className="w-full bg-white rounded-xl shadow-sm  p-5 flex justify-between items-center hover:shadow-xl"
                                     >
                                         <div className="w-full flex flex-col gap-4">
 

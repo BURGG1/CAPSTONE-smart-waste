@@ -3,7 +3,7 @@ import { NavLink } from "react-router-dom";
 export function Sidebar({ menu }) {
   return (
     <aside className="hidden lg:flex w-64 bg-white border-r min-h-screen p-4">
-      <nav className="space-y-2 w-full">
+      <nav className="fixed space-y-2">
         {menu.map((item) => (
           <NavLink
             key={item.name}

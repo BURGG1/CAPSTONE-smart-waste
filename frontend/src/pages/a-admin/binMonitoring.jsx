@@ -159,6 +159,8 @@ function getStatusFromFill(fill) {
   return "good";
 }
 
+
+
 export default function BinMonitoring() {
   const [bins, setBins] = useState(initialBins);
   const [activeBinId, setActiveBinId] = useState(null)
@@ -181,6 +183,15 @@ export default function BinMonitoring() {
     setActiveBinId(null); // close modal after scheduling
   };
 
+ 
+
+  const [avefillLevel, setaveFillLevel] = useState(58); // dynamic value
+
+  const getColor = () => {
+    if (avefillLevel >= 90) return "bg-red-500";
+    if (avefillLevel >= 61) return "bg-yellow-500";
+    return "bg-green-600";
+  };
 
   return (
     <div className="flex-1">
@@ -211,6 +222,7 @@ export default function BinMonitoring() {
             </p>
           </div>
 
+
           {/* ALERT */}
           {/* <div className="border border-red-300 bg-red-50 rounded-xl p-5 flex justify-between items-start">
             <div className="flex gap-3">
@@ -231,7 +243,7 @@ export default function BinMonitoring() {
             <button className="text-red-400 text-xl">&times;</button>
           </div> */}
 
-          {/* STATS */}
+          {/* MINI DASHBOARD------------------ */}
           <div className="w-full flex flex-col lg:flex-row gap-4">
             {stats.map((item) => {
               const Icon = item.icon;
@@ -264,8 +276,24 @@ export default function BinMonitoring() {
               );
             })}
           </div>
+          {/* AVERAGE BIN CAPACITY-------------------- */}
+          <div className="bg-white rounded-xl shadow-sm p-6">
 
-          {/* BIN CARDS */}
+            <div className="flex justify-between mb-3">
+              <h3 className="font-semibold">Average Fill Level</h3>
+              <span className="font-bold text-xl">{avefillLevel}%</span>
+            </div>
+
+            <div className="h-3 bg-gray-200 rounded-full">
+              <div
+                className={`h-full rounded-full transition-all duration-500 ${getColor()}`}
+                style={{ width: `${avefillLevel}%` }}
+              />
+            </div>
+
+          </div>
+
+          {/* BIN CARDS ------------------------- */}
           <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
             {bins.map((bin) => {
               const status = getStatusFromFill(bin.fill);

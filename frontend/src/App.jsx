@@ -23,8 +23,8 @@ function App() {
     <Router>
       <ScrollToTop />
       <Routes>
-        <Route path="/Login" element={<AuthPage />} />
-        <Route path="/" element={<Landing />} />
+        <Route path="/" element={<AuthPage />} />
+        <Route path="/landing" element={<Landing />} />
         {/* User */}
         <Route path="/qrcode" element={<QRhandler />} />
         <Route path="/home-page" element={<HouseholdProfile />} />

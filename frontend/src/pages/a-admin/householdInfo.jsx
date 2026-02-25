@@ -1,6 +1,6 @@
 import { useState } from "react";
 import Navbar from "../../components/Navbar";
-import AssignPointsModal from "../../components/AssignPointsModal";
+import AssignPointsModal from "../../components/CounterInfoModal";
 import NavigationShell from "../../navigation/mainNav";
 import Footer from "../../components/Footer";
 import AddHousehold from "../../components/AddHouseholdModal";
@@ -194,9 +194,10 @@ export default function HouseholdInfo() {
                                     <button
                                         title="Register household"
                                         onClick={() => setOpenAddModal(true)}
-                                        className="bg-green-600 text-white w-10 h-10 p-2 rounded-lg cursor-pointer hover:bg-green-700"
+                                        className="bg-green-600 text-white w-full flex p-2 rounded-lg cursor-pointer md:w-10 h-10 hover:bg-green-700"
                                     >
                                         <Plus />
+                                        <p className="block md:hidden">Register Household</p>
                                     </button>
                                 </div>
                             </div>
@@ -229,7 +230,7 @@ export default function HouseholdInfo() {
                                             <td className="flex flex-row gap-2">
                                                  <button
                                                     onClick={() => setactiveHousehold(item.id)}
-                                                    className="cursor-pointer bg-blue-300 px-3 py-1 rounded-lg"
+                                                    className="cursor-pointer bg-gray-900 text-white px-3 py-1 rounded-lg"
                                                 >
                                                     View
                                                 </button>
