@@ -1,5 +1,6 @@
 import { X, Calendar, Flag, PlusCircle } from "lucide-react";
 import { useState } from "react";
+import PenaltyModal from "./PenaltyModal";
 
 const disposalLogs = [
     {
@@ -47,11 +48,14 @@ const disposalLogs = [
 
 
 export default function CounterInfoModal({ isOpen, onClose, bin }) {
-    
-    const today = new Date(); 
+
+    const today = new Date();
     const dayName = today.toLocaleDateString("en-US", { weekday: "long" }); // "Monday", etc
     const formattedDate = today.toISOString().split("T")[0]; // "2026-02-22"
-    
+
+    const [openModal, setOpenModal] = useState();
+    const [activeHH, setActiveHH] = useState();
+
     const [fromDate, setFromDate] = useState();
     const [toDate, setToDate] = useState("");
     if (!isOpen) return null;
@@ -122,6 +126,7 @@ export default function CounterInfoModal({ isOpen, onClose, bin }) {
                                 <th>Resident</th>
                                 <th>Contact no.</th>
                                 <th>Email</th>
+                                <th>Action</th>
                             </tr>
                         </thead>
 
@@ -139,6 +144,16 @@ export default function CounterInfoModal({ isOpen, onClose, bin }) {
                                     <td>{log.resident}</td>
                                     <td>{log.contact}</td>
                                     <td>{log.email}</td>
+                                    <td>
+                                        <button
+                                            onClick={() => {
+                                                setActiveHH(log);
+                                                setOpenModal(true);
+                                            }}
+                                            className="bg-red-600 text-white px-2 py-1 rounded-lg cursor-pointer">
+                                            Penalize
+                                        </button>
+                                    </td>
 
                                 </tr>
                             ))}
@@ -155,6 +170,13 @@ export default function CounterInfoModal({ isOpen, onClose, bin }) {
                 </div>
 
             </div>
+            <PenaltyModal
+                isOpen={openModal}
+                onClose={() => {
+                    setOpenModal(false);
+                }}
+                household={activeHH}
+            />
         </div>
     );
 }

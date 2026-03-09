@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { View, Text, ScrollView, TouchableOpacity } from "react-native";
 import { Feather, MaterialCommunityIcons } from "@expo/vector-icons"; // Expo icons
+import { SafeAreaView } from "react-native-safe-area-context";
 
 // household information
 const household = {
@@ -91,8 +92,9 @@ const recentActivityData = [
 
 export default function Rewards() {
     return (
+    <SafeAreaView className="flex-1">
 
-        <ScrollView className="flex-1 px-4 py-6 space-y-6 mt-5 mb-5">
+        <ScrollView className="flex-1 px-4 py-2 ">
 
             <View className="flex flex-col gap-5">
                 {/* Header */}
@@ -174,38 +176,6 @@ export default function Rewards() {
                     </View>
                 </View>
 
-                {/* Penalties & Deductions */}
-                <View className="bg-red-50 border border-red-200 rounded-xl p-6 space-y-4">
-                    <View>
-                        <Text className="text-lg font-semibold text-red-700">Penalties & Deductions</Text>
-                        <Text className="text-sm text-red-600 mt-1">
-                            Based on Republic Act No. 9003 - Ecological Solid Waste Management Act
-                        </Text>
-                    </View>
-
-                    {penaltiesData.records.map((item, index) => (
-                        <View
-                            key={index}
-                            className="bg-white border border-red-200 rounded-lg p-4 flex-row justify-between items-center"
-                        >
-                            <View>
-                                <Text className="font-medium">{item.reason}</Text>
-                                <Text className="text-xs text-gray-500">{item.date}</Text>
-                            </View>
-                            <View className="items-end">
-                                <Text className="text-red-600 font-semibold">{item.points} pts</Text>
-                                <Text className="text-xs text-gray-400">{item.law}</Text>
-                            </View>
-                        </View>
-                    ))}
-
-                    <View className="bg-white border border-red-300 rounded-lg p-3 text-sm">
-                        <Text className="text-red-600">
-                            <Text className="font-bold">Note: </Text>
-                            {penaltiesData.note}
-                        </Text>
-                    </View>
-                </View>
 
                 {/* Recent Activity */}
                 <View className="bg-white rounded-xl p-6 shadow flex-1">
@@ -233,6 +203,7 @@ export default function Rewards() {
                 </View>
             </View>
         </ScrollView>
+    </SafeAreaView>
 
     );
 }

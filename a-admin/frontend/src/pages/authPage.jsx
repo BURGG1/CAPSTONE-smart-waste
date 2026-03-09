@@ -22,12 +22,12 @@ export default function AuthPage() {
 
   // temporary login
   const handleLogin = () => {
-    if (form.email === "admin" && form.password === "admin1234") {
-      localStorage.setItem("role", "admin");
-      navigate("/dashboard");
-    } else {
+    if (form.email === "user" && form.password === "user123") {
       localStorage.setItem("role", "user");
-       navigate("/qrcode");
+      navigate("/qrcode");
+    } else {
+      localStorage.setItem("role", "admin");
+       navigate("/dashboard");
     }
   };
 

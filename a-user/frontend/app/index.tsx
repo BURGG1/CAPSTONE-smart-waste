@@ -11,7 +11,7 @@ export default function AuthPage() {
     if (form.email === "user" && form.password === "user1234") {
       router.replace("/(tabs)/home");
     } else {
-      router.replace("/(tabs)/qrhandler");
+      router.replace("/(tabs)/home");
     }
   };
 
@@ -45,7 +45,7 @@ export default function AuthPage() {
           <View>
             <Text className="text-sm mb-1 font-semibold">Email</Text>
 
-            <View className="flex-row items-center bg-gray-100 rounded-lg px-3 py-3">
+            <View className="flex-row items-center mb-4 bg-gray-100 rounded-lg px-3 py-3">
               <Feather name="mail" size={18} color="gray" />
 
               <TextInput
@@ -81,7 +81,7 @@ export default function AuthPage() {
           {/* LOGIN BUTTON */}
           <TouchableOpacity
             onPress={handleLogin}
-            className="bg-green-600 py-3 rounded-lg"
+            className="bg-green-600 mt-4 mb-4 py-3 rounded-lg"
           >
             <Text className="text-white text-center font-medium">
               Login

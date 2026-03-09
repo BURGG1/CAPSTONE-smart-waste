@@ -1,8 +1,10 @@
 import { Tabs } from "expo-router";
 import { Feather } from "@expo/vector-icons";
+import { SafeAreaView } from "react-native-safe-area-context";
 
 export default function TabLayout() {
     return (
+
         <Tabs
             screenOptions={{
                 headerShown: false,
@@ -29,16 +31,6 @@ export default function TabLayout() {
                     ),
                 }}
             />
-            
-            <Tabs.Screen
-                name="qrhandler"
-                options={{
-                    title: "QR Code",
-                    tabBarIcon: ({ color, size }) => (
-                        <Feather name="maximize" size={size} color={color} />
-                    ),
-                }}
-            />
 
             <Tabs.Screen
                 name="leaderboard"
@@ -46,6 +38,15 @@ export default function TabLayout() {
                     title: "Leaderboard",
                     tabBarIcon: ({ color, size }) => (
                         <Feather name="bar-chart-2" size={size} color={color} />
+                    ),
+                }}
+            />
+            <Tabs.Screen
+                name="rules"
+                options={{
+                    title: "Rule",
+                    tabBarIcon: ({ color, size }) => (
+                        <Feather name="book" size={size} color={color} />
                     ),
                 }}
             />
@@ -60,5 +61,6 @@ export default function TabLayout() {
                 }}
             />
         </Tabs>
+
     );
 }

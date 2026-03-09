@@ -1,7 +1,11 @@
 import { useState } from "react";
 import { View, Text, ScrollView, TouchableOpacity } from "react-native";
 import { Feather, MaterialCommunityIcons, FontAwesome5 } from "@expo/vector-icons"; // Expo icons
+import { SafeAreaView } from "react-native-safe-area-context";
 
+import EditHousehold from "../../components/EditHouseholdModal";
+
+import { useRouter } from "expo-router";
 
 // household information
 const household = {
@@ -27,56 +31,74 @@ const infoItems = [
   { label: "Email", value: household.email, icon: "mail" },
 ];
 
+
+
 export default function Profile() {
-  const [operEditModal, setEditModal] = useState(false);
+  const router = useRouter();
+  const [isModalOpen, setIsModalOpen] = useState(false);
+
+  const handleLogin = () => {
+    router.replace("/");
+  };
 
   return (
+    <SafeAreaView className="flex-1">
 
-        <ScrollView className="flex-1 px-4 py-6 space-y-6 mt-5 mb-5">
-          {/* Page Header */}
-          <View>
-            <Text className="text-3xl font-bold">Household Profile</Text>
-            <Text className="text-gray-500 mb-6">
-              View and manage your household information
-            </Text>
-          </View>
+      <ScrollView className="flex-1 px-4 py-1">
+        {/* Page Header */}
+        <View>
+          <Text className="text-3xl font-bold">Household Profile</Text>
+          <Text className="text-gray-500 mb-6">
+            View and manage your household information
+          </Text>
+        </View>
 
-          {/* Household Information */}
-          <View className="bg-white rounded-xl shadow p-6 space-y-4">
-            <Text className="text-lg font-semibold mb-4">Household Information</Text>
-            <View className="flex flex-col md:flex-row flex-wrap gap-4">
-              {infoItems.map((item) => (
-                <View key={item.label} className="flex-row items-center gap-4 bg-gray-50 rounded-xl p-4 flex-1">
-                  <View className="p-3 bg-green-100 rounded-lg">
-                    {/* Map icon string to Expo Icon */}
-                    {item.icon === "home" && <Feather name="home" size={20} color="#16A34A" />}
-                    {item.icon === "map-pin" && <Feather name="map-pin" size={20} color="#16A34A" />}
-                    {item.icon === "phone" && <Feather name="phone" size={20} color="#16A34A" />}
-                    {item.icon === "users" && <Feather name="users" size={20} color="#16A34A" />}
-                    {item.icon === "calendar" && <Feather name="calendar" size={20} color="#16A34A" />}
-                    {item.icon === "mail" && <Feather name="mail" size={20} color="#16A34A" />}
-                  </View>
-                  <View>
-                    <Text className="text-sm text-gray-500">{item.label}</Text>
-                    <Text className="font-semibold">{item.value}</Text>
-                  </View>
+        {/* Household Information */}
+        <View className="bg-white rounded-xl shadow p-6 space-y-4">
+          <Text className="text-lg font-semibold mb-4">Household Information</Text>
+          <View className="flex flex-col md:flex-row flex-wrap gap-4">
+            {infoItems.map((item) => (
+              <View key={item.label} className="flex-row items-center gap-4 bg-gray-50 rounded-xl p-4 flex-1">
+                <View className="p-3 bg-green-100 rounded-lg">
+                  {/* Map icon string to Expo Icon */}
+                  {item.icon === "home" && <Feather name="home" size={20} color="#16A34A" />}
+                  {item.icon === "map-pin" && <Feather name="map-pin" size={20} color="#16A34A" />}
+                  {item.icon === "phone" && <Feather name="phone" size={20} color="#16A34A" />}
+                  {item.icon === "users" && <Feather name="users" size={20} color="#16A34A" />}
+                  {item.icon === "calendar" && <Feather name="calendar" size={20} color="#16A34A" />}
+                  {item.icon === "mail" && <Feather name="mail" size={20} color="#16A34A" />}
                 </View>
-              ))}
-            </View>
+                <View>
+                  <Text className="text-sm text-gray-500">{item.label}</Text>
+                  <Text className="font-semibold">{item.value}</Text>
+                </View>
+              </View>
+            ))}
           </View>
+        </View>
 
-          {/* Update Button */}
-          <View className="flex items-center mt-4">
-            <TouchableOpacity onPress={() => setEditModal(true)}>
-              <Text className="text-gray-400 underline">Update information</Text>
-            </TouchableOpacity>
-          </View>
+        {/* Update Button */}
+        <View className="flex items-center mt-4">
+          <TouchableOpacity onPress={() => setIsModalOpen(true)}>
+            <Text className="text-gray-400 underline">Update information</Text>
+          </TouchableOpacity>
+        </View>
 
-          {/* Edit Household Modal */}
-          {/* <EditHousehold isOpen={operEditModal} onClose={() => setEditModal(false)} /> */}
 
-          {/* Waste Segregation Statistics (Optional, uncomment if needed) */}
-          {/*
+        <View className="flex items-center mt-4">
+          <TouchableOpacity onPress={handleLogin}>
+            <Text className="text-gray-400 underline">Logout</Text>
+          </TouchableOpacity>
+        </View>
+
+
+        <EditHousehold
+          isOpen={isModalOpen}
+          onClose={() => setIsModalOpen(false)}
+        />
+
+        {/* Waste Segregation Statistics (Optional, uncomment if needed) */}
+        {/*
           <View className="bg-white rounded-xl shadow p-6 space-y-4 mt-6">
             <Text className="text-lg font-semibold mb-4">Waste Segregation Statistics</Text>
             {wasteStats.map((stat) => (
@@ -95,7 +117,8 @@ export default function Profile() {
             ))}
           </View>
           */}
-        </ScrollView>
-  
+      </ScrollView>
+    </SafeAreaView>
+
   );
 }

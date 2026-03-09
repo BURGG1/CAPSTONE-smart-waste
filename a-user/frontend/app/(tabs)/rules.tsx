@@ -14,7 +14,6 @@ import oneMonth from "../../assets/oneMonth.jpg";
 const household = {
     id: "HH-202610001",
     name: "Joel Dela Cruz",
-    rank: 1,
     address: "123 Green Street, Barangay Sunshine, Metro City",
     contact: "+63 917 123 4567",
     members: 5,
@@ -25,6 +24,21 @@ const household = {
         total: 1240,
         thisMonth: 280,
     },
+};
+
+// Penalty Data
+const penaltiesData = {
+    note:
+        "Repeated violations may result in additional penalties and suspension of waste disposal privileges.",
+    records: [
+        {
+            reason:
+                "Improper waste segregation (mixed biodegradable with non-biodegradable)",
+            date: "2026-01-15",
+            points: -500,
+            law: "RA 9003 Section 48",
+        },
+    ],
 };
 
 // reward rules
@@ -44,7 +58,7 @@ const recentActivityData = [
     { type: "Earned points", via: "Rule 1. Return of recyclable material", amount: "3kg", date: "2026-01-22", points: 45 },
 ];
 
-export default function Home() {
+export default function Rules() {
     const [search, setSearch] = useState("");
 
     return (
@@ -53,77 +67,48 @@ export default function Home() {
             <ScrollView className="flex-1 px-4 py-2 ">
                 {/* Header */}
                 <View>
-                    <Text className="text-3xl font-bold">Home</Text>
-                    <Text className="text-gray-500 mb-6">Keep up the great work with waste segregation</Text>
+                    <Text className="text-3xl font-bold">Rules & Penalties</Text>
+                    <Text className="text-gray-500 mb-6">Rules aligned with RA 9003</Text>
                 </View>
 
-                {/* Reward Points */}
-                <View className="bg-green-600 text-white rounded-xl shadow p-6 gap-4">
-                    <Text className="text-white">Welcome back,</Text>
-                    <Text className="text-4xl text-white font-bold">{household.name}!</Text>
-
-                    <View className="flex-row items-center gap-2">
-                        <Feather name="award" size={20} color="white" />
-                        <Text className="font-semibold text-white">Total Points Earned</Text>
+                
+                {/* Penalties & Deductions */}
+                <View className="flex flex-col gap-2 bg-red-50 border border-red-200 shadow-lg rounded-xl p-6 space-y-4 mb-5">
+                    <View>
+                        <Text className="text-lg font-semibold text-red-700">Penalties & Deductions</Text>
+                        <Text className="text-sm text-red-600 mt-1">
+                            Based on Republic Act No. 9003 - Ecological Solid Waste Management Act
+                        </Text>
                     </View>
-                    <View className="flex-row justify-between items-center">
-                        <View>
-                            <Text className="text-4xl font-bold text-white">{household.points.total}</Text>
-                            <Text className="text-green-100">Total Points Earned</Text>
-                        </View>
 
-                        {/* Streak */}
-                        <View className="bg-green-600 p-2 rounded-xl border border-green-700 items-center justify-center">
-                            <Text className="text-2xl font-bold text-white">#{household.rank}</Text>
-                            <Text className="text-white text-center">Current rank</Text>
+                    {penaltiesData.records.map((item, index) => (
+                        <View
+                            key={index}
+                            className="bg-white border border-red-200 rounded-lg p-4 flex-col justify-between items-center"
+                        >
+                            <View>
+                                <Text className="font-medium">{item.reason}</Text>
+                                <Text className="text-xs text-gray-500">{item.date}</Text>
+                            </View>
+                            <View className="">
+                                <Text className="text-red-600 font-semibold">{item.points} pts</Text>
+                                <Text className="text-xs text-gray-400">{item.law}</Text>
+                            </View>
                         </View>
-                    </View>
-                    <View className="flex-row justify-between text-sm">
-                        <Text className="text-white">This Month</Text>
-                        <Text className="font-semibold text-white">+{household.points.thisMonth} points</Text>
+                    ))}
+
+                    <View className="bg-white border border-red-300 rounded-lg p-3 text-sm">
+                        <Text className="text-red-600">
+                            <Text className="font-bold">Note: </Text>
+                            {penaltiesData.note}
+                        </Text>
                     </View>
                 </View>
 
-                {/* Rules Section */}
-                <View className="bg-white rounded-xl p-6 shadow mt-10">
-                    <View className="flex-col justify-between items-center mb-4 gap-2">
-                        <View className="flex-row items-center gap-2">
-                            <Feather name="clipboard" size={18} color="#16A34A" />
-                            <Text className="text-lg font-semibold">How to Earn Points</Text>
-                        </View>
-                        <View className="relative flex-row items-center">
-                            <Feather name="search" size={18} color="gray" className="absolute left-2" />
-                            <TextInput
-                                className="pl-8 pr-4 py-2 border rounded-lg w-64 focus:ring-2 focus:ring-green-500"
-                                placeholder="Search reward"
-                                value={search}
-                                onChangeText={setSearch}
-                            />
-                        </View>
-                    </View>
-                    {/* RULEES------------ */}
-                    <ScrollView className="gap-4">
-                        {RULES.map(r => (
-                            <ScrollView key={r.id} className="bg-gray-50 rounded-xl shadow-lg overflow-hidden mb-4">
-                                <Image source={r.image} className="w-full h-80" resizeMode="cover" />
-                                <View className="p-4 gap-2">
-                                    <View className="flex-row justify-between items-center">
-                                        <Text className="text-lg font-bold">Rule {r.id} - {r.name}</Text>
-                                        <Text className="text-sm text-gray-400 font-semibold px-3 py-1 rounded-full">-{r.freq}</Text>
-                                    </View>
-                                    <Text className="text-gray-500">{r.decs}</Text>
-                                </View>
-                                <View className="absolute top-2 right-2 bg-white rounded-lg p-2 shadow-md">
-                                    <Text className="text-green-500 font-bold text-xl text-center">+{r.points}</Text>
-                                    <Text className="text-gray-500 text-sm font-semibold text-center">points</Text>
-                                </View>
-                            </ScrollView>
-                        ))}
-                    </ScrollView>
-                </View>
 
-                {/* RA 9003 */}
-                <View className="bg-white rounded-xl p-6 shadow mt-10">
+
+{/* RA 9003 */}
+                <View className="bg-white rounded-xl p-6 shadow">
 
                     <View className="flex flex-col sm:flex-row sm:justify-between gap-4 mt-5">
                         <View className="flex-row items-start gap-4">
@@ -161,27 +146,52 @@ export default function Home() {
                 </View>
                 <TouchableOpacity
                     onPress={() => Linking.openURL("https://www.officialgazette.gov.ph/2001/01/26/republic-act-no-9003/")}
-                    className="flex-row items-center gap-2"
+                    className="flex-row items-center gap-2 mb-10"
                 >
                     <Text className="text-green-600 font-medium">See full text of RA 9003</Text>
                 </TouchableOpacity>
 
-                {/* Recent Activity */}
-                <View className="bg-white rounded-xl p-6 shadow mt-5">
-                    <Text className="text-lg font-semibold mb-4">Recent Activity</Text>
-                    {recentActivityData.map((activity, i) => (
-                        <View key={i} className="flex-row justify-between items-center mb-2">
-                            <View>
-                                <Text className="font-medium">{activity.type}</Text>
-                                <Text className="text-xs">{activity.via}{activity.amount ? ` - ${activity.amount}` : ""}</Text>
-                                <Text className="text-xs text-gray-500">{activity.date}</Text>
-                            </View>
-                            <Text className={`font-semibold ${activity.points > 0 ? 'text-green-600' : 'text-red-500'}`}>
-                                {activity.points > 0 ? `+${activity.points}` : activity.points}
-                            </Text>
+
+
+                {/* Rules Section */}
+                <View className="bg-white rounded-xl p-6 shadow">
+                    <View className="flex-col justify-between items-center mb-4 gap-2">
+                        <View className="flex-row items-center gap-2">
+                            <Feather name="clipboard" size={18} color="#16A34A" />
+                            <Text className="text-lg font-semibold">How to Earn Points</Text>
                         </View>
-                    ))}
+                        <View className="relative flex-row items-center">
+                            <Feather name="search" size={18} color="gray" className="absolute left-2" />
+                            <TextInput
+                                className="pl-8 pr-4 py-2 border rounded-lg w-64 focus:ring-2 focus:ring-green-500"
+                                placeholder="Search reward"
+                                value={search}
+                                onChangeText={setSearch}
+                            />
+                        </View>
+                    </View>
+                    {/* RULEES------------ */}
+                    <ScrollView className="gap-4">
+                        {RULES.map(r => (
+                            <ScrollView key={r.id} className="bg-gray-50 rounded-xl shadow-lg overflow-hidden mb-4">
+                                <Image source={r.image} className="w-full h-80" resizeMode="cover" />
+                                <View className="p-4 gap-2">
+                                    <View className="flex-row justify-between items-center">
+                                        <Text className="text-lg font-bold">Rule {r.id} - {r.name}</Text>
+                                        <Text className="text-sm text-gray-400 font-semibold px-3 py-1 rounded-full">-{r.freq}</Text>
+                                    </View>
+                                    <Text className="text-gray-500">{r.decs}</Text>
+                                </View>
+                                <View className="absolute top-2 right-2 bg-white rounded-lg p-2 shadow-md">
+                                    <Text className="text-green-500 font-bold text-xl text-center">+{r.points}</Text>
+                                    <Text className="text-gray-500 text-sm font-semibold text-center">points</Text>
+                                </View>
+                            </ScrollView>
+                        ))}
+                    </ScrollView>
                 </View>
+
+
             </ScrollView>
         </SafeAreaView>
 
