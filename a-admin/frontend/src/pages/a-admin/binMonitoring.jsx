@@ -3,6 +3,7 @@ import NavigationShell from "../../navigation/mainNav";
 import SetSched from "../../components/setCollectionSched";
 import Footer from "../../components/Footer";
 import { useState } from "react";
+import { MapContainer, TileLayer, Marker, Popup, Tooltip } from "react-leaflet";
 
 import {
   Trash2,
@@ -110,6 +111,8 @@ const initialBins = [
     fill: 85,
     capacity: "500L",
     lastEmptied: "2026-01-23 08:00 AM",
+    lat: 14.86645,
+    lng: 120.7606,
   },
   {
     id: "BIN-002",
@@ -118,6 +121,8 @@ const initialBins = [
     fill: 60,
     capacity: "500L",
     lastEmptied: "2026-01-24 10:30 AM",
+    lat: 14.86515,
+    lng: 120.7561,
   },
   {
     id: "BIN-003",
@@ -126,6 +131,8 @@ const initialBins = [
     fill: 92,
     capacity: "500L",
     lastEmptied: "2026-01-22 02:00 PM",
+    lat: 14.86338,
+    lng: 120.7553,
   },
   {
     id: "BIN-004",
@@ -134,6 +141,9 @@ const initialBins = [
     fill: 30,
     capacity: "500L",
     lastEmptied: "2026-01-24 09:15 AM",
+    lat: 14.86331,
+    lng: 120.7522,
+
   },
   {
     id: "BIN-005",
@@ -142,6 +152,8 @@ const initialBins = [
     fill: 78,
     capacity: "500L",
     lastEmptied: "2026-01-23 11:00 AM",
+    lat: 14.86277,
+    lng: 120.7490,
   },
   {
     id: "BIN-006",
@@ -150,6 +162,8 @@ const initialBins = [
     fill: 15,
     capacity: "500L",
     lastEmptied: "2026-01-24 07:45 AM",
+    lat: 14.86183,
+    lng: 120.7457,
   },
 ];
 
@@ -183,7 +197,7 @@ export default function BinMonitoring() {
     setActiveBinId(null); // close modal after scheduling
   };
 
- 
+
 
   const [avefillLevel, setaveFillLevel] = useState(58); // dynamic value
 
@@ -203,7 +217,7 @@ export default function BinMonitoring() {
           <NavigationShell />
           <div className="py-2 md:hidden">
             <h1 className="text-lg sm:text-3xl font-bold text-gray-900">
-              Bin Fill Capacity Monitoring
+              Bin Capacity Monitoring Management
             </h1>
             <p className="text-gray-500 text-xs sm:text-lg ">
               Monitor smart bin capacity across the community
@@ -215,7 +229,7 @@ export default function BinMonitoring() {
 
           <div className="hidden md:block">
             <h1 className="text-lg sm:text-3xl font-bold text-gray-900">
-              Bin Fill Capacity Monitoring
+              Bin Capacity Monitoring Management
             </h1>
             <p className="text-gray-500 text-xs sm:text-lg ">
               Monitor smart bin capacity across the community
@@ -377,6 +391,104 @@ export default function BinMonitoring() {
                 </div>
               );
             })}
+          </div>
+
+          {/* BIN LOCATION MAP */}
+          <div className="bg-white rounded-xl shadow-sm p-6">
+            <div className="flex items-center gap-2 mb-4">
+              <MapPin className="text-green-600" />
+              <div>
+                <h3 className="font-semibold text-lg">Bin Location Map</h3>
+                <p className="text-sm text-gray-500">
+                  Live view of all smart bin locations
+                </p>
+              </div>
+            </div>
+
+            <div className="grid grid-cols-1 lg:grid-cols-4 gap-4 h-[500px]">
+
+              {/* MAP */}
+              <div className="lg:col-span-3 rounded-xl overflow-hidden border">
+                <MapContainer
+                  center={[14.86313, 120.7508]}
+                  zoom={15}
+                  className="h-full w-full"
+                >
+                  <TileLayer
+                    attribution="&copy; OpenStreetMap"
+                    url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
+                  />
+
+                  {bins.map((bin) => {
+                    const status = getStatusFromFill(bin.fill);
+                    const style = statusColors[status];
+
+                    return (
+                      <Marker key={bin.id} position={[bin.lat, bin.lng]}>
+
+                        <Tooltip direction="top" offset={[0, -10]} permanent>
+                          {bin.id}
+                        </Tooltip>
+
+                        <Popup>
+                          <div className="w-44">
+                            <h3 className="font-semibold">{bin.id}</h3>
+                            <p className="text-sm text-gray-500">{bin.location}</p>
+
+                            <div className="mt-2">
+                              <p className="text-sm">Fill Level</p>
+                              <div className="w-full bg-gray-200 h-2 rounded">
+                                <div
+                                  className={`h-2 rounded ${style.bar}`}
+                                  style={{ width: `${bin.fill}%` }}
+                                />
+                              </div>
+                              <p className="text-xs mt-1">{bin.fill}%</p>
+                            </div>
+
+                            <p className="text-xs mt-2">
+                              Capacity: <strong>{bin.capacity}</strong>
+                            </p>
+                          </div>
+                        </Popup>
+
+                      </Marker>
+                    );
+                  })}
+                </MapContainer>
+              </div>
+
+              {/* BIN LIST */}
+              <div className="border rounded-xl p-3 overflow-y-auto">
+                <h3 className="font-semibold mb-3">Bins in Barangay</h3>
+
+                {bins.map((bin) => {
+                  const status = getStatusFromFill(bin.fill);
+                  const style = statusColors[status];
+
+                  return (
+                    <div
+                      key={bin.id}
+                      className="mb-3 p-2 border rounded-lg hover:bg-gray-50"
+                    >
+                      <div className="flex justify-between text-sm font-medium">
+                        <span>{bin.id}</span>
+                        <span>{bin.fill}%</span>
+                      </div>
+
+                      <p className="text-xs text-gray-500">{bin.location}</p>
+
+                      <div className="w-full bg-gray-200 h-2 rounded mt-1">
+                        <div
+                          className={`h-2 rounded ${style.bar}`}
+                          style={{ width: `${bin.fill}%` }}
+                        />
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
           </div>
           {/* Status Indicator */}
           <div className="bg-white rounded-xl shadow-sm p-6">

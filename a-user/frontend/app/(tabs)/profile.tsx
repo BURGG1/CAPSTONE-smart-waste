@@ -75,22 +75,27 @@ export default function Profile() {
               </View>
             ))}
           </View>
+          {/* Update Button */}
+          <View className="flex items-center mt-4">
+            <TouchableOpacity onPress={() => setIsModalOpen(true)}>
+              <Text className="text-gray-400 underline">Update information</Text>
+            </TouchableOpacity>
+          </View>
         </View>
 
-        {/* Update Button */}
-        <View className="flex items-center mt-4">
-          <TouchableOpacity onPress={() => setIsModalOpen(true)}>
-            <Text className="text-gray-400 underline">Update information</Text>
+
+
+        <View className="w-full items-center mt-4">
+          <TouchableOpacity
+            onPress={handleLogin}
+            className="bg-gray-600 px-4 py-2 rounded-lg"
+          >
+            <View className="flex-row items-center gap-2">
+              <Feather name="log-out" size={18} color="white" />
+              <Text className="text-white">Logout</Text>
+            </View>
           </TouchableOpacity>
         </View>
-
-
-        <View className="flex items-center mt-4">
-          <TouchableOpacity onPress={handleLogin}>
-            <Text className="text-gray-400 underline">Logout</Text>
-          </TouchableOpacity>
-        </View>
-
 
         <EditHousehold
           isOpen={isModalOpen}

@@ -2,10 +2,13 @@ import { useState } from "react";
 import { View, Text, TextInput, TouchableOpacity } from "react-native";
 import { Feather } from "@expo/vector-icons";
 import { useRouter } from "expo-router";
+import RegisterHousehold from "@/components/RegisterHouseholdModal";
 
 export default function AuthPage() {
   const router = useRouter();
   const [form, setForm] = useState({ email: "", password: "" });
+  const [isModalOpen, setIsModalOpen] = useState(false);
+
 
   const handleLogin = () => {
     if (form.email === "user" && form.password === "user1234") {
@@ -94,6 +97,21 @@ export default function AuthPage() {
               Reset here
             </Text>
           </Text>
+
+          {/* REGISTER BUTTON */}
+          <TouchableOpacity
+            onPress={() => setIsModalOpen(true)}
+
+          >
+            <Text className="text-green-400 text-center font-medium mt-5">
+              Register Household
+            </Text>
+          </TouchableOpacity>
+
+          <RegisterHousehold
+            isOpen={isModalOpen}
+            onClose={() => setIsModalOpen(false)}
+          />
 
         </View>
       </View>

@@ -269,7 +269,7 @@ export default function Gamified() {
                             <section className="bg-white rounded-xl p-6 shadow">
                                 <h2 className="text-lg font-semibold mb-6 flex items-center gap-2">
                                     <Plus className="text-green-600" />
-                                    {ToEdit ? ("Update item") : ("Add New Items")}
+                                    {ToEdit ? ("Update Reward") : ("Add New Reward")}
                                 </h2>
 
                                 {/* Image Upload */}
@@ -329,7 +329,7 @@ export default function Gamified() {
                                             <button
                                                 onClick={() => setOpenConModal(true)}
                                                 className="cursor-pointer mt-auto bg-green-600 flex items-center justify-center gap-1 text-white rounded-lg p-2 hover:bg-green-700 transition">
-                                                Update Item
+                                                Update Reward
                                             </button>
 
                                             <button
@@ -344,7 +344,7 @@ export default function Gamified() {
                                         </div>) : (
                                         <button className="cursor-pointer mt-auto bg-green-600 flex items-center justify-center gap-1 text-white rounded-lg p-2 hover:bg-green-700 transition">
                                             <Plus size={16} />
-                                            Add New Item
+                                            Add New Reward
                                         </button>
                                     )}
 

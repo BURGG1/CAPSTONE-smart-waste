@@ -43,7 +43,7 @@ const penaltiesData = {
 
 // reward rules
 const RULES = [
-    { image: recyc1, id: 1, name: "Recyclable Materials", decs: "Earn points by recycling normal materials such as plastic, paper, glass, and metal", points: 15, freq: "per kilo" },
+    { image: recyc1, id: 1, name: "Recyclable Materials", decs: "Earn points by returning recyclable materials such as plastic, paper, glass, and metal", points: 15, freq: "per kilo" },
     { image: tenStreak, id: 2, name: "10-Day Consistency Streak", decs: "Maintain proper bin usage without any violation for 10 consecutive days", points: 30, freq: "per streak" },
     { image: plasticBrick, id: 3, name: "Plastic Bottle Bricks", decs: "Create eco-bricks by filling plastic bottles with non-recyclable plastic waste to be used for construction", points: 50, freq: "per brick" },
     { image: oneMonth, id: 4, name: "1 month Consistency Streak", decs: "Maintain proper bin usage without any violation for 1 month", points: 100, freq: "per streak" },

@@ -156,10 +156,12 @@ const wasteDistribution = [
 
 // Bar chart data
 const monthlyCompliance = [
+    { month: "Oct", compliant: 85, nonCompliant: 1 },
+    { month: "Nov", compliant: 85, nonCompliant: 1 },
+    { month: "Dec", compliant: 85, nonCompliant: 1 },
     { month: "Jan", compliant: 85, nonCompliant: 1 },
     { month: "Feb", compliant: 88, nonCompliant: 1 },
     { month: "Mar", compliant: 92, nonCompliant: 2 },
-    { month: "Apr", compliant: 90, nonCompliant: 1 },
 ];
 
 
@@ -325,8 +327,9 @@ export default function ComplianceDashboard() {
                         </div>
 
                         {/* Charts */}
-                        <div className="grid grid-cols-1 xl:grid-cols-2 gap-6">
-                            {/* Pie Chart */}
+                        <div className="flex flex-col xl:flex-row gap-6">
+                            
+                            {/* Pie Chart
                             <div className="bg-white rounded-xl shadow-sm  p-6">
                                 <h3 className="text-lg font-semibold mb-4">
                                     Waste Segregation Distribution
@@ -355,16 +358,16 @@ export default function ComplianceDashboard() {
                                         </PieChart>
                                     </ResponsiveContainer>
                                 </div>
-                            </div>
+                            </div> */}
 
                             {/* Bar Chart */}
-                            <div className="bg-white rounded-xl shadow-sm p-6">
+                            <div className="bg-white w-full rounded-xl shadow-sm p-6">
                                 <h3 className="text-lg font-semibold mb-4">
                                     Monthly Compliance Trend
                                 </h3>
-
-                                <div className="h-64">
-                                    <ResponsiveContainer width="100%" height={256}>
+                                {/* h-64 height 254 */}
+                                <div className="h-84"> 
+                                    <ResponsiveContainer width="100%" height={366}>
                                         <BarChart data={monthlyCompliance}>
                                             <CartesianGrid strokeDasharray="3 3" />
                                             <XAxis dataKey="month" />

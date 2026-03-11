@@ -35,10 +35,11 @@ const MONTHLY = {
 
 // Redeemable items
 const REWARDS = [
-    { name: "Eco Bag", points: 200, left: 15 },
-    { name: "Reusable Water Bottle", points: 350, left: 8 },
-    { name: "Plant Seedlings", points: 150, left: 20 },
-    { name: "Compost Bin", points: 500, left: 5 },
+    { id: 1, name: "Free Clinical Checkup", points: 1200, stocks: 15 },
+    { id: 2, name: "50% off to Barangay Clearance", points: 1200, stocks: 8 },
+    { id: 3, name: "Vitamins/Medicine", points: 500, stocks: 20 },
+    { id: 4, name: "50% off to Business Permit", points: 1500, stocks: 5 },
+
 ];
 
 // Derived values
@@ -166,7 +167,7 @@ export default function Rewards() {
                                 <Text className="font-semibold">{item.name}</Text>
                                 <View className="flex-row justify-between text-sm my-2">
                                     <Text className="text-green-600 font-semibold">{item.points} pts</Text>
-                                    <Text className="text-gray-500">{item.left} left</Text>
+                                    <Text className="text-gray-500">{item.stocks} left</Text>
                                 </View>
                                 <TouchableOpacity className="mt-auto bg-green-600 py-2 rounded-lg items-center">
                                     <Text className="text-white font-semibold">Redeem</Text>

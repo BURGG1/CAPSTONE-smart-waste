@@ -1,5 +1,6 @@
 import { BrowserRouter as Router, Routes, Route } from "react-router-dom";
 import { useState } from 'react'
+import "leaflet/dist/leaflet.css";
 import Landing from './pages/landing'
 import ScrollToTop from "./assets/toScrollTop";
 import HouseholdProfile from "./pages/a-user/profile";

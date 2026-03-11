@@ -1,18 +1,19 @@
-import { Recycle, LogOut } from "lucide-react";
+import { Recycle, LogOut, Bell } from "lucide-react";
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
+import ConfirmationModal from "./confirmationModal";
 
 export default function Navbar() {
-  const [isLoggedIn, setIsLoggedIn] = useState(true);
+  const [OpenConModal, setOpenConModal] = useState(false);
   const navigate = useNavigate();
 
   const handleLogin = () => {
-    navigate("/"); 
+    navigate("/");
   };
 
   const handleLogout = () => {
     localStorage.removeItem("role")
-    navigate("/"); 
+    navigate("/");
   };
 
   return (
@@ -25,23 +26,27 @@ export default function Navbar() {
           <span className="font-bold text-lg text-black">SmartBin</span>
         </div>
 
-        {isLoggedIn ? (
+        <div className="flex gap-10">
+          <div>
+            {/* <Bell className="text-black cursor" size={20} /> */}
+          </div>
           <button
-          onClick={handleLogout}
-          className="flex items-center gap-1 text-red-500 cursor-pointer font-medium"
+            onClick={() => setOpenConModal(true)}
+            className="flex items-center gap-1 text-red-500 cursor-pointer font-medium"
           >
             <LogOut size={16} />
             Logout
           </button>
-        ) : (
-          <button
-            onClick={handleLogin}
-            className="flex items-center gap-1 text-green-600 cursor-pointer font-medium"
-          >
-            Login
-          </button>
-        )}
+        </div>
       </div>
+      <ConfirmationModal
+        isOpen={OpenConModal}
+        onClose={()=> {
+          setOpenConModal(false)}
+        }
+        onConfirm={handleLogin}
+      />
     </header>
+
   );
 }
