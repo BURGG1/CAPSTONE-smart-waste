@@ -263,6 +263,8 @@ export default function Gamified() {
                             </button>
                         ))}
                     </div>
+
+                    
                     {/* REWAAAAARRDDDDDDDDDDDSSSSSSSSSSSS */}
                     {activeTab == "rewards" && (
                         <>
