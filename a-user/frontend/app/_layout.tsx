@@ -8,7 +8,11 @@ export default function RootLayout() {
       options={{ headerShown: false }}
     />
     <Stack.Screen
-      name="(tabs)"
+      name="(userTabs)"
+      options={{ headerShown: false }}
+    />
+    <Stack.Screen
+      name="(collectorTabs)"
       options={{ headerShown: false }}
     />
 

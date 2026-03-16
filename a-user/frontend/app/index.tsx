@@ -11,10 +11,10 @@ export default function AuthPage() {
 
 
   const handleLogin = () => {
-    if (form.email === "user" && form.password === "user1234") {
-      router.replace("/(tabs)/home");
+    if (form.email === "collector" && form.password === "collector") {
+      router.replace("/(collectorTabs)/home");
     } else {
-      router.replace("/(tabs)/home");
+      router.replace("/(userTabs)/home");
     }
   };
 

@@ -137,7 +137,8 @@ const RULES = [
         name: "10-Day Consistency Streak",
         decs: "Maintain proper bin usage without any violation for 10 consecutive days",
         points: 30,
-        freq: "per streak"
+        freq: "per streak",
+        auto: true
     },
     {
         image: plasticBrick,
@@ -153,7 +154,8 @@ const RULES = [
         name: "1 month Consistency Streak",
         decs: "Maintain proper bin usage without any violation for 1 month",
         points: 100,
-        freq: "per streak"
+        freq: "per streak",
+        auto: true
     },
     {
         image: pandisplay,
@@ -264,7 +266,7 @@ export default function Gamified() {
                         ))}
                     </div>
 
-                    
+
                     {/* REWAAAAARRDDDDDDDDDDDSSSSSSSSSSSS */}
                     {activeTab == "rewards" && (
                         <>
@@ -538,18 +540,20 @@ export default function Gamified() {
                                                 </p>
                                                 <div className="w-full flex items-center gap-2 mt-4">
 
-                                                    <div className="flex-1">
-                                                        <button
-                                                            onClick={() => {
-                                                                setClickRule(r);
-                                                                setopenAwardModal(true);
-                                                            }}
-                                                            className="w-full cursor-pointer bg-green-600 text-white py-2 rounded-lg"
-                                                        >
-                                                            Award
-                                                        </button>
+                                                    {!r.auto && (
+                                                        <div className="flex-1">
 
-                                                    </div>
+                                                            <button
+                                                                onClick={() => {
+                                                                    setClickRule(r);
+                                                                    setopenAwardModal(true);
+                                                                }}
+                                                                className="w-full cursor-pointer bg-green-600 text-white py-2 rounded-lg"
+                                                            >
+                                                                Award
+                                                            </button>
+                                                        </div>
+                                                    )}
                                                     <div className="flex-1">
                                                         <button
                                                             onClick={() => {
@@ -610,7 +614,7 @@ export default function Gamified() {
 
                 <AwardModal
                     isOpen={openAwardModal}
-                    onClose={() =>{setopenAwardModal(false)}}
+                    onClose={() => { setopenAwardModal(false) }}
                     rule={clickedRule}
                 />
 

@@ -458,7 +458,7 @@ export default function BinMonitoring() {
                 </MapContainer>
               </div>
 
-              {/* BIN LIST */}
+             
               <div className="border rounded-xl p-3 overflow-y-auto">
                 <h3 className="font-semibold mb-3">Bins in Barangay</h3>
 
@@ -490,6 +490,7 @@ export default function BinMonitoring() {
               </div>
             </div>
           </div>
+
           {/* Status Indicator */}
           <div className="bg-white rounded-xl shadow-sm p-6">
             <h3 className="font-semibold mb-4">Status Indicators</h3>
