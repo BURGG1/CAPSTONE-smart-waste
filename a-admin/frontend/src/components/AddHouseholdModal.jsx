@@ -8,6 +8,7 @@ export default function AddHousehold({ isOpen, onClose }) {
 
   const [showToast, setShowToast] = useState(false);
 
+
   const handleConfirm = () => {
     setActive(false);   // close confirmation
     setShowToast(true);      // show success toast
@@ -31,6 +32,7 @@ export default function AddHousehold({ isOpen, onClose }) {
 
         {/* BODY */}
         <div className="overflow-y-auto px-4 sm:px-6 py-5">
+
           <div className="flex flex-col gap-4">
 
             {/* Fullname */}
@@ -127,17 +129,44 @@ export default function AddHousehold({ isOpen, onClose }) {
               />
             </div>
 
-            {/* Submit Button */}
-            <button
-              onClick={() => setActive(true)}
-              className="mt-4 bg-green-600 text-white py-2 rounded-lg hover:bg-green-700 transition"
-            >
-              Register
-            </button>
+            <>
+              <div className="flex flex-col items-center">
+                <div className="flex items-center">
 
+                  <h3 className="text-lg font-semibold">Assign RFID</h3>
+                  <Asterisk className="text-red-500 w-3 h-3" />
+                </div>
+
+                <p className="text-sm text-gray-500">
+                  Scan or input RFID for this household
+                </p>
+
+              </div>
+
+              {/* RFID INPUT */}
+              <div className="flex items-center">
+
+                <input
+                  type="text"
+                  placeholder="Scan RFID or enter code"
+                  className="w-full px-3 py-2 border rounded-lg"
+                />
+              </div>
+
+              {/* BUTTONS */}
+              <div className="flex gap-2 mt-4">
+
+                <button
+                  onClick={() => setActive(true)}
+                  className="flex-1 bg-green-600 text-white py-2 rounded-lg"
+                >
+                  Register
+                </button>
+              </div>
+            </>
           </div>
-        </div>
 
+        </div>
 
 
         <ConfirmationModal

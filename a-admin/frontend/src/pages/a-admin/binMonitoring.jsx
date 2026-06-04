@@ -50,7 +50,8 @@ const typeColors = {
 const alertData = {
   title: "Urgent: Bins Require Immediate Attention!",
   description: "1 bin has reached maximum capacity",
-  location: "Eco Lane",
+  name: "Kislap",
+  location: "Purok 2",
 };
 
 const stats = [
@@ -106,64 +107,78 @@ const statusIcons = {
 const initialBins = [
   {
     id: "BIN-001",
-    location: "Rizal St.",
+    name: "Kislap",
+    location: "Purok 2",
     type: "Biodegradable",
-    fill: 85,
+    fill: 82,
     capacity: "500L",
-    lastEmptied: "2026-01-23 08:00 AM",
+    lastEmptied: new Date("2026-01-23T08:00:00"),
+    schedule: null,
     lat: 14.86645,
     lng: 120.7606,
   },
+ 
+
   {
     id: "BIN-002",
-    location: "Mabini St.",
+    name: "Mestisa",
+    location: "Purok 4",
     type: "Biodegradable",
     fill: 60,
     capacity: "500L",
-    lastEmptied: "2026-01-24 10:30 AM",
+    lastEmptied: new Date("2026-01-23T08:00:00"),
+    schedule: null,
     lat: 14.86515,
     lng: 120.7561,
   },
   {
     id: "BIN-003",
-    location: "Luna St.",
+    name: "Karing",
+    location: "Purok 6",
     type: "Biodegradable",
     fill: 92,
     capacity: "500L",
-    lastEmptied: "2026-01-22 02:00 PM",
+    lastEmptied: new Date("2026-01-23T08:00:00"),
+    schedule: null,
     lat: 14.86338,
     lng: 120.7553,
   },
-  {
+   {
     id: "BIN-004",
-    location: "Rizal St.",
+    name: "Kislap",
+    location: "Purok 2",
     type: "Non-biodegradable",
     fill: 30,
     capacity: "500L",
-    lastEmptied: "2026-01-24 09:15 AM",
-    lat: 14.86331,
-    lng: 120.7522,
-
+    lastEmptied: new Date("2026-01-23T08:00:00"),
+    schedule: null,
+    lat: 14.86645,
+    lng: 120.76065, 
   },
   {
     id: "BIN-005",
-    location: "Mabini St.",
+    name: "Mestisa",
+    location: "Purok 4",
     type: "Non-biodegradable",
     fill: 78,
     capacity: "500L",
-    lastEmptied: "2026-01-23 11:00 AM",
-    lat: 14.86277,
-    lng: 120.7490,
+    lastEmptied: new Date("2026-01-23T08:00:00"),
+    schedule: null,
+    lat: 14.86515,
+    lng: 120.75615, 
   },
+
   {
     id: "BIN-006",
-    location: "Luna St.",
+    name: "Karing",
+    location: "Purok 6",
     type: "Non-biodegradable",
     fill: 15,
     capacity: "500L",
-    lastEmptied: "2026-01-24 07:45 AM",
-    lat: 14.86183,
-    lng: 120.7457,
+    lastEmptied: new Date("2026-01-23T08:00:00"),
+    schedule: null,
+    lat: 14.86338,
+    lng: 120.75535, 
   },
 ];
 
@@ -173,30 +188,71 @@ function getStatusFromFill(fill) {
   return "good";
 }
 
+import { useEffect } from "react";
 
+const collectors = [
+  { id: 1, name: "Juan Carlos", status: "available", currentLoad: 1 },
+  { id: 2, name: "Pedro Penduko", status: "available", currentLoad: 2 },
+  { id: 3, name: "Maria Teresa", status: "busy", currentLoad: 2 },
+];
 
 export default function BinMonitoring() {
   const [bins, setBins] = useState(initialBins);
   const [activeBinId, setActiveBinId] = useState(null)
 
-  const handleSchedule = (binId, data) => {
-    setBins((prevBins) =>
-      prevBins.map((bin) =>
-        bin.id === binId
-          ? {
-            ...bin,
-            schedule: {
-              collector: data.personel,
-              date: data.date,
-            },
-          }
-          : bin
-      )
-    );
+  const assignCollector = () => {
+    const available = collectors
+      .filter(c => c.status === "available")
+      .sort((a, b) => a.currentLoad - b.currentLoad);
 
-    setActiveBinId(null); // close modal after scheduling
+    if (available.length === 0) return null;
+
+    const selected = available[0];
+
+    selected.currentLoad += 1; // ✅ update load
+
+    return selected;
   };
 
+  useEffect(() => {
+    const needsScheduling = bins.some(
+      bin => (bin.fill >= 90 && !bin.schedule)
+    );
+
+    if (needsScheduling) {
+      autoScheduleBins();
+    }
+  }, [bins]);
+
+  const autoScheduleBins = () => {
+    setBins((prevBins) => {
+      let updated = false;
+
+      const newBins = prevBins.map((bin) => {
+        const status = getStatusFromFill(bin.fill);
+
+        if ((status === "warning" || status === "critical") && !bin.schedule) {
+          const collector = assignCollector();
+          if (!collector) return bin;
+
+          updated = true;
+
+          return {
+            ...bin,
+            schedule: {
+              collector: collector.name,
+              date: new Date().toLocaleDateString(),
+              auto: true
+            }
+          };
+        }
+
+        return bin;
+      });
+
+      return updated ? newBins : prevBins; // ✅ prevents useless updates
+    });
+  };
 
 
   const [avefillLevel, setaveFillLevel] = useState(58); // dynamic value
@@ -238,7 +294,7 @@ export default function BinMonitoring() {
 
 
           {/* ALERT */}
-          {/* <div className="border border-red-300 bg-red-50 rounded-xl p-5 flex justify-between items-start">
+          <div className="border border-red-300 bg-red-50 rounded-xl p-5 flex justify-between items-start">
             <div className="flex gap-3">
               <Bell className="text-red-600 mt-1" />
               <div>
@@ -255,7 +311,7 @@ export default function BinMonitoring() {
               </div>
             </div>
             <button className="text-red-400 text-xl">&times;</button>
-          </div> */}
+          </div>
 
           {/* MINI DASHBOARD------------------ */}
           <div className="w-full flex flex-col lg:flex-row gap-4">
@@ -321,7 +377,7 @@ export default function BinMonitoring() {
                 >
                   <div className="flex justify-between items-start">
                     <div>
-                      <h3 className="font-bold">{bin.id}</h3>
+                      <h3 className="font-bold">{bin.id} - {bin.name}</h3>
                       <p className="flex items-center gap-1 text-sm text-gray-500">
                         <MapPin size={14} />
                         {bin.location}
@@ -352,7 +408,7 @@ export default function BinMonitoring() {
                   <div className="mt-4 text-sm space-y-1">
                     <p>Capacity: <strong>{bin.capacity}</strong></p>
                     <p className="flex items-center gap-1">
-                      Last Emptied:<strong>{bin.lastEmptied}</strong>
+                      <strong>{bin.lastEmptied.toLocaleString()}</strong>
                     </p>
                   </div>
 
@@ -363,7 +419,7 @@ export default function BinMonitoring() {
                     Status: {status}
                   </span>
 
-                  {status !== "good" && (
+                  {status == "critical" && (
                     <div className="relative mt-4">
 
                       {!bin.schedule ? (
@@ -393,6 +449,46 @@ export default function BinMonitoring() {
             })}
           </div>
 
+          {/* Status Indicator */}
+          <div className="bg-white rounded-xl shadow-sm p-6">
+            <h3 className="font-semibold mb-4">Status Indicators</h3>
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 text-sm">
+
+              <div className="flex gap-2">
+                <div className="p-3 rounded-lg bg-green-100">
+                  <CheckCircle className="text-green-600" />
+                </div>
+                <div>
+                  <p className=" font-bold">Normal (0–60%)</p>
+                  <p className="text-sm text-gray-500">Bin operating normally</p>
+                </div>
+
+              </div>
+
+              <div className="flex gap-2">
+
+                <div className="p-3 rounded-lg bg-yellow-100">
+                  <AlertTriangle className="text-yellow-600" />
+                </div>
+                <div>
+                  <p className="font-bold">Warning (61–89%)</p>
+                  <p className="text-sm text-gray-500"> Collection needed soon</p>
+                </div>
+              </div>
+
+              <div className="flex gap-2">
+
+                <div className="p-3 rounded-lg bg-red-100">
+                  <XCircle className="text-red-600" />
+                </div>
+                <div>
+                  <p className="font-bold">Critical (90–100%)</p>
+                  <p className="text-sm text-gray-500"> Immediate collection required</p>
+                </div>
+              </div>
+            </div>
+          </div>
+
           {/* BIN LOCATION MAP */}
           <div className="bg-white rounded-xl shadow-sm p-6">
             <div className="flex items-center gap-2 mb-4">
@@ -410,7 +506,7 @@ export default function BinMonitoring() {
               {/* MAP */}
               <div className="lg:col-span-3 rounded-xl overflow-hidden border">
                 <MapContainer
-                  center={[14.86313, 120.7508]}
+                  center={[14.86515, 120.75615]}
                   zoom={15}
                   className="h-full w-full"
                 >
@@ -458,7 +554,7 @@ export default function BinMonitoring() {
                 </MapContainer>
               </div>
 
-             
+
               <div className="border rounded-xl p-3 overflow-y-auto">
                 <h3 className="font-semibold mb-3">Bins in Barangay</h3>
 
@@ -472,7 +568,7 @@ export default function BinMonitoring() {
                       className="mb-3 p-2 border rounded-lg hover:bg-gray-50"
                     >
                       <div className="flex justify-between text-sm font-medium">
-                        <span>{bin.id}</span>
+                        <span>{bin.id} - {bin.name}</span>
                         <span>{bin.fill}%</span>
                       </div>
 
@@ -491,45 +587,7 @@ export default function BinMonitoring() {
             </div>
           </div>
 
-          {/* Status Indicator */}
-          <div className="bg-white rounded-xl shadow-sm p-6">
-            <h3 className="font-semibold mb-4">Status Indicators</h3>
-            <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 text-sm">
 
-              <div className="flex gap-2">
-                <div className="p-3 rounded-lg bg-green-100">
-                  <CheckCircle className="text-green-600" />
-                </div>
-                <div>
-                  <p className=" font-bold">Normal (0–60%)</p>
-                  <p className="text-sm text-gray-500">Bin operating normally</p>
-                </div>
-
-              </div>
-
-              <div className="flex gap-2">
-
-                <div className="p-3 rounded-lg bg-yellow-100">
-                  <AlertTriangle className="text-yellow-600" />
-                </div>
-                <div>
-                  <p className="font-bold">Warning (61–89%)</p>
-                  <p className="text-sm text-gray-500"> Collection needed soon</p>
-                </div>
-              </div>
-
-              <div className="flex gap-2">
-
-                <div className="p-3 rounded-lg bg-red-100">
-                  <XCircle className="text-red-600" />
-                </div>
-                <div>
-                  <p className="font-bold">Critical (90–100%)</p>
-                  <p className="text-sm text-gray-500"> Immediate collection required</p>
-                </div>
-              </div>
-            </div>
-          </div>
         </main>
       </div>
       <Footer />

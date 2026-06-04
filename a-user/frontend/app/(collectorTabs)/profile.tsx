@@ -15,10 +15,10 @@ const collector = {
     assignedBarangay: "Barangay Sunshine",
     contact: "+63 917 888 2233",
     email: "chitomid@gmail.com",
-    registeredSince: "February 10, 2025",
     totalCollections: 120,
 };
 
+// registeredSince: "February 10, 2025",
 // Collector Information Items
 const infoItems = [
     { label: "Collector Name", value: collector.name, icon: "user" },
@@ -26,7 +26,6 @@ const infoItems = [
     { label: "Assigned Barangay", value: collector.assignedBarangay, icon: "map-pin" },
     { label: "Contact Number", value: collector.contact, icon: "phone" },
     { label: "Email", value: collector.email, icon: "mail" },
-    { label: "Registered Since", value: collector.registeredSince, icon: "calendar" },
     { label: "Total Collections", value: `${collector.totalCollections} bins`, icon: "trash-2" },
 ];
 

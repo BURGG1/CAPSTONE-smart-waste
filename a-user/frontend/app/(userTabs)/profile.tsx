@@ -58,7 +58,7 @@ export default function Profile() {
           <Text className="text-lg font-semibold mb-4">Household Information</Text>
           <View className="flex flex-col md:flex-row flex-wrap gap-4">
             {infoItems.map((item) => (
-              <View key={item.label} className="flex-row items-center gap-4 bg-gray-50 rounded-xl p-4 flex-1">
+              <View key={item.label} className="w-full flex-row items-center gap-4 bg-gray-50 rounded-xl p-4 flex-1">
                 <View className="p-3 bg-green-100 rounded-lg">
                   {/* Map icon string to Expo Icon */}
                   {item.icon === "home" && <Feather name="home" size={20} color="#16A34A" />}

@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { View, Text, ScrollView, Image, TextInput, TouchableOpacity, Linking } from "react-native";
+import { View, Text,FlatList ,ScrollView, Image, TextInput, TouchableOpacity, Linking } from "react-native";
 import { Feather } from "@expo/vector-icons"; // Expo Icons
 import { SafeAreaView } from "react-native-safe-area-context";
 
@@ -71,7 +71,7 @@ export default function Rules() {
                     <Text className="text-gray-500 mb-6">Rules aligned with RA 9003</Text>
                 </View>
 
-                
+
                 {/* Penalties & Deductions */}
                 <View className="flex flex-col gap-2 bg-red-50 border border-red-200 shadow-lg rounded-xl p-6 space-y-4 mb-5">
                     <View>
@@ -107,7 +107,7 @@ export default function Rules() {
 
 
 
-{/* RA 9003 */}
+                {/* RA 9003 */}
                 <View className="bg-white rounded-xl p-6 shadow">
 
                     <View className="flex flex-col sm:flex-row sm:justify-between gap-4 mt-5">
@@ -153,7 +153,7 @@ export default function Rules() {
 
 
 
-                {/* Rules Section */}
+                 {/* Rules Section */}
                 <View className="bg-white rounded-xl p-6 shadow">
                     <View className="flex-col justify-between items-center mb-4 gap-2">
                         <View className="flex-row items-center gap-2">
@@ -171,24 +171,46 @@ export default function Rules() {
                         </View>
                     </View>
                     {/* RULEES------------ */}
-                    <ScrollView className="gap-4">
-                        {RULES.map(r => (
-                            <ScrollView key={r.id} className="bg-gray-50 rounded-xl shadow-lg overflow-hidden mb-4">
-                                <Image source={r.image} className="w-full h-80" resizeMode="cover" />
-                                <View className="p-4 gap-2">
-                                    <View className="flex-row justify-between items-center">
-                                        <Text className="text-lg font-bold">Rule {r.id} - {r.name}</Text>
-                                        <Text className="text-sm text-gray-400 font-semibold px-3 py-1 rounded-full">-{r.freq}</Text>
-                                    </View>
-                                    <Text className="text-gray-500">{r.decs}</Text>
+                    <FlatList
+                        data={RULES.filter(r =>
+                            r.name.toLowerCase().includes(search.toLowerCase())
+                        )}
+                        keyExtractor={(item) => item.id.toString()}
+                        numColumns={2}
+                        scrollEnabled={false}
+                        columnWrapperStyle={{ gap: 10 }}
+                        contentContainerStyle={{ gap: 10 }}
+                        renderItem={({ item: r }) => (
+                            <View className="flex-1 bg-gray-50 rounded-xl shadow-lg overflow-hidden">
+
+                                <Image
+                                    source={r.image}
+                                    className="w-full h-40"
+                                    resizeMode="cover"
+                                />
+
+                                <View className="p-3 gap-1">
+                                    <Text className="text-sm font-bold">
+                                        Rule {r.id}
+                                    </Text>
+
+                                    <Text className="text-xs text-gray-500">
+                                        {r.name}
+                                    </Text>
+
+                                    <Text className="text-xs text-gray-400">
+                                        {r.decs}
+                                    </Text>
                                 </View>
-                                <View className="absolute top-2 right-2 bg-white rounded-lg p-2 shadow-md">
-                                    <Text className="text-green-500 font-bold text-xl text-center">+{r.points}</Text>
-                                    <Text className="text-gray-500 text-sm font-semibold text-center">points</Text>
+
+                                <View className="absolute top-2 right-2 bg-white rounded-lg p-1 shadow-md">
+                                    <Text className="text-green-500 font-bold text-sm text-center">
+                                        +{r.points}
+                                    </Text>
                                 </View>
-                            </ScrollView>
-                        ))}
-                    </ScrollView>
+                            </View>
+                        )}
+                    />
                 </View>
 
 

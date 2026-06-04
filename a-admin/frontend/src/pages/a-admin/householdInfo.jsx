@@ -21,6 +21,8 @@ import {
     Home
 } from "lucide-react";
 import HouseholdRecordModal from "../../components/HHrecordModal";
+import ConfirmationModal from "../../components/confirmationModal";
+import AssignRFIDModal from "../../components/AssignRFID";
 
 const statusColors = {
     good: {
@@ -141,17 +143,24 @@ function getStatusFromFill(fill) {
 }
 
 export default function HouseholdInfo() {
-
+    const [active, setActive] = useState(false);
 
     const [activeTab, setActiveTab] = useState("household")
 
     const [openHHModal, setOpenHHModal] = useState(false)
     const [openAddModal, setOpenAddModal] = useState(false)
+    const [openRFIDmodal, setopenRFIDmodal] = useState(false)
     const [activeHousehold, setactiveHousehold] = useState(null)
 
 
     const [search, setSearch] = useState("");
     const [filter, setFilter] = useState("all");
+
+    const handleConfirm = () => {
+        setActive(false);   // close confirmation
+        setopenRFIDmodal(true);
+
+    };
 
     const filteredData = householdRecords.filter((h) => {
         const matchSearch =
@@ -354,10 +363,16 @@ export default function HouseholdInfo() {
                                                     /> */}
 
                                                     <button
-                                                        
+                                                        onClick={() => setActive(true)}
                                                         className="cursor-pointer bg-green-600 text-white px-3 py-1 rounded-lg"
                                                     >
                                                         Approved
+                                                    </button>
+                                                    <button
+
+                                                        className="cursor-pointer bg-red-600 text-white px-3 py-1 rounded-lg"
+                                                    >
+                                                        Decline
                                                     </button>
 
                                                 </td>
@@ -373,10 +388,20 @@ export default function HouseholdInfo() {
 
                 </main>
 
+                <ConfirmationModal
+                    isOpen={active}
+                    onClose={() => setActive(false)}
+                    onConfirm={handleConfirm}
+                />
 
                 <AddHousehold
                     isOpen={openAddModal}
                     onClose={() => setOpenAddModal(false)}
+                />
+
+                <AssignRFIDModal
+                    isOpen={openRFIDmodal}
+                    onClose={() => setopenRFIDmodal(false)}
                 />
             </div>
             <Footer />

@@ -121,6 +121,7 @@ import tenStreak from "../../resources/tenStreak.png"
 import oneMonth from "../../resources/oneMonth.jpg"
 import RulesModal from "../../components/RulesModal";
 import AwardModal from "../../components/AwardModal";
+import ClaimReward from "../../components/ClaimReward";
 
 const RULES = [
     {
@@ -177,8 +178,11 @@ export default function Gamified() {
     const [openConModal, setOpenConModal] = useState(false)
     const [openRulesModal, setOpenRulesModal] = useState(false)
     const [openAwardModal, setopenAwardModal] = useState(false)
+    const [openClaimModal, setopenClaimModal] = useState(false)
+
 
     const [clickedReward, setClickReward] = useState(null);
+    const [pointNeed, setPointNeed] = useState();
     const [clickedRule, setClickRule] = useState(null);
 
     // for reward-----------
@@ -377,7 +381,7 @@ export default function Gamified() {
 
                                 </div>
 
-                                <div className="h-[250px] overflow-y-auto grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
+                                <div className=" overflow-y-auto grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
                                     {filteredData.map((item) => (
                                         <div
                                             key={item.id}
@@ -397,31 +401,50 @@ export default function Gamified() {
                                                     {item.stocks} left
                                                 </span>
                                             </div>
-                                            <div className="w-full flex items-center gap-2">
-                                                <div className="flex-1">
+
+                                            <div className="flex flex-col gap-2">
+
+                                                <div className="w-full flex items-center gap-2">
+                                                    <div className="flex-1">
+                                                        <button
+                                                            onClick={() => {
+                                                                setOpenRewardModal(true);
+                                                                setClickReward(item.name);
+                                                            }}
+                                                            className="w-full cursor-pointer mt-auto bg-blue-600 text-white rounded-lg py-2 ">
+                                                            View
+                                                        </button>
+                                                    </div>
+
+                                                    <div className="flex-1 relative">
+
+                                                        <button
+                                                            onClick={() => {
+                                                                setToEdit(true);
+                                                                handleRewardEdit(item.id)
+                                                            }}
+                                                            className="w-full cursor-pointer bg-green-600 text-white py-2 rounded-lg"
+                                                        >
+                                                            Edit
+                                                        </button>
+
+                                                    </div>
+                                                </div>
+                                                {/* <div className="flex-1 relative">
+
                                                     <button
                                                         onClick={() => {
-                                                            setOpenRewardModal(true);
+                                                            setopenClaimModal(true);
                                                             setClickReward(item.name);
-                                                        }}
-                                                        className="w-full cursor-pointer mt-auto bg-gray-900 text-white rounded-lg py-2 hover:bg-gray-700 transition">
-                                                        View
-                                                    </button>
-                                                </div>
+                                                            setPointNeed(item.points);
 
-                                                <div className="flex-1 relative">
-
-                                                    <button
-                                                        onClick={() => {
-                                                            setToEdit(true);
-                                                            handleRewardEdit(item.id)
                                                         }}
-                                                        className="w-full cursor-pointer bg-green-600 text-white py-2 rounded-lg"
+                                                        className="w-full cursor-pointer bg-gray-900 text-white py-2 rounded-lg"
                                                     >
-                                                        Edit
+                                                        Claim
                                                     </button>
 
-                                                </div>
+                                                </div> */}
                                             </div>
                                         </div>
                                     ))}
@@ -586,6 +609,13 @@ export default function Gamified() {
 
 
                 </main>
+
+                <ClaimReward
+                    isOpen={openClaimModal}
+                    onClose={() => setopenClaimModal(false)}
+                    rName={clickedReward}
+                    rPoints={pointNeed}
+                />
 
                 <ViewRewardModal
                     isOpen={openRewardModal}

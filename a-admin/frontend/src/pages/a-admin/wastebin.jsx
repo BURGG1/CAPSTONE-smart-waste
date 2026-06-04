@@ -49,36 +49,42 @@ const statusColors = {
 const BinInformation = [
     {
         id: "BIN-001",
+        name: "Kislap",
         category: "Biodegradable",
         capacity: 500,
         location: "Rizal St.",
     },
     {
         id: "BIN-002",
+        name: "Kislap",
         category: "Non-Biodegradable",
         capacity: 500,
         location: "Rizal St.",
     },
     {
         id: "BIN-003",
+        name: "Kislap",
         category: "Biodegradable",
         capacity: 500,
         location: "Mabini St.",
     },
     {
         id: "BIN-004",
+        name: "Kislap",
         category: "Non-Biodegradable",
         capacity: 500,
         location: "Mabini St.",
     },
     {
         id: "BIN-005",
+        name: "Kislap",
         category: "Biodegradable",
         capacity: 500,
         location: "Bonifacio St.",
     },
     {
         id: "BIN-006",
+        name: "Kislap",
         category: "Non-Biodegradable",
         capacity: 500,
         location: "Bonifacio St.",
@@ -109,45 +115,77 @@ const statusIcons = {
 const bins = [
     {
         id: "BIN-001",
-        location: "Rizal St.",
+        name: "Kislap",
+        location: "Purok 2",
         type: "Biodegradable",
-        personel: "Jeffry Agustin",
-        lastEmptied: "2026-01-23 08:00 AM",
+        fill: 100,
+        capacity: "500L",
+        lastEmptied: new Date("2026-01-23T08:00:00"),
+        schedule: null,
+        lat: 14.86645,
+        lng: 120.7606,
     },
+    
     {
         id: "BIN-002",
-        location: "Mabini St.",
+        name: "Mestisa",
+        location: "Purok 4",
         type: "Biodegradable",
-        personel: "Queenie Legaspi",
-        lastEmptied: "2026-01-24 10:30 AM",
+        fill: 60,
+        capacity: "500L",
+        lastEmptied: new Date("2026-01-23T08:00:00"),
+        schedule: null,
+        lat: 14.86515,
+        lng: 120.7561,
     },
+    
     {
         id: "BIN-003",
-        location: "Luna St.",
+        name: "Karing",
+        location: "Purok 6",
         type: "Biodegradable",
-        personel: "Masaki Saito",
-        lastEmptied: "2026-01-22 02:00 PM",
+        fill: 92,
+        capacity: "500L",
+        lastEmptied: new Date("2026-01-23T08:00:00"),
+        schedule: null,
+        lat: 14.86338,
+        lng: 120.7553,
     },
     {
         id: "BIN-004",
-        location: "Rizal St.",
+        name: "Kislap",
+        location: "Purok 2",
         type: "Non-biodegradable",
-        personel: "Jeffry Agustin",
-        lastEmptied: "2026-01-23 08:00 AM",
+        fill: 30,
+        capacity: "500L",
+        lastEmptied: new Date("2026-01-23T08:00:00"),
+        schedule: null,
+        lat: 14.86645,
+        lng: 120.76065,
     },
     {
         id: "BIN-005",
-        location: "Mabini St.",
+        name: "Mestisa",
+        location: "Purok 4",
         type: "Non-biodegradable",
-        personel: "Queenie Legaspi",
-        lastEmptied: "2026-01-24 10:30 AM",
+        fill: 78,
+        capacity: "500L",
+        lastEmptied: new Date("2026-01-23T08:00:00"),
+        schedule: null,
+        lat: 14.86515,
+        lng: 120.75615,
     },
     {
         id: "BIN-006",
-        location: "Luna St.",
+        name: "Karing",
+        location: "Purok 6",
         type: "Non-biodegradable",
-        personel: "Masaki Saito",
-        lastEmptied: "2026-01-22 02:00 PM",
+        fill: 15,
+        capacity: "500L",
+        lastEmptied: new Date("2026-01-23T08:00:00"),
+        schedule: null,
+        lat: 14.86338,
+        lng: 120.75535,
     },
 
 ];
@@ -178,39 +216,53 @@ export default function WasteBin() {
     const [binsData, setBinsData] = useState([
         {
             id: "BIN-001",
-            category: "Biodegradable",
-            capacity: 500,
-            location: "Rizal St.",
+            name: "Kislap",
+            location: "Purok 2",
+            type: "Biodegradable",
+            capacity: "500L",
+            
         },
+        
         {
             id: "BIN-002",
-            category: "Non-Biodegradable",
-            capacity: 500,
-            location: "Rizal St.",
+            name: "Mestisa",
+            location: "Purok 4",
+            type: "Biodegradable",
+            capacity: "500L",
+            
         },
+        
         {
             id: "BIN-003",
-            category: "Biodegradable",
-            capacity: 500,
-            location: "Mabini St.",
+            name: "Karing",
+            location: "Purok 6",
+            type: "Biodegradable",
+            capacity: "500L",
+            
         },
         {
             id: "BIN-004",
-            category: "Non-Biodegradable",
-            capacity: 500,
-            location: "Mabini St.",
+            name: "Kislap",
+            location: "Purok 2",
+            type: "Non-biodegradable",
+            capacity: "500L",
+            
         },
         {
             id: "BIN-005",
-            category: "Biodegradable",
-            capacity: 500,
-            location: "Bonifacio St.",
+            name: "Mestisa",
+            location: "Purok 4",
+            type: "Non-biodegradable",
+            capacity: "500L",
+           
         },
         {
             id: "BIN-006",
-            category: "Non-Biodegradable",
-            capacity: 500,
-            location: "Bonifacio St.",
+            name: "Karing",
+            location: "Purok 6",
+            type: "Non-biodegradable",
+            capacity: "500L",
+            
         },
 
 
@@ -218,10 +270,10 @@ export default function WasteBin() {
 
     const filteredData = binsData.filter((h) => {
         const matchSearch =
-            h.category.toLowerCase().includes(search.toLowerCase()) ||
+            h.type.toLowerCase().includes(search.toLowerCase()) ||
             h.id.toLowerCase().includes(search.toLowerCase());
 
-        const matchFilter = filter === "all" || h.category === filter;
+        const matchFilter = filter === "all" || h.type === filter;
 
         return matchSearch && matchFilter;
     });
@@ -286,8 +338,17 @@ export default function WasteBin() {
                             Add Bin Information
                         </h2>
 
-                        <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
 
+                            <div className="flex items-center">
+                                {/* bin name */}
+
+                                <input
+                                    type="text"
+                                    className="ml-4 px-3 py-2 rounded-lg border w-full"
+                                    placeholder="Bin Name.."
+                                />
+                            </div>
                             <div className="flex items-center">
                                 {/* category */}
                                 <Asterisk className="text-red-500 w-4 h-4" />
@@ -392,6 +453,7 @@ export default function WasteBin() {
                                 <thead className="bg-gray-50 text-left">
                                     <tr>
                                         <th className="px-4 py-3 text-sm font-semibold">Bin ID</th>
+                                        <th className="px-4 py-3 text-sm font-semibold">Bin Name</th>
                                         <th className="px-4 py-3 text-sm font-semibold">Bin Type</th>
                                         <th className="px-4 py-3 text-sm font-semibold">Capacity</th>
                                         <th className="px-4 py-3 text-sm font-semibold">Location</th>
@@ -403,9 +465,10 @@ export default function WasteBin() {
                                     {filteredData.map((item) => (
                                         <tr key={item.id} className="hover:bg-gray-50 text-sm md:text-[16px]">
                                             <td className="px-4 py-3">{item.id}</td>
-                                            <td className="px-4 py-3 font-medium">{item.category}</td>
+                                            <td className="px-4 py-3 font-medium">{item.name}</td>
+                                            <td className="px-4 py-3 font-medium">{item.type}</td>
                                             <td className="px-4 py-3 text-gray-600">
-                                                {item.capacity}<span>L</span>
+                                                {item.capacity}<span></span>
                                             </td>
 
                                             <td className="px-4 py-3 w-30">
@@ -470,7 +533,7 @@ export default function WasteBin() {
                                     >
                                         <div className="flex justify-between items-start">
                                             <div>
-                                                <h3 className="font-bold">{bin.id}</h3>
+                                                <h3 className="font-bold">{bin.id} - {bin.name}</h3>
                                                 <p className="flex items-center gap-1 text-sm text-gray-500">
                                                     <MapPin size={14} />
                                                     {bin.location}
@@ -486,7 +549,7 @@ export default function WasteBin() {
                                         </span>
 
                                         <div className="mt-4 text-sm space-y-1">
-                                            <p>Last Collected: <strong>{bin.lastEmptied}</strong></p>
+                                            <p>Last Collected: <strong>{bin.lastEmptied.toLocaleString()}</strong></p>
                                         </div>
 
                                         <div>

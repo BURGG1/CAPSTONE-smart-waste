@@ -45,7 +45,7 @@ export default function BinLocationMap() {
         <View className="flex-row items-center gap-2 mb-4">
           <Feather name="map-pin" color="green" size={20} />
           <View>
-            <Text className="font-semibold text-lg">
+            <Text className="font-semibold text-3xl">
               Bin Location Map
             </Text>
             <Text className="text-gray-500 text-sm">

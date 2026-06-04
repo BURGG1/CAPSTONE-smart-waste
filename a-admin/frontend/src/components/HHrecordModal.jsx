@@ -14,6 +14,7 @@ const household = {
     registeredSince: "January 15, 2026",
     totalDisposals: 48,
     compliance: "Excellent",
+    violation: 0,
     points: {
         total: 1240,
         thisMonth: 280,
@@ -131,6 +132,8 @@ export default function HouseholdRecordModal({ isOpen, onClose }) {
     const [fromDate, setFromDate] = useState("");
     const [toDate, setToDate] = useState("");
 
+    const suffix = ["st", "nd", "rd"];
+
     const [openPointsModal, setOpenPointsModal] = useState(false);
 
     if (!isOpen) return null;
@@ -170,16 +173,32 @@ export default function HouseholdRecordModal({ isOpen, onClose }) {
 
                     <div className="w-full flex flex-col md:flex-row justify-between  px-6 py-4 border-b">
 
-                        <div className="flex-1 ">
+                        <div className="flex-1 text-left">
                             <p>Name: <span className="font-semibold">{household.name}</span></p>
                             <p>Address: <span className="font-semibold">{household.address}</span></p>
                             <p>Age: <span className="font-semibold">{household.age}</span>yrs old</p>
                             <p>Member: <span className="font-semibold">{household.members}</span></p>
                         </div>
-                        <div className="flex-1 ">
+                        <div className="flex-1 text-left">
                             <p>Contact: <span className="font-semibold">{household.contact}</span></p>
                             <p>Email: <span className="font-semibold">{household.email}</span></p>
                             <p>Points: <span className="font-semibold text-green-600">{household.points.total}</span></p>
+                            {household.violation === 0 && (
+                                <p>
+                                    Violations: <span className="font-semibold">No violation</span>
+                                </p>
+                            )}
+
+                            {household.violation > 0 && (
+                                <p>
+                                    Violations:{" "}
+                                    <span className="font-semibold">
+                                        {household.violation}
+                                        {suffix[household.violation - 1]} offense
+                                    </span>
+                                </p>
+                            )}
+
                         </div>
 
                     </div>
@@ -197,7 +216,7 @@ export default function HouseholdRecordModal({ isOpen, onClose }) {
                         </div>
                         <div className="flex-1 flex justify-center lg:justify-end gap-2">
                             <button
-                                onClick={() => setOpenPointsModal(true)}    
+                                onClick={() => setOpenPointsModal(true)}
                                 className="flex cursor-pointer items-center gap-1 px-3 py-1.5 rounded-lg bg-green-600 text-white text-xs hover:bg-green-700">
                                 <Award size={14} />
                                 Add Points

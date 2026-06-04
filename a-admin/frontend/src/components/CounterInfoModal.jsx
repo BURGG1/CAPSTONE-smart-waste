@@ -1,6 +1,7 @@
 import { X, Calendar, Flag, PlusCircle } from "lucide-react";
 import { useState } from "react";
 import PenaltyModal from "./PenaltyModal";
+import ViolationModal from "./ViolationModal";
 
 const disposalLogs = [
     {
@@ -11,6 +12,7 @@ const disposalLogs = [
         houseId: "HH-202610001",
         resident: "Joel Dela Cruz",
         contact: "+63-917-123-4567",
+        violations: [],
         email: "delacruzjoel@gmail.com"
     },
     {
@@ -21,6 +23,7 @@ const disposalLogs = [
         houseId: "HH-202610002",
         resident: "Remedios Delo Santos",
         contact: "+63-917-123-4567",
+        violations: [1, 2],
         email: "remydelosantos@gmail.com"
     },
     {
@@ -31,6 +34,7 @@ const disposalLogs = [
         houseId: "HH-202610003",
         resident: "Ramon Reyes",
         contact: "+63-917-123-4567",
+        violations: [],
         email: "rreyes1234@gmail.com"
     },
     {
@@ -41,6 +45,7 @@ const disposalLogs = [
         houseId: "HH-202610004",
         resident: "Cecilia Garcia",
         contact: "+63-917-123-4567",
+        violations: [],
         email: "cecilgarcia13@gmail.com"
     },
 
@@ -170,7 +175,7 @@ export default function CounterInfoModal({ isOpen, onClose, bin }) {
                 </div>
 
             </div>
-            <PenaltyModal
+            <ViolationModal
                 isOpen={openModal}
                 onClose={() => {
                     setOpenModal(false);

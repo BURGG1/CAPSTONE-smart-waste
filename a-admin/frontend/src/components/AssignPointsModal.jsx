@@ -19,32 +19,16 @@ const RULES = [
         freq: "per kilo"
     },
     {
-        image: tenDay,
-        id: 2,
-        name: "10-Day Consistency Streak",
-        decs: "Maintain proper bin usage without any violation for 10 consecutive days",
-        points: 30,
-        freq: "per streak"
-    },
-    {
         image: plasticBrick,
-        id: 3,
+        id: 2,
         name: "Plastic Bottle Bricks",
         decs: "Create eco-bricks by filling plastic bottles with non-recyclable plastic waste to be used for construction",
         points: 50,
         freq: "per brick"
     },
     {
-        image: oneMonth,
-        id: 4,
-        name: "1 month Consistency Streak",
-        decs: "Maintain proper bin usage without any violation for 1 month",
-        points: 100,
-        freq: "per streak"
-    },
-    {
         image: pandisplay,
-        id: 5,
+        id: 3,
         name: "Recycled Items or Accessories",
         decs: "Already recycled items transformed into display pieces or accessories. Points vary based on design creativity and quality",
         points: 1,
@@ -185,7 +169,7 @@ export default function AssignPointsModal({ isOpen, onClose }) {
                         </div>
 
                         {/* Quantity */}
-                        <div className="flex flex-col">
+                        <div className="flex flex-col text-left">
                             <label className="font-semibold">Quantity</label>
                             <input
                                 value={quantity}
@@ -195,7 +179,7 @@ export default function AssignPointsModal({ isOpen, onClose }) {
                             />
                         </div>
 
-                        <div className="bg-green-100 p-4 rounded-lg">
+                        <div className="bg-green-100 p-4 rounded-lg text-left">
                             <div className="flex justify-between pb-3 border-b border-gray-500">
                                 <div className="flex flex-col">
                                     <h1 className="font-semibold">Points to be Awarded</h1>
