@@ -40,6 +40,138 @@ const householdRequest = [
     },
 ];
 
+function RequestTab() {
+    const [requests, setRequests] = useState([]);
+    const [loading, setLoading] = useState(true);
+    const [active, setActive] = useState(false);
+    const [openRFIDmodal, setopenRFIDmodal] = useState(false);
+    const [selectedRequest, setSelectedRequest] = useState(null);
+
+    const fetchRequests = async () => {
+        setLoading(true);
+        try {
+            const res = await fetch("http://localhost:5000/api/requests?status=pending");
+            const data = await res.json();
+            if (data.success) setRequests(data.data);
+        } catch (err) {
+            console.error(err);
+        } finally {
+            setLoading(false);
+        }
+    };
+
+    useEffect(() => {
+        fetchRequests();
+    }, []);
+
+    const handleApprove = (item) => {
+        setSelectedRequest(item);
+        setActive(true);
+    };
+
+    const handleConfirmApprove = () => {
+        setActive(false);
+        setopenRFIDmodal(true);
+    };
+
+    const handleDecline = async (id) => {
+        await fetch(`http://localhost:5000/api/requests/${id}/status`, {
+            method: "PATCH",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ status: "declined" }),
+        });
+        fetchRequests();
+    };
+
+    const handleRFIDAssigned = async () => {
+        if (!selectedRequest) return;
+        await fetch(`http://localhost:5000/api/requests/${selectedRequest._id}/status`, {
+            method: "PATCH",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ status: "approved" }),
+        });
+        setopenRFIDmodal(false);
+        setSelectedRequest(null);
+        fetchRequests();
+    };
+
+    return (
+        <section className="w-full bg-white rounded-2xl shadow p-6">
+            <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4 mb-6">
+                <h2 className="text-lg md:text-xl font-bold text-gray-900">
+                    Household Registration Request
+                </h2>
+            </div>
+
+            {loading && <p className="text-center text-gray-400 py-8">Loading requests...</p>}
+
+            {!loading && (
+                <div className="overflow-x-auto">
+                    <table className="w-full min-w-[800px]">
+                        <thead className="bg-gray-50 text-center">
+                            <tr>
+                                <th className="px-4 py-3 text-sm font-semibold">Name</th>
+                                <th className="px-4 py-3 text-sm font-semibold">Address</th>
+                                <th className="px-4 py-3 text-sm font-semibold">Email</th>
+                                <th className="px-4 py-3 text-sm font-semibold">Family Members</th>
+                                <th className="px-4 py-3 text-sm font-semibold">Action</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {requests.length === 0 ? (
+                                <tr>
+                                    <td colSpan={5} className="text-center py-8 text-gray-400">
+                                        No pending requests.
+                                    </td>
+                                </tr>
+                            ) : (
+                                requests.map((item) => (
+                                    <tr key={item._id} className="hover:bg-gray-50 text-center">
+                                        <td className="px-4 py-3 font-medium">{item.fullname}</td>
+                                        <td className="px-4 py-3 text-gray-600">
+                                            {[item.address?.houseNo, item.address?.street]
+                                                .filter(Boolean)
+                                                .join(", ") || "—"}
+                                        </td>
+                                        <td className="px-4 py-3">{item.email || "—"}</td>
+                                        <td className="px-4 py-3">{item.familyMember || "—"}</td>
+                                        <td className="flex flex-row justify-center items-center gap-2 py-3">
+                                            <button
+                                                onClick={() => handleApprove(item)}
+                                                className="cursor-pointer bg-green-600 text-white px-3 py-1 rounded-lg"
+                                            >
+                                                Approve
+                                            </button>
+                                            <button
+                                                onClick={() => handleDecline(item._id)}
+                                                className="cursor-pointer bg-red-600 text-white px-3 py-1 rounded-lg"
+                                            >
+                                                Decline
+                                            </button>
+                                        </td>
+                                    </tr>
+                                ))
+                            )}
+                        </tbody>
+                    </table>
+                </div>
+            )}
+
+            <ConfirmationModal
+                isOpen={active}
+                onClose={() => setActive(false)}
+                onConfirm={handleConfirmApprove}
+            />
+
+            <AssignRFIDModal
+                isOpen={openRFIDmodal}
+                onClose={handleRFIDAssigned}
+                onAssign={handleRFIDAssigned}
+            />
+        </section>
+    );
+}
+
 export default function HouseholdInfo() {
     const [active, setActive] = useState(false);
     const [activeTab, setActiveTab] = useState("household");
@@ -136,11 +268,10 @@ export default function HouseholdInfo() {
                             <button
                                 key={tab.id}
                                 onClick={() => setActiveTab(tab.id)}
-                                className={`flex items-center justify-center md:justify-between cursor-pointer gap-2 px-4 py-1 whitespace-nowrap transition ${
-                                    activeTab === tab.id
+                                className={`flex items-center justify-center md:justify-between cursor-pointer gap-2 px-4 py-1 whitespace-nowrap transition ${activeTab === tab.id
                                         ? "bg-white rounded-full text-gray-800 shadow-sm"
                                         : "text-gray-600 hover:bg-gray-200 rounded-full"
-                                }`}
+                                    }`}
                             >
                                 {tab.icon}
                                 <span>{tab.label}</span>
@@ -254,49 +385,7 @@ export default function HouseholdInfo() {
 
                     {/* REQUEST TAB */}
                     {activeTab === "request" && (
-                        <section className="w-full bg-white rounded-2xl shadow p-6">
-                            <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4 mb-6">
-                                <h2 className="text-lg md:text-xl font-bold text-gray-900">
-                                    Household Registeration Request
-                                </h2>
-                            </div>
-
-                            <div className="overflow-x-auto">
-                                <table className="w-full min-w-[800px]">
-                                    <thead className="bg-gray-50 text-center">
-                                        <tr>
-                                            <th className="px-4 py-3 text-sm font-semibold">Name</th>
-                                            <th className="px-4 py-3 text-sm font-semibold">Address</th>
-                                            <th className="px-4 py-3 text-sm font-semibold">Email</th>
-                                            <th className="px-4 py-3 text-sm font-semibold">Contact</th>
-                                            <th className="px-4 py-3 text-sm font-semibold">Action</th>
-                                        </tr>
-                                    </thead>
-
-                                    <tbody>
-                                        {householdRequest.map((item) => (
-                                            <tr key={item.id} className="hover:bg-gray-50 text-center">
-                                                <td className="px-4 py-3 font-medium">{item.name}</td>
-                                                <td className="px-4 py-3 text-gray-600">{item.address}</td>
-                                                <td className="px-4 py-3">{item.email}</td>
-                                                <td className="px-4 py-3">{item.contact}</td>
-                                                <td className="flex flex-row justify-center items-center gap-2 py-3">
-                                                    <button
-                                                        onClick={() => setActive(true)}
-                                                        className="cursor-pointer bg-green-600 text-white px-3 py-1 rounded-lg"
-                                                    >
-                                                        Approved
-                                                    </button>
-                                                    <button className="cursor-pointer bg-red-600 text-white px-3 py-1 rounded-lg">
-                                                        Decline
-                                                    </button>
-                                                </td>
-                                            </tr>
-                                        ))}
-                                    </tbody>
-                                </table>
-                            </div>
-                        </section>
+                        <RequestTab />
                     )}
 
                 </main>

@@ -9,7 +9,7 @@ export default function AddHousehold({ isOpen, onClose }) {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
 
-  
+
 
   const [form, setForm] = useState({
     fullname: "",
@@ -49,10 +49,13 @@ export default function AddHousehold({ isOpen, onClose }) {
   };
 
   const handleRegisterClick = () => {
-    // Basic validation before opening confirmation
     if (!form.fullname || !form.contactNumber || !form.rfid) {
       setError("Fullname, Contact Number, and RFID are required.");
       return;
+    }
+    if (!form.email) {
+      setError("No email provided — login credentials will not be sent.");
+      // still allow registration to proceed after warning
     }
     setActive(true);
   };

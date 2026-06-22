@@ -38,6 +38,10 @@ const householdSchema = new mongoose.Schema(
       unique: true,
       trim: true,
     },
+    password: {
+      type: String,
+      default: null,
+    },
     isActive: {
       type: Boolean,
       default: true,

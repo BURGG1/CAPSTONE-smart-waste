@@ -1,5 +1,15 @@
 const Household = require("../models/Household");
 const RfidLog = require("../models/RfidLog");
+const { sendPasswordEmail } = require("../config/mailer");
+const bcrypt = require("bcryptjs");
+
+// generates a random 8-character password e.g. "Xk3#mP9q"
+const generatePassword = () => {
+  const chars = "ABCDEFGHJKLMNPQRSTUVWXYZabcdefghjkmnpqrstuvwxyz23456789!@#";
+  return Array.from({ length: 8 }, () =>
+    chars[Math.floor(Math.random() * chars.length)]
+  ).join("");
+};
 
 // GET /api/households
 const getAllHouseholds = async (req, res) => {
@@ -69,6 +79,10 @@ const createHousehold = async (req, res) => {
       });
     }
 
+    // Generate plain password then hash it
+    const plainPassword = generatePassword();
+    const hashedPassword = await bcrypt.hash(plainPassword, 10);
+
     const household = await Household.create({
       fullname,
       birthday: birthday || null,
@@ -80,6 +94,7 @@ const createHousehold = async (req, res) => {
       contactNumber,
       email: email || null,
       rfid,
+      password: hashedPassword, // store hashed
     });
 
     await RfidLog.create({
@@ -89,9 +104,16 @@ const createHousehold = async (req, res) => {
       note: `Assigned to ${fullname} during registration`,
     });
 
+    // Send plain password to email
+    if (email) {
+      await sendPasswordEmail({ to: email, fullname, password: plainPassword });
+    }
+
     res.status(201).json({
       success: true,
-      message: "Household registered successfully",
+      message: email
+        ? "Household registered. Login credentials sent to email."
+        : "Household registered. No email — credentials not sent.",
       data: household,
     });
   } catch (error) {
