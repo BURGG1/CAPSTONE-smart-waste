@@ -47,15 +47,26 @@ export default function RulesModal({ isOpen, onClose, edit, ruleData, onSaved })
 
     if (!isOpen) return null;
 
-    const handleAddRule = async () => {
+    const isFormValid = () => {
         if (!ruleName || !desc || !eqPoints || !freq) {
             alert("Name, description, points, and frequency are required");
-            return;
+            return false;
         }
+        return true;
+    };
+
+    // both "Add New Rule" and "Update Rule" buttons funnel here first
+    const handleRequestConfirm = () => {
+        if (!isFormValid()) return;
+        setActive(true);
+    };
+
+    const handleAddRule = async () => {
         try {
             await createRule({ name: ruleName, decs: desc, points: eqPoints, freq, auto, imageFile });
             onSaved && onSaved();
             clearForm();
+            setActive(false);
             onClose();
         } catch (err) {
             console.error(err);
@@ -79,6 +90,15 @@ export default function RulesModal({ isOpen, onClose, edit, ruleData, onSaved })
         } catch (err) {
             console.error(err);
             alert("Failed to update rule");
+        }
+    };
+
+    // the confirmation modal calls this — it decides which action to run
+    const handleConfirm = () => {
+        if (edit) {
+            handleUpdateRule();
+        } else {
+            handleAddRule();
         }
     };
 
@@ -162,6 +182,7 @@ export default function RulesModal({ isOpen, onClose, edit, ruleData, onSaved })
                                 <option value="per kilo">Per kilo</option>
                                 <option value="per streak">Per streak</option>
                                 <option value="per item">Per item</option>
+                                <option value="per brick">Per brick</option>
                             </select>
                         </div>
 
@@ -180,7 +201,7 @@ export default function RulesModal({ isOpen, onClose, edit, ruleData, onSaved })
                         {edit ? (
                             <div className="flex gap-2 items-center">
                                 <button
-                                    onClick={() => setActive(true)}
+                                    onClick={handleRequestConfirm}
                                     className="cursor-pointer mt-auto bg-green-600 flex items-center justify-center gap-1 text-white rounded-lg p-2 hover:bg-green-700 transition">
                                     Update Rule
                                 </button>
@@ -192,7 +213,7 @@ export default function RulesModal({ isOpen, onClose, edit, ruleData, onSaved })
                                 </button>
                             </div>) : (
                             <button
-                                onClick={handleAddRule}
+                                onClick={handleRequestConfirm}
                                 className="cursor-pointer mt-auto bg-green-600 flex items-center justify-center gap-1 text-white rounded-lg p-2 hover:bg-green-700 transition">
                                 <Plus size={16} />
                                 Add New Rule
@@ -201,11 +222,11 @@ export default function RulesModal({ isOpen, onClose, edit, ruleData, onSaved })
                     </div>
                 </section>
 
-                {/* Confirmation Modal */}
+                {/* Confirmation Modal — now used for both Add and Update */}
                 <ConfirmationModal
                     isOpen={active}
                     onClose={() => setActive(false)}
-                    onConfirm={handleUpdateRule}
+                    onConfirm={handleConfirm}
                 />
             </div>
         </div>
