@@ -1,17 +1,109 @@
 import { X, Asterisk } from "lucide-react";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import ConfirmationModal from "./confirmationModal";
 import SuccessToast from "../assets/Toast";
 
 export default function AddHousehold({ isOpen, onClose }) {
   const [active, setActive] = useState(false);
-
   const [showToast, setShowToast] = useState(false);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState("");
 
+  
 
-  const handleConfirm = () => {
-    setActive(false);   // close confirmation
-    setShowToast(true);      // show success toast
+  const [form, setForm] = useState({
+    fullname: "",
+    birthday: "",
+    familyMember: "",
+    houseNo: "",
+    street: "",
+    contactNumber: "",
+    email: "",
+    rfid: "",
+  });
+
+  // Auto-fill RFID when ESP32 scans a card
+  useEffect(() => {
+    if (!isOpen) return; // only poll when modal is open
+
+    const interval = setInterval(async () => {
+      if (form.rfid) return; // stop polling if already filled
+
+      try {
+        const res = await fetch("http://localhost:5000/api/rfid/latest-scan");
+        const data = await res.json();
+        if (data.success && data.rfid) {
+          setForm((prev) => ({ ...prev, rfid: data.rfid }));
+        }
+      } catch (err) {
+        // backend not reachable, silently ignore
+      }
+    }, 2000); // poll every 2 seconds
+
+    return () => clearInterval(interval); // cleanup on modal close
+  }, [isOpen, form.rfid]);
+
+  const handleChange = (e) => {
+    setForm({ ...form, [e.target.name]: e.target.value });
+    setError("");
+  };
+
+  const handleRegisterClick = () => {
+    // Basic validation before opening confirmation
+    if (!form.fullname || !form.contactNumber || !form.rfid) {
+      setError("Fullname, Contact Number, and RFID are required.");
+      return;
+    }
+    setActive(true);
+  };
+
+  const handleConfirm = async () => {
+    setActive(false);
+    setLoading(true);
+    setError("");
+
+    try {
+      const response = await fetch("http://localhost:5000/api/households", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          fullname: form.fullname,
+          birthday: form.birthday || null,
+          familyMember: form.familyMember ? parseInt(form.familyMember) : null,
+          address: {
+            houseNo: form.houseNo || null,
+            street: form.street || null,
+          },
+          contactNumber: form.contactNumber,
+          email: form.email || null,
+          rfid: form.rfid,
+        }),
+      });
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        setError(data.message || "Something went wrong.");
+        return;
+      }
+
+      // Success — show toast and reset form
+      setShowToast(true);
+      setForm({
+        fullname: "",
+        birthday: "",
+        familyMember: "",
+        houseNo: "",
+        street: "",
+        contactNumber: "",
+        email: "",
+        rfid: "",
+      });
+    } catch (err) {
+      setError("Cannot connect to server. Make sure the backend is running.");
+    } finally {
+      setLoading(false);
+    }
   };
 
   if (!isOpen) return null;
@@ -32,7 +124,6 @@ export default function AddHousehold({ isOpen, onClose }) {
 
         {/* BODY */}
         <div className="overflow-y-auto px-4 sm:px-6 py-5">
-
           <div className="flex flex-col gap-4">
 
             {/* Fullname */}
@@ -43,6 +134,9 @@ export default function AddHousehold({ isOpen, onClose }) {
               </label>
               <input
                 type="text"
+                name="fullname"
+                value={form.fullname}
+                onChange={handleChange}
                 className="mt-1 px-3 py-2 rounded-lg border w-full"
                 placeholder="ex. Janice Dela Cruz"
               />
@@ -54,6 +148,9 @@ export default function AddHousehold({ isOpen, onClose }) {
                 <label className="font-semibold">Birthday</label>
                 <input
                   type="date"
+                  name="birthday"
+                  value={form.birthday}
+                  onChange={handleChange}
                   className="mt-1 px-3 py-2 rounded-lg border w-full"
                 />
               </div>
@@ -62,6 +159,9 @@ export default function AddHousehold({ isOpen, onClose }) {
                 <label className="font-semibold">Family Member</label>
                 <input
                   type="number"
+                  name="familyMember"
+                  value={form.familyMember}
+                  onChange={handleChange}
                   className="mt-1 px-3 py-2 rounded-lg border w-full"
                   placeholder="ex. 5"
                 />
@@ -77,22 +177,24 @@ export default function AddHousehold({ isOpen, onClose }) {
 
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div className="flex flex-col">
-                  <label className="text-sm font-medium">
-                    House No.
-                  </label>
+                  <label className="text-sm font-medium">House No.</label>
                   <input
                     type="text"
+                    name="houseNo"
+                    value={form.houseNo}
+                    onChange={handleChange}
                     className="mt-1 px-3 py-2 rounded-lg border w-full"
                     placeholder="ex. 0123"
                   />
                 </div>
 
                 <div className="flex flex-col">
-                  <label className="text-sm font-medium">
-                    Street / Block
-                  </label>
+                  <label className="text-sm font-medium">Street / Block</label>
                   <input
                     type="text"
+                    name="street"
+                    value={form.street}
+                    onChange={handleChange}
                     className="mt-1 px-3 py-2 rounded-lg border w-full"
                     placeholder="ex. Rizal St."
                   />
@@ -113,6 +215,9 @@ export default function AddHousehold({ isOpen, onClose }) {
                 </div>
                 <input
                   type="tel"
+                  name="contactNumber"
+                  value={form.contactNumber}
+                  onChange={handleChange}
                   placeholder="912-345-6789"
                   className="flex-1 px-3 py-2 outline-none"
                 />
@@ -124,6 +229,9 @@ export default function AddHousehold({ isOpen, onClose }) {
               <label className="font-semibold">Email</label>
               <input
                 type="email"
+                name="email"
+                value={form.email}
+                onChange={handleChange}
                 className="mt-1 px-3 py-2 rounded-lg border w-full"
                 placeholder="jdelacruz@email.com"
               />
@@ -132,42 +240,46 @@ export default function AddHousehold({ isOpen, onClose }) {
             <>
               <div className="flex flex-col items-center">
                 <div className="flex items-center">
-
                   <h3 className="text-lg font-semibold">Assign RFID</h3>
                   <Asterisk className="text-red-500 w-3 h-3" />
                 </div>
-
                 <p className="text-sm text-gray-500">
                   Scan or input RFID for this household
                 </p>
-
               </div>
 
               {/* RFID INPUT */}
-              <div className="flex items-center">
-
+              <div className="flex items-center gap-2">
                 <input
                   type="text"
-                  placeholder="Scan RFID or enter code"
+                  disabled
+                  name="rfid"
+                  value={form.rfid}
+                  onChange={handleChange}
+                  placeholder="Scan RFID"
                   className="w-full px-3 py-2 border rounded-lg"
                 />
               </div>
 
+              {/* Error message */}
+              {error && (
+                <p className="text-red-500 text-sm">{error}</p>
+              )}
+
               {/* BUTTONS */}
               <div className="flex gap-2 mt-4">
-
                 <button
-                  onClick={() => setActive(true)}
-                  className="flex-1 bg-green-600 text-white py-2 rounded-lg"
+                  onClick={handleRegisterClick}
+                  disabled={loading}
+                  className="flex-1 bg-green-600 text-white py-2 rounded-lg disabled:opacity-50"
                 >
-                  Register
+                  {loading ? "Registering..." : "Register"}
                 </button>
               </div>
             </>
+
           </div>
-
         </div>
-
 
         <ConfirmationModal
           isOpen={active}

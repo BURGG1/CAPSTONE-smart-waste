@@ -1,24 +1,47 @@
 import { X, Asterisk } from "lucide-react";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import SuccessToast from "../assets/Toast";
 
 export default function AssignRFIDModal({ isOpen, onClose, onAssign }) {
     const [rfid, setRfid] = useState("");
     const [toast, setToast] = useState(false);
 
+    // ✅ useEffect MUST be before any early return
+    useEffect(() => {
+        if (!isOpen) return;
+
+        const interval = setInterval(async () => {
+            if (rfid) return; // stop polling if already filled
+
+            try {
+                const res = await fetch("http://localhost:5000/api/rfid/latest-scan");
+                const data = await res.json();
+                if (data.success && data.rfid) {
+                    setRfid(data.rfid); // ✅ use setRfid, not setForm
+                }
+            } catch (err) {
+                // backend not reachable, silently ignore
+            }
+        }, 2000);
+
+        return () => clearInterval(interval);
+    }, [isOpen, rfid]); // ✅ depend on rfid, not form.rfid
+
+    // ✅ early return AFTER all hooks
     if (!isOpen) return null;
 
     const handleAssign = () => {
         if (!rfid) return;
-        onAssign(rfid); // send RFID to parent
+        onAssign(rfid);
         setRfid("");
         onClose();
     };
 
-    const handleRegister = () =>{
+    const handleRegister = () => {
+        setRfid("");
         onClose();
         setToast(true);
-    }
+    };
 
     return (
         <div className="fixed inset-0 z-50 bg-black/40 flex items-center justify-center p-4">
@@ -37,42 +60,44 @@ export default function AssignRFIDModal({ isOpen, onClose, onAssign }) {
 
                     <div className="flex flex-col items-center">
                         <div className="flex items-center">
-
                             <h3 className="text-lg font-semibold">Assign RFID</h3>
                             <Asterisk className="text-red-500 w-3 h-3" />
                         </div>
-
                         <p className="text-sm text-gray-500">
                             Scan or input RFID for this household
                         </p>
-
                     </div>
 
                     {/* RFID INPUT */}
-                    <div className="flex items-center">
-
+                    <div className="flex items-center gap-2">
                         <input
                             type="text"
-                            placeholder="Scan RFID or enter code"
+                            disabled
+                            name="rfid"
+                            value={rfid}          
+                            placeholder="Scan RFID"
                             className="w-full px-3 py-2 border rounded-lg"
                         />
                     </div>
 
                     {/* BUTTONS */}
                     <div className="flex gap-2 mt-4">
-
                         <button
-                            onClick={() => handleRegister()}
+                            onClick={handleRegister}
                             className="flex-1 bg-green-600 cursor-pointer text-white py-2 rounded-lg"
                         >
                             Register
                         </button>
                     </div>
 
-                
-
                 </div>
             </div>
+
+            <SuccessToast
+                show={toast}
+                onClose={() => setToast(false)}
+                message="RFID assigned successfully!"
+            />
         </div>
     );
 }

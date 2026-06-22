@@ -1,23 +1,40 @@
-const express = require('express');
-const mongoose  = require('mongoose');
-const cors = require('cors');
-require('dotenv').config();
+require("dotenv").config();
+const express = require("express");
+const cors = require("cors");
+const morgan = require("morgan");
+
+const connectDB = require("./config/db");
+const householdRoutes = require("./routes/householdRoutes");
+const rfidRoutes = require("./routes/rfidRoutes");
+const errorHandler = require("./middleware/errorHandler");
+
 const app = express();
+const PORT = process.env.PORT || 5000;
 
-// middleware
-app.use(express.json());
+connectDB();
+
 app.use(cors());
+app.use(express.json());
+app.use(express.urlencoded({ extended: true }));
 
-// mongoDB connection
-mongoose.connect(process.env.MONGO_URI)
-    .then(()=> console.log('MongoDB is Connected Successfully!'))
-    .catch(err => console.error("MongoDB connection failed, ", err));
+if (process.env.NODE_ENV === "development") {
+  app.use(morgan("dev"));
+}
 
-//sample route
-app.get('/', (req, res) => res.send('API is running...'));
-app.listen(5000, () => console.log('Server started on port 5000'));
-    
-//Start Server
-const PORT = process.env.PORT||5000
-app.listen(PORT, () => console.log('Server started on port', PORT));
+app.use("/api/households", householdRoutes);
+app.use("/api/rfid", rfidRoutes);
 
+app.get("/api/health", (req, res) => {
+  res.json({ success: true, message: "Server is running" });
+});
+
+app.use((req, res) => {
+  res.status(404).json({ success: false, message: "Route not found" });
+});
+
+app.use(errorHandler);
+
+app.listen(PORT, () => {
+  console.log(`🚀 Server running on http://localhost:${PORT}`);
+  console.log(`📦 Environment: ${process.env.NODE_ENV}`);
+});
