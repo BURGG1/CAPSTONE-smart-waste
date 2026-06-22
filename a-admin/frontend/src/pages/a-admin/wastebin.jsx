@@ -425,7 +425,7 @@ export default function WasteBin() {
                                                             </button>
                                                         )}
 
-                                                    
+                                                        
                                                     </div>
                                                 </td>
                                             </tr>
