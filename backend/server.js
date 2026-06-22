@@ -6,6 +6,8 @@ const morgan = require("morgan");
 const connectDB = require("./config/db");
 const householdRoutes = require("./routes/householdRoutes");
 const rfidRoutes = require("./routes/rfidRoutes");
+const binRoutes = require("./routes/binRoutes");
+
 const errorHandler = require("./middleware/errorHandler");
 
 const app = express();
@@ -23,6 +25,7 @@ if (process.env.NODE_ENV === "development") {
 
 app.use("/api/households", householdRoutes);
 app.use("/api/rfid", rfidRoutes);
+app.use("/api/bins", binRoutes);
 
 app.get("/api/health", (req, res) => {
   res.json({ success: true, message: "Server is running" });

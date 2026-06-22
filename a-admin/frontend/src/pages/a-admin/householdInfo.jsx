@@ -5,18 +5,9 @@ import Footer from "../../components/Footer";
 import AddHousehold from "../../components/AddHouseholdModal";
 
 import {
-    Trash2,
-    CheckCircle,
-    AlertTriangle,
-    XCircle,
-    Bell,
-    Star,
-    MapPin,
     MailPlus,
     Search,
     Plus,
-    TrendingUp,
-    Filter,
     Home
 } from "lucide-react";
 import HouseholdRecordModal from "../../components/HHrecordModal";
@@ -46,9 +37,11 @@ export default function HouseholdInfo() {
     const [openHHModal, setOpenHHModal] = useState(false);
     const [openAddModal, setOpenAddModal] = useState(false);
     const [openRFIDmodal, setopenRFIDmodal] = useState(false);
-    const [activeHousehold, setactiveHousehold] = useState(null);
+
+    // ── Store the full household object (not just the ID) ──
+    const [activeHousehold, setActiveHousehold] = useState(null);
+
     const [search, setSearch] = useState("");
-    const [filter, setFilter] = useState("all");
 
     // ── DB state ──────────────────────────────────────
     const [householdRecords, setHouseholdRecords] = useState([]);
@@ -76,15 +69,13 @@ export default function HouseholdInfo() {
         }
     };
 
-    // Fetch on mount and when search changes
     useEffect(() => {
         fetchHouseholds();
     }, [search]);
 
-    // Refetch after adding a new household
     const handleAddModalClose = () => {
         setOpenAddModal(false);
-        fetchHouseholds(); // refresh table
+        fetchHouseholds();
     };
 
     const handleConfirm = () => {
@@ -93,11 +84,11 @@ export default function HouseholdInfo() {
     };
 
     const filteredData = householdRecords.filter((h) => {
-        const matchSearch =
+        return (
             h.fullname?.toLowerCase().includes(search.toLowerCase()) ||
             h._id?.toLowerCase().includes(search.toLowerCase()) ||
-            h.rfid?.toLowerCase().includes(search.toLowerCase());
-        return matchSearch;
+            h.rfidUid?.toLowerCase().includes(search.toLowerCase())
+        );
     });
 
     return (
@@ -229,18 +220,14 @@ export default function HouseholdInfo() {
                                                         <td className="px-4 py-3 font-mono text-sm text-gray-600">
                                                             {item.rfid || "—"}
                                                         </td>
-                                                        <td className="flex flex-row gap-2 justify-center py-3">
+                                                        <td className="px-4 py-3">
+                                                            {/* ── Pass the full item object to the modal ── */}
                                                             <button
-                                                                onClick={() => setactiveHousehold(item._id)}
+                                                                onClick={() => setActiveHousehold(item)}
                                                                 className="cursor-pointer bg-gray-900 text-white px-3 py-1 rounded-lg"
                                                             >
                                                                 View
                                                             </button>
-
-                                                            <HouseholdRecordModal
-                                                                isOpen={activeHousehold === item._id}
-                                                                onClose={() => setactiveHousehold(null)}
-                                                            />
                                                         </td>
                                                     </tr>
                                                 ))
@@ -316,6 +303,14 @@ export default function HouseholdInfo() {
                     isOpen={openRFIDmodal}
                     onClose={() => setopenRFIDmodal(false)}
                 />
+
+                {/* ── Single modal instance outside the table loop ── */}
+                <HouseholdRecordModal
+                    isOpen={!!activeHousehold}
+                    onClose={() => setActiveHousehold(null)}
+                    household={activeHousehold}
+                />
+
             </div>
             <Footer />
         </div>

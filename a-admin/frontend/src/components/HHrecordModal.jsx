@@ -1,27 +1,8 @@
-import { X, Calendar, Flag, PlusCircle, Trash2, Clipboard, Award } from "lucide-react";
+import { X, Calendar, Clipboard, Trash2, Award } from "lucide-react";
 import { useState } from "react";
 import AssignPointsModal from "./AssignPointsModal";
 
-
-const household = {
-    id: "HH-202610001",
-    name: "Joel Dela Cruz",
-    address: "0543, Rizal Street",
-    contact: "+63-917-123-4567",
-    age: "34",
-    members: 5,
-    email: "delacruzjoel@gmail.com",
-    registeredSince: "January 15, 2026",
-    totalDisposals: 48,
-    compliance: "Excellent",
-    violation: 0,
-    points: {
-        total: 1240,
-        thisMonth: 280,
-    },
-};
-
-
+// ── These are still hardcoded until you build those backend endpoints ──
 const disposalLogs = [
     {
         id: 1,
@@ -69,27 +50,6 @@ const disposalLogs = [
     },
 ];
 
-// Recent Activity
-const rewardLogs = [
-    {
-        id: 1,
-        date: "2026-02-18",
-        rewardName: "Free Clinical Checkup",
-        householdId: "HH-202610001",
-        householdName: "Joel Dela Cruz",
-        stockUpdate: -1,
-    },
-    {
-        id: 2,
-        date: "2026-02-12",
-        rewardName: "Vitamins/Medicine",
-        householdId: "HH-202610008",
-        householdName: "Joel Dela Cruz",
-        stockUpdate: -1,
-    },
-];
-
-// recentActivityData
 const recentActivityData = [
     {
         id: 1,
@@ -123,21 +83,65 @@ const recentActivityData = [
         date: "2026-01-22",
         points: 45,
     },
-
-
 ];
 
-export default function HouseholdRecordModal({ isOpen, onClose }) {
-    const [activeTab, setActiveTab] = useState("disposal")
+// ── Helper: compute age from birthday ────────────────────────────────────────
+function computeAge(birthday) {
+    if (!birthday) return null;
+    const birth = new Date(birthday);
+    const today = new Date();
+    let age = today.getFullYear() - birth.getFullYear();
+    const monthDiff = today.getMonth() - birth.getMonth();
+    if (monthDiff < 0 || (monthDiff === 0 && today.getDate() < birth.getDate())) {
+        age--;
+    }
+    return age;
+}
+
+// ── Helper: format MongoDB createdAt date ─────────────────────────────────────
+function formatDate(dateStr) {
+    if (!dateStr) return "—";
+    return new Date(dateStr).toLocaleDateString("en-US", {
+        year: "numeric",
+        month: "long",
+        day: "numeric",
+    });
+}
+
+export default function HouseholdRecordModal({ isOpen, onClose, household }) {
+    // ── Hooks must always be at the top — never inside conditions ──
+    const [activeTab, setActiveTab] = useState("disposal");
     const [fromDate, setFromDate] = useState("");
     const [toDate, setToDate] = useState("");
-
-    const suffix = ["st", "nd", "rd"];
-
     const [openPointsModal, setOpenPointsModal] = useState(false);
 
-    if (!isOpen) return null;
+    // Guard after all hooks
+    if (!isOpen || !household) return null;
 
+    // ── Derived display values from the MongoDB household object ──
+    const fullname = household.fullname || "—";
+    const address =
+        [household.address?.houseNo, household.address?.street]
+            .filter(Boolean)
+            .join(", ") || "—";
+    const age = computeAge(household.birthday);
+    const familyMembers = household.familyMember ?? "—";
+    const contact = household.contactNumber
+        ? `+63-${household.contactNumber}`
+        : "—";
+    const email = household.email || "—";
+    const rfid = household.rfid || "—";
+    const householdId = household._id
+        ? `HH-${household._id.slice(-8).toUpperCase()}`
+        : "—";
+    const registeredSince = formatDate(household.createdAt);
+
+    // ── These fields don't exist in the schema yet — show placeholder ──
+    const points = household.points?.total ?? "N/A";
+    const violation = household.violation ?? 0;
+    const suffix = ["st", "nd", "rd"];
+
+    // ── Filter logs by date range ─────────────────────────────────────────────
     const filteredLogs = disposalLogs.filter((log) => {
         if (!fromDate && !toDate) return true;
         const logDate = new Date(log.date);
@@ -147,7 +151,7 @@ export default function HouseholdRecordModal({ isOpen, onClose }) {
         );
     });
 
-    const filteredReward = recentActivityData.filter((log) => {
+    const filteredActivity = recentActivityData.filter((log) => {
         if (!fromDate && !toDate) return true;
         const logDate = new Date(log.date);
         return (
@@ -162,51 +166,79 @@ export default function HouseholdRecordModal({ isOpen, onClose }) {
 
                 {/* HEADER */}
                 <div className="flex justify-between items-center px-5 py-1 border-b">
-                    <h3 className="text-gray-600 text-sm">Joel Dela Cruz's Record</h3>
+                    <h3 className="text-gray-600 text-sm">{fullname}'s Record</h3>
                     <button onClick={onClose}>
                         <X className="w-5 h-5 text-gray-500 cursor-pointer hover:text-gray-800" />
                     </button>
                 </div>
 
-                {/* FILTER */}
+                {/* INFO + FILTER */}
                 <div className="w-full flex flex-col">
 
-                    <div className="w-full flex flex-col md:flex-row justify-between  px-6 py-4 border-b">
+                    {/* Household info columns */}
+                    <div className="w-full flex flex-col md:flex-row justify-between px-6 py-4 border-b">
 
-                        <div className="flex-1 text-left">
-                            <p>Name: <span className="font-semibold">{household.name}</span></p>
-                            <p>Address: <span className="font-semibold">{household.address}</span></p>
-                            <p>Age: <span className="font-semibold">{household.age}</span>yrs old</p>
-                            <p>Member: <span className="font-semibold">{household.members}</span></p>
+                        {/* Left column */}
+                        <div className="flex-1 text-left space-y-0.5">
+                            <p className="text-sm">
+                                ID: <span className="font-semibold">{householdId}</span>
+                            </p>
+                            <p className="text-sm">
+                                Name: <span className="font-semibold">{fullname}</span>
+                            </p>
+                            <p className="text-sm">
+                                Address: <span className="font-semibold">{address}</span>
+                            </p>
+                            <p className="text-sm">
+                                Age:{" "}
+                                <span className="font-semibold">
+                                    {age !== null ? `${age} yrs old` : "—"}
+                                </span>
+                            </p>
+                            <p className="text-sm">
+                                Members: <span className="font-semibold">{familyMembers}</span>
+                            </p>
+                            <p className="text-sm">
+                                Registered:{" "}
+                                <span className="font-semibold">{registeredSince}</span>
+                            </p>
                         </div>
-                        <div className="flex-1 text-left">
-                            <p>Contact: <span className="font-semibold">{household.contact}</span></p>
-                            <p>Email: <span className="font-semibold">{household.email}</span></p>
-                            <p>Points: <span className="font-semibold text-green-600">{household.points.total}</span></p>
-                            {household.violation === 0 && (
-                                <p>
-                                    Violations: <span className="font-semibold">No violation</span>
-                                </p>
-                            )}
 
-                            {household.violation > 0 && (
-                                <p>
-                                    Violations:{" "}
-                                    <span className="font-semibold">
-                                        {household.violation}
-                                        {suffix[household.violation - 1]} offense
+                        {/* Right column */}
+                        <div className="flex-1 text-left space-y-0.5">
+                            <p className="text-sm">
+                                Contact: <span className="font-semibold">{contact}</span>
+                            </p>
+                            <p className="text-sm">
+                                Email: <span className="font-semibold">{email}</span>
+                            </p>
+                            <p className="text-sm">
+                                RFID:{" "}
+                                <span className="font-semibold font-mono">{rfid}</span>
+                            </p>
+                            <p className="text-sm">
+                                Points:{" "}
+                                <span className="font-semibold text-green-600">{points}</span>
+                            </p>
+                            <p className="text-sm">
+                                Violations:{" "}
+                                {violation === 0 ? (
+                                    <span className="font-semibold">No violation</span>
+                                ) : (
+                                    <span className="font-semibold text-red-500">
+                                        {violation}
+                                        {suffix[violation - 1] ?? "th"} offense
                                     </span>
-                                </p>
-                            )}
-
+                                )}
+                            </p>
                         </div>
-
                     </div>
 
-                    <div className="w-full flex flex-col gap-2 md:flex-row px-6 py-2 border-b ">
-                        <div className=" flex-1 flex items-center gap-2 w-auto">
+                    {/* Date filter + Add Points */}
+                    <div className="w-full flex flex-col gap-2 md:flex-row px-6 py-2 border-b">
+                        <div className="flex-1 flex items-center gap-2 w-auto">
                             <Calendar size={16} />
-                            <p>Date:</p>
+                            <p className="text-sm">Date:</p>
                             <input
                                 type="date"
                                 value={fromDate}
@@ -217,28 +249,29 @@ export default function HouseholdRecordModal({ isOpen, onClose }) {
                         <div className="flex-1 flex justify-center lg:justify-end gap-2">
                             <button
                                 onClick={() => setOpenPointsModal(true)}
-                                className="flex cursor-pointer items-center gap-1 px-3 py-1.5 rounded-lg bg-green-600 text-white text-xs hover:bg-green-700">
+                                className="flex cursor-pointer items-center gap-1 px-3 py-1.5 rounded-lg bg-green-600 text-white text-xs hover:bg-green-700"
+                            >
                                 <Award size={14} />
                                 Add Points
                             </button>
-
                         </div>
                     </div>
                 </div>
+
                 {/* TABS */}
                 <div className="w-full flex overflow-x-auto bg-gray-200 rounded-tr-3xl rounded-tl-3xl mt-3 ml-1 px-1 justify-center md:w-fit justify-evenly text-[#4A3B47] pt-1 space-x-2">
                     {[
                         { id: "disposal", label: "Disposal Log", icon: <Trash2 size={15} /> },
                         { id: "reward", label: "Activity Log", icon: <Clipboard size={15} /> },
-
                     ].map((tab) => (
                         <button
                             key={tab.id}
                             onClick={() => setActiveTab(tab.id)}
-                            className={`flex items-center m-0 justify-center md:justify-between cursor-pointer gap-2 px-4 py-1 whitespace-nowrap transition ${activeTab === tab.id
-                                ? "bg-white rounded-tr-3xl rounded-tl-3xl text-gray-800"
-                                : "text-gray-600 hover:bg-gray-200 rounded-tr-3xl rounded-tl-3xl"
-                                }`}
+                            className={`flex items-center m-0 justify-center md:justify-between cursor-pointer gap-2 px-4 py-1 whitespace-nowrap transition ${
+                                activeTab === tab.id
+                                    ? "bg-white rounded-tr-3xl rounded-tl-3xl text-gray-800"
+                                    : "text-gray-600 hover:bg-gray-200 rounded-tr-3xl rounded-tl-3xl"
+                            }`}
                         >
                             {tab.icon}
                             <span>{tab.label}</span>
@@ -247,40 +280,34 @@ export default function HouseholdRecordModal({ isOpen, onClose }) {
                 </div>
 
                 {/* DISPOSAL LOG */}
-                {activeTab == "disposal" && (
+                {activeTab === "disposal" && (
                     <div className="overflow-x-auto">
                         <table className="w-full text-sm">
                             <thead className="bg-gray-400">
                                 <tr>
                                     <th className="py-3">Bin ID</th>
                                     <th>Bin Type</th>
-                                    <th>Disposal order</th>
+                                    <th>Disposal Order</th>
                                     <th>Date & Time</th>
                                     <th>Resident</th>
                                 </tr>
                             </thead>
-
                             <tbody className="text-center">
                                 {filteredLogs.map((log) => (
                                     <tr key={log.id}>
-
-                                        <td className=" py-3 font-medium">#{log.binID}</td>
-                                        <td className=" py-3 font-medium">{log.binType}</td>
-
-                                        <td className=" py-3 font-medium">#{log.counter}</td>
+                                        <td className="py-3 font-medium">#{log.binID}</td>
+                                        <td className="py-3 font-medium">{log.binType}</td>
+                                        <td className="py-3 font-medium">#{log.counter}</td>
                                         <td>
                                             <p>{log.date}</p>
                                             <p className="text-xs text-gray-500">{log.time}</p>
                                         </td>
-
                                         <td>{log.resident}</td>
-
                                     </tr>
                                 ))}
-
                                 {filteredLogs.length === 0 && (
                                     <tr>
-                                        <td colSpan="6" className="text-center py-6 text-gray-500">
+                                        <td colSpan="5" className="text-center py-6 text-gray-500">
                                             No records found for selected dates
                                         </td>
                                     </tr>
@@ -291,7 +318,7 @@ export default function HouseholdRecordModal({ isOpen, onClose }) {
                 )}
 
                 {/* ACTIVITY LOG */}
-                {activeTab == "reward" && (
+                {activeTab === "reward" && (
                     <div className="overflow-x-auto">
                         <table className="w-full text-sm">
                             <thead className="bg-gray-400">
@@ -303,26 +330,29 @@ export default function HouseholdRecordModal({ isOpen, onClose }) {
                                     <th className="px-4">Points</th>
                                 </tr>
                             </thead>
-
                             <tbody className="text-center">
-                                {filteredReward.map((activity) => (
+                                {filteredActivity.map((activity) => (
                                     <tr key={activity.id}>
                                         <td>{activity.date}</td>
                                         <td className="w-fit py-3 font-medium">{activity.type}</td>
                                         <td>{activity.via}</td>
                                         <td>{activity.amount}</td>
-                                        <td className={`font-semibold ${activity.points > 0
-                                            ? "text-green-600"
-                                            : "text-red-500"
-                                            }`}> {activity.points > 0
+                                        <td
+                                            className={`font-semibold ${
+                                                activity.points > 0
+                                                    ? "text-green-600"
+                                                    : "text-red-500"
+                                            }`}
+                                        >
+                                            {activity.points > 0
                                                 ? `+${activity.points}`
-                                                : activity.points}</td>
+                                                : activity.points}
+                                        </td>
                                     </tr>
                                 ))}
-
-                                {filteredReward.length === 0 && (
+                                {filteredActivity.length === 0 && (
                                     <tr>
-                                        <td colSpan="6" className="text-center py-6 text-gray-500">
+                                        <td colSpan="5" className="text-center py-6 text-gray-500">
                                             No records found for selected dates
                                         </td>
                                     </tr>
@@ -331,14 +361,12 @@ export default function HouseholdRecordModal({ isOpen, onClose }) {
                         </table>
                     </div>
                 )}
-
             </div>
 
             <AssignPointsModal
                 isOpen={openPointsModal}
                 onClose={() => setOpenPointsModal(false)}
             />
-
         </div>
     );
 }
