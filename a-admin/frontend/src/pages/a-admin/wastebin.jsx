@@ -20,7 +20,7 @@ import CounterInfoModal from "../../components/CounterInfoModal";
 
 // ─── Constants ────────────────────────────────────────────────────────────────
 
-const API = "http://localhost:5000/api/bins"; // change to your backend URL
+const API = "http://localhost:5000/api/bins";
 
 const statusColors = {
     good: {
@@ -63,9 +63,12 @@ function getStatusFromFill(fill) {
 export default function WasteBin() {
 
     // Modals
-    const [openConModal, setOpenConModal]     = useState(false);
-    const [activeBin, setActiveBin]           = useState(null);
+    const [openConModal, setOpenConModal]         = useState(false);
+    const [activeBin, setActiveBin]               = useState(null);
     const [openCounterModal, setOpenCounterModal] = useState(false);
+
+    // Pending bin — holds staged form data before the user confirms
+    const [pendingBin, setPendingBin] = useState(null);
 
     // Add form
     const [binName, setBinName]   = useState("");
@@ -82,13 +85,10 @@ export default function WasteBin() {
     const [filter, setFilter]     = useState("all");
 
     // Inline edit
-    const inputRef                      = useRef(null);
-    const [editingId, setEditingId]     = useState(null);
+    const inputRef                            = useRef(null);
+    const [editingId, setEditingId]           = useState(null);
     const [editedLocation, setEditedLocation] = useState("");
-    const [saving, setSaving]           = useState(false);
-
-    // Counter section — uses same binsData (has fill, lastEmptied from DB)
-    // If your counter data comes from a separate collection, replace this with its own fetch.
+    const [saving, setSaving]                 = useState(false);
 
     // ── Fetch all bins on mount ──────────────────────────────────────────────
     useEffect(() => {
@@ -101,7 +101,6 @@ export default function WasteBin() {
             const res  = await fetch(API);
             const data = await res.json();
             if (data.success) {
-                // Normalise: backend uses `binId`, frontend uses `id`
                 setBinsData(data.data.map(normaliseBin));
             }
         } catch (err) {
@@ -111,7 +110,6 @@ export default function WasteBin() {
         }
     }
 
-    // Map MongoDB doc → shape used by the UI
     function normaliseBin(doc) {
         return {
             _id:         doc._id,
@@ -127,12 +125,30 @@ export default function WasteBin() {
         };
     }
 
-    // ── Add bin ─────────────────────────────────────────────────────────────
-    async function handleAddBin() {
+    // ── Step 1: Validate & stage — opens confirmation modal ─────────────────
+    function handleAddBin() {
         setAddError("");
 
         if (!binName.trim() || !category || !capacity || !location) {
             setAddError("All fields are required.");
+            return;
+        }
+
+        // Stage the data, then ask for confirmation — do NOT POST yet
+        setPendingBin({
+            name:     binName.trim(),
+            type:     category,
+            capacity,
+            location,
+        });
+        setOpenConModal(true);
+    }
+
+    // ── Step 2: User confirmed — now POST to the API ─────────────────────────
+    async function handleConfirmAdd() {
+        if (!pendingBin) {
+            // This was a save-location success notice, not an add confirmation
+            setOpenConModal(false);
             return;
         }
 
@@ -142,22 +158,22 @@ export default function WasteBin() {
                 method:  "POST",
                 headers: { "Content-Type": "application/json" },
                 body: JSON.stringify({
-                    name:     binName.trim(),
-                    type:     category,
-                    capacity: `${capacity}L`,
-                    location,
+                    name:     pendingBin.name,
+                    type:     pendingBin.type,
+                    capacity: `${pendingBin.capacity}L`,
+                    location: pendingBin.location,
                 }),
             });
             const data = await res.json();
 
             if (data.success) {
                 setBinsData((prev) => [...prev, normaliseBin(data.data)]);
-                // Reset form
+                // Reset form fields
                 setBinName("");
                 setCategory("");
                 setCapacity("");
                 setLocation("");
-                setOpenConModal(true);
+                setPendingBin(null);
             } else {
                 setAddError(data.message || "Failed to add bin.");
             }
@@ -165,7 +181,14 @@ export default function WasteBin() {
             setAddError("Network error. Please try again.");
         } finally {
             setAdding(false);
+            setOpenConModal(false);
         }
+    }
+
+    // ── User cancelled the confirmation modal ────────────────────────────────
+    function handleCancelModal() {
+        setOpenConModal(false);
+        setPendingBin(null); // discard staged data
     }
 
     // ── Save edited location ─────────────────────────────────────────────────
@@ -187,6 +210,7 @@ export default function WasteBin() {
                     )
                 );
                 setEditingId(null);
+                // Open as a success notice (pendingBin is null here)
                 setOpenConModal(true);
             }
         } catch (err) {
@@ -424,8 +448,6 @@ export default function WasteBin() {
                                                                 Edit
                                                             </button>
                                                         )}
-
-                                                        
                                                     </div>
                                                 </td>
                                             </tr>
@@ -497,10 +519,15 @@ export default function WasteBin() {
                 </main>
             </div>
 
+            {/*
+                ConfirmationModal is used in two modes:
+                1. pendingBin is set  → user is confirming a new bin add (onConfirm posts to API)
+                2. pendingBin is null → success notice after saving a location (onConfirm just closes)
+            */}
             <ConfirmationModal
                 isOpen={openConModal}
-                onClose={() => setOpenConModal(false)}
-                onConfirm={() => setOpenConModal(false)}
+                onClose={handleCancelModal}
+                onConfirm={handleConfirmAdd}
             />
 
             <CounterInfoModal

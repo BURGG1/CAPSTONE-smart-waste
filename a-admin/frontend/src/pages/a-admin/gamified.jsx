@@ -1,3 +1,4 @@
+import { useState, useEffect } from "react";
 import Navbar from "../../components/Navbar";
 import {
     Star,
@@ -7,17 +8,21 @@ import {
     Gavel,
     ClipboardCheck,
     Clipboard
-
 } from "lucide-react";
 import NavigationShell from "../../navigation/mainNav";
 import Footer from "../../components/Footer";
-
-
 import { Plus, Camera, Asterisk, Search } from "lucide-react";
-import { useState } from "react";
 import { ViewRewardModal } from "../../components/RewardModal";
 import ConfirmationModal from "../../components/confirmationModal";
+import RulesModal from "../../components/RulesModal";
+import AwardModal from "../../components/AwardModal";
+import ClaimReward from "../../components/ClaimReward";
 
+import { getRewards, createReward, updateReward } from "../../api/rewardApi";
+import { getRules } from "../../api/rulesAPI";
+
+// Your backend's base URL — used to build full image URLs since the DB only stores a path like "/uploads/x.jpg"
+const IMAGE_BASE = "http://localhost:5000";
 
 // Points summary
 const POINTS = {
@@ -34,18 +39,8 @@ const MONTHLY = {
     net: 80,
 };
 
-
-
-// Redeemable items
-const REWARDS = [
-    { id: 1, name: "Free Clinical Checkup", points: 1200, stocks: 15 },
-    { id: 2, name: "50% off to Barangay Clearance", points: 1200, stocks: 8 },
-    { id: 3, name: "Vitamins/Medicine", points: 500, stocks: 20 },
-    { id: 4, name: "50% off to Business Permit", points: 1500, stocks: 5 },
-
-];
-
-// Recent Activity
+// Recent Activity — still static, there's no reward-log API yet.
+// Ask if you want this wired to a real collection too.
 const rewardLogs = [
     {
         id: 1,
@@ -113,112 +108,136 @@ const rewardLogs = [
     },
 ];
 
-
-import pandisplay from "../../resources/pandisplay.jpg"
-import plasticBrick from "../../resources/plastic-brick.jpg"
-import recyc1 from "../../resources/recyc1.jpg"
-import tenStreak from "../../resources/tenStreak.png"
-import oneMonth from "../../resources/oneMonth.jpg"
-import RulesModal from "../../components/RulesModal";
-import AwardModal from "../../components/AwardModal";
-import ClaimReward from "../../components/ClaimReward";
-
-const RULES = [
-    {
-        image: recyc1,
-        id: 1,
-        name: "Recyclable Materials",
-        decs: "Earn points by returning recyclable materials such as plastic, paper, glass, and metal",
-        points: 15,
-        freq: "per kilo"
-    },
-    {
-        image: tenStreak,
-        id: 2,
-        name: "10-Day Consistency Streak",
-        decs: "Maintain proper bin usage without any violation for 10 consecutive days",
-        points: 30,
-        freq: "per streak",
-        auto: true
-    },
-    {
-        image: plasticBrick,
-        id: 3,
-        name: "Plastic Bottle Bricks",
-        decs: "Create eco-bricks by filling plastic bottles with non-recyclable plastic waste to be used for construction",
-        points: 50,
-        freq: "per brick"
-    },
-    {
-        image: oneMonth,
-        id: 4,
-        name: "1 month Consistency Streak",
-        decs: "Maintain proper bin usage without any violation for 1 month",
-        points: 100,
-        freq: "per streak",
-        auto: true
-    },
-    {
-        image: pandisplay,
-        id: 5,
-        name: "Recycled Items or Accessories",
-        decs: "Already recycled items transformed into display pieces or accessories. Points vary based on design creativity and quality",
-        points: "50-200",
-        freq: "per item"
-    },
-];
 // Derived values
 const progressPercent = Math.round(
     (POINTS.total / POINTS.maxTierPoints) * 100
 );
 
-
 export default function Gamified() {
-    const [activeTab, setActiveTab] = useState("rewards")
-    const [openConModal, setOpenConModal] = useState(false)
-    const [openRulesModal, setOpenRulesModal] = useState(false)
-    const [openAwardModal, setopenAwardModal] = useState(false)
-    const [openClaimModal, setopenClaimModal] = useState(false)
-
+    const [activeTab, setActiveTab] = useState("rewards");
+    const [openConModal, setOpenConModal] = useState(false);
+    const [openRulesModal, setOpenRulesModal] = useState(false);
+    const [openAwardModal, setopenAwardModal] = useState(false);
+    const [openClaimModal, setopenClaimModal] = useState(false);
 
     const [clickedReward, setClickReward] = useState(null);
     const [pointNeed, setPointNeed] = useState();
     const [clickedRule, setClickRule] = useState(null);
 
-    // for reward-----------
-    const [Name, setName] = useState("")
-    const [Points, setPoints] = useState("")
-    const [Stocks, setStocks] = useState("")
+    // ---- Rewards now come from the database ----
+    const [rewards, setRewards] = useState([]);
+    const [rewardsLoading, setRewardsLoading] = useState(true);
+    const [rewardsError, setRewardsError] = useState("");
+    const [editingRewardId, setEditingRewardId] = useState(null);
 
-    const [ToEdit, setToEdit] = useState(false)
-    const [openRewardModal, setOpenRewardModal] = useState(false)
+    // ---- Rules now come from the database ----
+    const [rules, setRules] = useState([]);
+    const [rulesLoading, setRulesLoading] = useState(true);
+    const [rulesError, setRulesError] = useState("");
+    const [editRuleData, setEditRuleData] = useState(null); // which rule is being edited
 
-    const [search, setSearch] = useState("")
+    // for reward form -----------
+    const [Name, setName] = useState("");
+    const [Points, setPoints] = useState("");
+    const [Stocks, setStocks] = useState("");
+    const [imageFile, setImageFile] = useState(null);
+
+    const [ToEdit, setToEdit] = useState(false);
+    const [openRewardModal, setOpenRewardModal] = useState(false);
+
+    const [search, setSearch] = useState("");
+
+    const fetchRewards = async () => {
+        try {
+            setRewardsLoading(true);
+            const data = await getRewards();
+            setRewards(data);
+            setRewardsError("");
+        } catch (err) {
+            console.error(err);
+            setRewardsError("Failed to load rewards. Is the server running?");
+        } finally {
+            setRewardsLoading(false);
+        }
+    };
+
+    const fetchRules = async () => {
+        try {
+            setRulesLoading(true);
+            const data = await getRules();
+            setRules(data);
+            setRulesError("");
+        } catch (err) {
+            console.error(err);
+            setRulesError("Failed to load rules. Is the server running?");
+        } finally {
+            setRulesLoading(false);
+        }
+    };
+
+    useEffect(() => {
+        fetchRewards();
+        fetchRules();
+    }, []);
 
     const handleRewardEdit = (id) => {
-        const item = REWARDS.find((reward) => reward.id === id);
+        const item = rewards.find((reward) => reward._id === id);
         if (!item) return;
 
+        setEditingRewardId(item._id);
         setName(item.name);
         setPoints(item.points);
         setStocks(item.stocks);
     };
 
-
-
     const ClearRewardEdit = () => {
         setName("");
         setPoints("");
         setStocks("");
+        setImageFile(null);
+        setEditingRewardId(null);
     };
 
+    const handleAddReward = async () => {
+        if (!Name || !Points || !Stocks) {
+            alert("Name, points, and stock are required");
+            return;
+        }
+        try {
+            await createReward({ name: Name, points: Points, stocks: Stocks, imageFile });
+            await fetchRewards();
+            ClearRewardEdit();
+        } catch (err) {
+            console.error(err);
+            alert("Failed to add reward");
+        }
+    };
 
-    const filteredData = REWARDS.filter((h) => {
-        const matchSearch =
-            h.name.toLowerCase().includes(search.toLowerCase())
+    const handleUpdateReward = async () => {
+        try {
+            await updateReward(editingRewardId, {
+                name: Name,
+                points: Points,
+                stocks: Stocks,
+                imageFile,
+            });
+            await fetchRewards();
+            setToEdit(false);
+            setOpenConModal(false);
+            ClearRewardEdit();
+        } catch (err) {
+            console.error(err);
+            alert("Failed to update reward");
+        }
+    };
 
-        return matchSearch;
-    });
+    const filteredData = rewards.filter((h) =>
+        h.name.toLowerCase().includes(search.toLowerCase())
+    );
+
+    const filteredRules = rules.filter((r) =>
+        r.name.toLowerCase().includes(search.toLowerCase())
+    );
 
     return (
         <div className="flex-1">
@@ -254,7 +273,6 @@ export default function Gamified() {
                         {[
                             { id: "rewards", label: "Reward", icon: <Star size={15} /> },
                             { id: "rules", label: "Rules", icon: <BookCheck size={15} /> },
-
                         ].map((tab) => (
                             <button
                                 key={tab.id}
@@ -270,8 +288,7 @@ export default function Gamified() {
                         ))}
                     </div>
 
-
-                    {/* REWAAAAARRDDDDDDDDDDDSSSSSSSSSSSS */}
+                    {/* REWARDS TAB */}
                     {activeTab == "rewards" && (
                         <>
                             <section className="bg-white rounded-xl p-6 shadow">
@@ -285,14 +302,19 @@ export default function Gamified() {
                                     <label className="flex items-center gap-2 cursor-pointer text-white bg-green-600 px-3 py-2 rounded-lg hover:bg-green-700 transition">
                                         <Camera size={16} />
                                         Upload Image
-                                        <input type="file" accept="image/*" className="hidden" />
+                                        <input
+                                            type="file"
+                                            accept="image/*"
+                                            className="hidden"
+                                            onChange={(e) => setImageFile(e.target.files[0] || null)}
+                                        />
                                     </label>
-
+                                    {imageFile && (
+                                        <span className="text-sm text-gray-500">{imageFile.name}</span>
+                                    )}
                                 </div>
 
                                 <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
-
-
                                     <div className="flex items-center">
                                         <Asterisk className="text-red-500 w-4 h-4" />
                                         <input
@@ -304,7 +326,6 @@ export default function Gamified() {
                                     </div>
 
                                     <div className="flex items-center">
-
                                         <Asterisk className="text-red-500 w-4 h-4" />
                                         <input
                                             value={Points}
@@ -314,11 +335,9 @@ export default function Gamified() {
                                             type="number"
                                             step="0.01"
                                         />
-
                                     </div>
 
                                     <div className="flex items-center">
-
                                         <Asterisk className="text-red-500 w-4 h-4" />
                                         <input
                                             value={Stocks}
@@ -327,9 +346,9 @@ export default function Gamified() {
                                             placeholder="Stock"
                                             type="number"
                                         />
-
                                     </div>
                                 </div>
+
                                 {/* Buttons */}
                                 <div className="mt-3 flex justify-end gap-2">
                                     {ToEdit ? (
@@ -348,14 +367,14 @@ export default function Gamified() {
                                                 className="cursor-pointer mt-auto bg-gray-600 flex items-center justify-center gap-1 text-white rounded-lg p-2 hover:bg-gray-700 transition">
                                                 Cancel
                                             </button>
-
                                         </div>) : (
-                                        <button className="cursor-pointer mt-auto bg-green-600 flex items-center justify-center gap-1 text-white rounded-lg p-2 hover:bg-green-700 transition">
+                                        <button
+                                            onClick={handleAddReward}
+                                            className="cursor-pointer mt-auto bg-green-600 flex items-center justify-center gap-1 text-white rounded-lg p-2 hover:bg-green-700 transition">
                                             <Plus size={16} />
                                             Add New Reward
                                         </button>
                                     )}
-
                                 </div>
                             </section>
 
@@ -378,18 +397,28 @@ export default function Gamified() {
                                             className="pl-10 pr-4 py-2 border rounded-lg w-full sm:w-64 focus:ring-2 focus:ring-green-500"
                                         />
                                     </div>
-
                                 </div>
+
+                                {rewardsLoading && <p className="text-gray-500 mb-4">Loading rewards...</p>}
+                                {rewardsError && <p className="text-red-500 mb-4">{rewardsError}</p>}
 
                                 <div className=" overflow-y-auto grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
                                     {filteredData.map((item) => (
                                         <div
-                                            key={item.id}
+                                            key={item._id}
                                             className="bg-gray-50 rounded-xl p-4 flex flex-col shadow-lg"
                                         >
-                                            <div className="h-24 bg-gray-200 rounded mb-4 flex items-center justify-center">
-                                                ICON
-                                            </div>
+                                            {item.image ? (
+                                                <img
+                                                    src={`${IMAGE_BASE}${item.image}`}
+                                                    alt={item.name}
+                                                    className="h-24 w-full object-cover rounded mb-4"
+                                                />
+                                            ) : (
+                                                <div className="h-24 bg-gray-200 rounded mb-4 flex items-center justify-center">
+                                                    ICON
+                                                </div>
+                                            )}
 
                                             <h3 className="font-semibold">{item.name}</h3>
 
@@ -403,7 +432,6 @@ export default function Gamified() {
                                             </div>
 
                                             <div className="flex flex-col gap-2">
-
                                                 <div className="w-full flex items-center gap-2">
                                                     <div className="flex-1">
                                                         <button
@@ -417,37 +445,26 @@ export default function Gamified() {
                                                     </div>
 
                                                     <div className="flex-1 relative">
-
                                                         <button
                                                             onClick={() => {
                                                                 setToEdit(true);
-                                                                handleRewardEdit(item.id)
+                                                                handleRewardEdit(item._id);
                                                             }}
                                                             className="w-full cursor-pointer bg-green-600 text-white py-2 rounded-lg"
                                                         >
                                                             Edit
                                                         </button>
-
                                                     </div>
                                                 </div>
-                                                {/* <div className="flex-1 relative">
-
-                                                    <button
-                                                        onClick={() => {
-                                                            setopenClaimModal(true);
-                                                            setClickReward(item.name);
-                                                            setPointNeed(item.points);
-
-                                                        }}
-                                                        className="w-full cursor-pointer bg-gray-900 text-white py-2 rounded-lg"
-                                                    >
-                                                        Claim
-                                                    </button>
-
-                                                </div> */}
                                             </div>
                                         </div>
                                     ))}
+
+                                    {!rewardsLoading && filteredData.length === 0 && (
+                                        <p className="text-gray-500 col-span-full text-center py-6">
+                                            No rewards found.
+                                        </p>
+                                    )}
                                 </div>
                             </section>
 
@@ -472,14 +489,9 @@ export default function Gamified() {
                                             {rewardLogs.map((log) => (
                                                 <tr key={log.id}>
                                                     <td className="py-3 font-medium">{log.date}</td>
-
-                                                    <td>
-                                                        {log.rewardName}
-                                                    </td>
+                                                    <td>{log.rewardName}</td>
                                                     <td>{log.householdId}</td>
-
                                                     <td>{log.householdName}</td>
-
                                                     <td className="text-red-500">{log.stockUpdate}</td>
                                                 </tr>
                                             ))}
@@ -498,10 +510,9 @@ export default function Gamified() {
                         </>
                     )}
 
-                    {/* RULEEEEESSSSSSSSSSSSSSSSSSSSSSSSSS */}
+                    {/* RULES TAB */}
                     {activeTab == "rules" && (
                         <>
-                            {/* RULES*/}
                             <section className="bg-white rounded-xl p-6 shadow">
 
                                 <div className="flex flex-col lg:flex-row justify-between py-4">
@@ -510,7 +521,6 @@ export default function Gamified() {
                                         How to Earn Points
                                     </h2>
                                     <div className="flex flex-col sm:flex-row gap-3 w-full sm:w-auto">
-
 
                                         <div className="relative">
                                             <Search className="absolute left-3 top-5 -translate-y-1/2 text-gray-400" size={18} />
@@ -525,8 +535,12 @@ export default function Gamified() {
 
                                         <div className="relative">
                                             <button
-                                                title="Register household"
-                                                onClick={() => setOpenRulesModal(true)}
+                                                title="Add new rule"
+                                                onClick={() => {
+                                                    setToEdit(false);
+                                                    setEditRuleData(null);
+                                                    setOpenRulesModal(true);
+                                                }}
                                                 className="bg-green-600 text-white w-full flex p-2 rounded-lg cursor-pointer hover:bg-green-700"
                                             >
                                                 <Plus />
@@ -534,26 +548,34 @@ export default function Gamified() {
                                             </button>
                                         </div>
                                     </div>
-
                                 </div>
 
+                                {rulesLoading && <p className="text-gray-500 mb-4">Loading rules...</p>}
+                                {rulesError && <p className="text-red-500 mb-4">{rulesError}</p>}
+
                                 <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-                                    {RULES.map((r) => (
+                                    {filteredRules.map((r, idx) => (
                                         <div
-                                            key={r.id}
+                                            key={r._id}
                                             className="relative bg-gray-50 rounded-xl flex flex-col shadow-lg"
                                         >
                                             <div className="overflow-hidden">
-                                                <img
-                                                    src={r.image}
-                                                    alt={r.name}
-                                                    className="w-full h-90 object-cover transform transition-transform rounded-tr-lg rounded-tl-lg duration-500 group-hover:scale-110"
-                                                />
+                                                {r.image ? (
+                                                    <img
+                                                        src={`${IMAGE_BASE}${r.image}`}
+                                                        alt={r.name}
+                                                        className="w-full h-90 object-cover transform transition-transform rounded-tr-lg rounded-tl-lg duration-500 group-hover:scale-110"
+                                                    />
+                                                ) : (
+                                                    <div className="w-full h-40 bg-gray-200 flex items-center justify-center rounded-tr-lg rounded-tl-lg text-gray-400">
+                                                        No image
+                                                    </div>
+                                                )}
                                             </div>
 
                                             <div className="flex flex-col p-4 gap-2">
                                                 <div className="flex justify-between items-center">
-                                                    <h1 className="text-lg font-bold"><span>Rule {r.id}</span> - {r.name}</h1>
+                                                    <h1 className="text-lg font-bold"><span>Rule {idx + 1}</span> - {r.name}</h1>
                                                     <p className="text-sm text-gray-400 font-semibold text-center px-4 py-1 rounded-full">
                                                         {r.freq}
                                                     </p>
@@ -565,7 +587,6 @@ export default function Gamified() {
 
                                                     {!r.auto && (
                                                         <div className="flex-1">
-
                                                             <button
                                                                 onClick={() => {
                                                                     setClickRule(r);
@@ -581,13 +602,13 @@ export default function Gamified() {
                                                         <button
                                                             onClick={() => {
                                                                 setToEdit(true);
+                                                                setEditRuleData(r);
                                                                 setOpenRulesModal(true);
                                                             }}
                                                             className="w-full cursor-pointer bg-green-600 text-white py-2 rounded-lg"
                                                         >
                                                             Edit
                                                         </button>
-
                                                     </div>
                                                 </div>
                                             </div>
@@ -600,13 +621,16 @@ export default function Gamified() {
                                             </div>
                                         </div>
                                     ))}
+
+                                    {!rulesLoading && filteredRules.length === 0 && (
+                                        <p className="text-gray-500 col-span-full text-center py-6">
+                                            No rules found.
+                                        </p>
+                                    )}
                                 </div>
                             </section>
                         </>
-
                     )}
-
-
 
                 </main>
 
@@ -625,21 +649,20 @@ export default function Gamified() {
 
                 <RulesModal
                     isOpen={openRulesModal}
-                    onClose={() => setOpenRulesModal(false)}
+                    onClose={() => {
+                        setOpenRulesModal(false);
+                        setToEdit(false);
+                        setEditRuleData(null);
+                    }}
                     edit={ToEdit}
+                    ruleData={editRuleData}
+                    onSaved={fetchRules}
                 />
 
                 <ConfirmationModal
                     isOpen={openConModal}
-                    onClose={() => {
-                        setToEdit(false);
-                        setOpenConModal(false);
-                        ClearRewardEdit();
-                    }}
-                    onConfirm={() => {
-                        setOpenConModal(false);
-                        onClose();
-                    }}
+                    onClose={() => setOpenConModal(false)}
+                    onConfirm={handleUpdateReward}
                 />
 
                 <AwardModal

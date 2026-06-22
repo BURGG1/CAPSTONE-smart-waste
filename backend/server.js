@@ -2,11 +2,15 @@ require("dotenv").config();
 const express = require("express");
 const cors = require("cors");
 const morgan = require("morgan");
+const path = require("path");
 
 const connectDB = require("./config/db");
 const householdRoutes = require("./routes/householdRoutes");
 const rfidRoutes = require("./routes/rfidRoutes");
 const binRoutes = require("./routes/binRoutes");
+const rewardRoutes = require("./routes/rewardRoutes");
+const ruleRoutes = require("./routes/ruleRoutes");
+
 
 const errorHandler = require("./middleware/errorHandler");
 
@@ -23,6 +27,9 @@ if (process.env.NODE_ENV === "development") {
   app.use(morgan("dev"));
 }
 
+app.use("/uploads", express.static(path.join(__dirname, "uploads"))); // serves uploaded images
+app.use("/api/rewards", rewardRoutes);
+app.use("/api/rules", ruleRoutes);
 app.use("/api/households", householdRoutes);
 app.use("/api/rfid", rfidRoutes);
 app.use("/api/bins", binRoutes);
@@ -38,6 +45,6 @@ app.use((req, res) => {
 app.use(errorHandler);
 
 app.listen(PORT, () => {
-  console.log(`🚀 Server running on http://localhost:${PORT}`);
-  console.log(`📦 Environment: ${process.env.NODE_ENV}`);
+  console.log(`Server running on http://localhost:${PORT}`);
+  console.log(`Environment: ${process.env.NODE_ENV}`);
 });
