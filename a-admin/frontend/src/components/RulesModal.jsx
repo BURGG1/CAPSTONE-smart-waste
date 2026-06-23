@@ -1,98 +1,106 @@
 import {
     X,
     Asterisk,
-    Star,
-    TrendingUp,
-    Gift,
-    BookCheck,
     Gavel,
     Plus,
     Camera,
-    ClipboardCheck
 } from "lucide-react";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import ConfirmationModal from "./confirmationModal";
+import { createRule, updateRule } from "../api/rulesAPI";
 
-import pandisplay from "../resources/pandisplay.jpg"
-import plasticBrick from "../resources/plastic-brick.jpg"
-import recyc1 from "../resources/recyc1.jpg"
-import tenDay from "../resources/tenDays.jpg"
-import oneMonth from "../resources/oneMonth.jpg"
+export default function RulesModal({ isOpen, onClose, edit, ruleData, onSaved }) {
 
-const RULES = [
-    {
-        image: recyc1,
-        id: 1,
-        name: "Recyclable Materials",
-        decs: "Earn points by recycling normal materials such as plastic, paper, glass, and metal",
-        points: 15,
-        freq: "per kilo"
-    },
-    {
-        image: tenDay,
-        id: 2,
-        name: "10-Day Consistency Streak",
-        decs: "Maintain proper bin usage without any violation for 10 consecutive days",
-        points: 30,
-        freq: "per streak"
-    },
-    {
-        image: plasticBrick,
-        id: 3,
-        name: "Plastic Bottle Bricks",
-        decs: "Create eco-bricks by filling plastic bottles with non-recyclable plastic waste to be used for construction",
-        points: 50,
-        freq: "per brick"
-    },
-    {
-        image: oneMonth,
-        id: 4,
-        name: "1 month Consistency Streak",
-        decs: "Maintain proper bin usage without any violation for 1 month",
-        points: 100,
-        freq: "per streak"
-    },
-    {
-        image: pandisplay,
-        id: 5,
-        name: "Recycled Items or Accessories",
-        decs: "Already recycled items transformed into display pieces or accessories. Points vary based on design creativity and quality",
-        points: "50-200",
-        freq: "per item"
-    },
-
-
-];
-
-export default function RulesModal({ isOpen, onClose, edit }) {
-
-
-    const [ToEdit, setToEdit] = useState();
     const [active, setActive] = useState(false);
 
-    const [rule, setRule] = useState("")
-    const [desc, setDesc] = useState("")
-    const [eqPoints, setEqPoints] = useState("")
-    const [freq, setFreq] = useState("")
+    const [ruleName, setRuleName] = useState("");
+    const [desc, setDesc] = useState("");
+    const [eqPoints, setEqPoints] = useState("");
+    const [freq, setFreq] = useState("");
+    const [auto, setAuto] = useState(false);
+    const [imageFile, setImageFile] = useState(null);
 
-    const handleRulesEdit = (id) => {
-        const item = RULES.find((rules) => rules.id === id);
-        if (!item) return;
-
-        setRule(item.rule);
-        setDesc(item.decs);
-        setEqPoints(item.points);
-        setFreq(item.freq);
-    };
-
-    const ClearRulesEdit = () => {
-        setRule("");
-        setEqPoints("");
+    const clearForm = () => {
+        setRuleName("");
+        setDesc("");
         setEqPoints("");
         setFreq("");
+        setAuto(false);
+        setImageFile(null);
     };
 
+    // populate the form when opening in edit mode, otherwise reset it
+    useEffect(() => {
+        if (!isOpen) return;
+
+        if (edit && ruleData) {
+            setRuleName(ruleData.name || "");
+            setDesc(ruleData.decs || "");
+            setEqPoints(ruleData.points || "");
+            setFreq(ruleData.freq || "");
+            setAuto(!!ruleData.auto);
+            setImageFile(null);
+        } else {
+            clearForm();
+        }
+    }, [isOpen, edit, ruleData]);
+
     if (!isOpen) return null;
+
+    const isFormValid = () => {
+        if (!ruleName || !desc || !eqPoints || !freq) {
+            alert("Name, description, points, and frequency are required");
+            return false;
+        }
+        return true;
+    };
+
+    // both "Add New Rule" and "Update Rule" buttons funnel here first
+    const handleRequestConfirm = () => {
+        if (!isFormValid()) return;
+        setActive(true);
+    };
+
+    const handleAddRule = async () => {
+        try {
+            await createRule({ name: ruleName, decs: desc, points: eqPoints, freq, auto, imageFile });
+            onSaved && onSaved();
+            clearForm();
+            setActive(false);
+            onClose();
+        } catch (err) {
+            console.error(err);
+            alert("Failed to add rule");
+        }
+    };
+
+    const handleUpdateRule = async () => {
+        try {
+            await updateRule(ruleData._id, {
+                name: ruleName,
+                decs: desc,
+                points: eqPoints,
+                freq,
+                auto,
+                imageFile,
+            });
+            onSaved && onSaved();
+            setActive(false);
+            onClose();
+        } catch (err) {
+            console.error(err);
+            alert("Failed to update rule");
+        }
+    };
+
+    // the confirmation modal calls this — it decides which action to run
+    const handleConfirm = () => {
+        if (edit) {
+            handleUpdateRule();
+        } else {
+            handleAddRule();
+        }
+    };
 
     return (
         <div className="fixed inset-0 z-50 bg-black/40 flex items-center justify-center p-4">
@@ -109,111 +117,116 @@ export default function RulesModal({ isOpen, onClose, edit }) {
                     </button>
                 </div>
 
-                <section className="bg-white rounded-xl pt-0 p-6 shadow">
+                <section className="bg-white rounded-xl pt-0 p-6 shadow overflow-y-auto">
                     {/* Image Upload */}
                     <div className="mb-4 flex flex-col md:flex-row gap-3 items-center">
                         <label className="flex items-center gap-2 cursor-pointer text-white bg-green-600 px-3 py-2 rounded-lg hover:bg-green-700 transition">
                             <Camera size={16} />
                             Upload Image
-                            <input type="file" accept="image/*" className="hidden" />
+                            <input
+                                type="file"
+                                accept="image/*"
+                                className="hidden"
+                                onChange={(e) => setImageFile(e.target.files[0] || null)}
+                            />
                         </label>
-
+                        {imageFile && <span className="text-sm text-gray-500">{imageFile.name}</span>}
+                        {!imageFile && edit && ruleData?.image && (
+                            <span className="text-sm text-gray-500">Current image kept unless you upload a new one</span>
+                        )}
                     </div>
 
                     <div className="grid grid-cols-1 gap-3">
 
-
                         <div className="flex items-center">
                             <Asterisk className="text-red-500 w-4 h-4" />
                             <input
-                                value={rule}
-                                onChange={(e) => setRule(e.target.value)}
+                                value={ruleName}
+                                onChange={(e) => setRuleName(e.target.value)}
                                 className="w-full px-3 py-2 text-black rounded-lg border"
                                 placeholder="Name"
                             />
                         </div>
 
                         <div className="flex items-center">
-
                             <Asterisk className="text-red-500 w-4 h-4" />
-
-                            <textarea name="
-                                        " id=""
+                            <textarea
                                 value={desc}
                                 onChange={(e) => setDesc(e.target.value)}
                                 className="w-full px-3 py-2 text-black rounded-lg border"
                                 placeholder="Description"
-                                type="desciption"
-                                step="0.01"
-                            >
-                            </textarea>
+                            />
                         </div>
 
                         <div className="flex items-center">
-
                             <Asterisk className="text-red-500 w-4 h-4" />
                             <input
                                 value={eqPoints}
                                 onChange={(e) => setEqPoints(e.target.value)}
                                 className="w-full px-3 py-2 text-black rounded-lg border"
-                                placeholder="Points"
-                                type="number"
+                                placeholder="Points (e.g. 30 or 50-200)"
                             />
-
                         </div>
 
-                          <div className="flex items-center">
+                        <div className="flex items-center">
+                            <Asterisk className="text-red-500 w-4 h-4" />
+                            <select
+                                value={freq}
+                                onChange={(e) => setFreq(e.target.value)}
+                                className="w-full py-2 border rounded-lg bg-white focus:ring-2 focus:ring-green-500"
+                            >
+                                <option value="">Frequency</option>
+                                <option value="Weekly">Weekly</option>
+                                <option value="Monthly">Monthly</option>
+                                <option value="Per Collection">Per Collection</option>
+                                <option value="per kilo">Per kilo</option>
+                                <option value="per streak">Per streak</option>
+                                <option value="per item">Per item</option>
+                                <option value="per brick">Per brick</option>
+                            </select>
+                        </div>
 
-                                {/* frequency */}
-                                <Asterisk className="text-red-500 w-4 h-4" />
-                                <select
-                                    value={freq}
-                                    onChange={(e) => setFreq(e.target.value)}
-                                    className="w-full py-2 border rounded-lg bg-white focus:ring-2 focus:ring-green-500"
-                                >
-                                    <option value="">Frequency</option>
-                                    <option value="Weekly">Weekly</option>
-                                    <option value="Monthly">Monthly</option>
-                                    <option value="Monthly">Per Collection</option>
-                                    <option value="per kilo">Per kilo</option>
-                                    <option value="per streak">Per streak</option>
-                                    <option value="per item">Per item</option>
-                                </select>
-                            </div>
+                        <label className="flex items-center gap-2 text-sm text-gray-600 px-1">
+                            <input
+                                type="checkbox"
+                                checked={auto}
+                                onChange={(e) => setAuto(e.target.checked)}
+                            />
+                            Auto-awarded (system tracks this automatically, e.g. streaks)
+                        </label>
                     </div>
+
                     {/* Buttons */}
                     <div className="mt-3 flex justify-end gap-2">
                         {edit ? (
                             <div className="flex gap-2 items-center">
                                 <button
-                                    onClick={() => setOpenConModal(true)}
+                                    onClick={handleRequestConfirm}
                                     className="cursor-pointer mt-auto bg-green-600 flex items-center justify-center gap-1 text-white rounded-lg p-2 hover:bg-green-700 transition">
-                                    Update Item
+                                    Update Rule
                                 </button>
 
                                 <button
-                                    onClick={() => {
-                                        setToEdit(false);
-                                        ClearRewardEdit();
-                                    }}
+                                    onClick={onClose}
                                     className="cursor-pointer mt-auto bg-gray-600 flex items-center justify-center gap-1 text-white rounded-lg p-2 hover:bg-gray-700 transition">
                                     Cancel
                                 </button>
-
                             </div>) : (
-                            <button className="cursor-pointer mt-auto bg-green-600 flex items-center justify-center gap-1 text-white rounded-lg p-2 hover:bg-green-700 transition">
+                            <button
+                                onClick={handleRequestConfirm}
+                                className="cursor-pointer mt-auto bg-green-600 flex items-center justify-center gap-1 text-white rounded-lg p-2 hover:bg-green-700 transition">
                                 <Plus size={16} />
                                 Add New Rule
                             </button>
                         )}
-
                     </div>
                 </section>
 
-                {/* Confirmation Modal */}
+                {/* Confirmation Modal — now used for both Add and Update */}
                 <ConfirmationModal
                     isOpen={active}
                     onClose={() => setActive(false)}
+                    onConfirm={handleConfirm}
                 />
             </div>
         </div>
