@@ -74,13 +74,46 @@ function RequestTab() {
         fetchRequests();
     };
 
-    const handleRFIDAssigned = async () => {
+    const handleRFIDAssigned = async (rfid) => {
         if (!selectedRequest) return;
-        await fetch(`http://localhost:5000/api/requests/${selectedRequest._id}/status`, {
-            method: "PATCH",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ status: "approved" }),
-        });
+
+        try {
+            const response = await fetch("http://localhost:5000/api/households", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({
+                    fullname: selectedRequest.fullname,
+                    familyMember: selectedRequest.familyMember || null,
+                    address: {
+                        houseNo: selectedRequest.address?.houseNo || null,
+                        street: selectedRequest.address?.street || null,
+                    },
+                    email: selectedRequest.email || null,
+                    contactNumber: selectedRequest.contactNumber || "N/A",
+                    rfid: rfid,
+                }),
+            });
+
+            const data = await response.json();
+
+            if (!response.ok) {
+                alert(data.message || "Failed to register household.");
+                return;
+            }
+
+            await fetch(`http://localhost:5000/api/requests/${selectedRequest._id}/status`, {
+                method: "PATCH",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ status: "approved" }),
+            });
+
+            alert("Household registered successfully!");
+
+        } catch (err) {
+            alert("Cannot connect to server.");
+            return;
+        }
+
         setopenRFIDmodal(false);
         setSelectedRequest(null);
         fetchRequests();
@@ -156,7 +189,10 @@ function RequestTab() {
 
             <AssignRFIDModal
                 isOpen={openRFIDmodal}
-                onClose={handleRFIDAssigned}
+                onClose={() => {
+                    setopenRFIDmodal(false);
+                    setSelectedRequest(null);
+                }}
                 onAssign={handleRFIDAssigned}
             />
         </section>
@@ -260,8 +296,8 @@ export default function HouseholdInfo() {
                                 key={tab.id}
                                 onClick={() => setActiveTab(tab.id)}
                                 className={`flex items-center justify-center md:justify-between cursor-pointer gap-2 px-4 py-1 whitespace-nowrap transition ${activeTab === tab.id
-                                        ? "bg-white rounded-full text-gray-800 shadow-sm"
-                                        : "text-gray-600 hover:bg-gray-200 rounded-full"
+                                    ? "bg-white rounded-full text-gray-800 shadow-sm"
+                                    : "text-gray-600 hover:bg-gray-200 rounded-full"
                                     }`}
                             >
                                 {tab.icon}

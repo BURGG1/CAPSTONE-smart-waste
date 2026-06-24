@@ -10,6 +10,7 @@ const rfidRoutes = require("./routes/rfidRoutes");
 const binRoutes = require("./routes/binRoutes");
 const rewardRoutes = require("./routes/rewardRoutes");
 const ruleRoutes = require("./routes/ruleRoutes");
+const collectorRoutes = require("./routes/collectorRoutes");
 
 
 const errorHandler = require("./middleware/errorHandler");
@@ -37,6 +38,7 @@ app.use("/api/rfid", rfidRoutes);
 app.use("/api/auth", authRoutes);
 app.use("/api/requests", registrationRequestRoutes);
 app.use("/api/bins", binRoutes);
+app.use("/api/collectors", collectorRoutes);
 
 app.get("/api/health", (req, res) => {
   res.json({ success: true, message: "Server is running" });

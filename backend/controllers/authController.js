@@ -1,4 +1,6 @@
 const Household = require("../models/Household");
+const Collector = require("../models/Collector");
+const Admin = require("../models/Admin");
 const bcrypt = require("bcryptjs");
 const jwt = require("jsonwebtoken");
 
@@ -18,23 +20,47 @@ const login = async (req, res) => {
       });
     }
 
-    // Hardcoded collector account
-    if (email === "collector@smartbin.com") {
-      const isMatch = await bcrypt.compare(password, process.env.COLLECTOR_PASSWORD_HASH);
+    const normalizedEmail = email.trim().toLowerCase();
 
-      // Fallback: plain text check for first time setup
-      const plainMatch = password === "collector";
-
-      if (!isMatch && !plainMatch) {
-        return res.status(401).json({
-          success: false,
-          message: "Incorrect password.",
-        });
+    // ── 1. Check Admin ─────────────────────────────────
+    const admin = await Admin.findOne({ email: normalizedEmail, isActive: true });
+    if (admin) {
+      const isMatch = await bcrypt.compare(password, admin.password);
+      if (!isMatch) {
+        return res.status(401).json({ success: false, message: "Incorrect password." });
       }
 
       const token = generateToken({
+        id: admin._id,
+        role: "admin",
+        email: admin.email,
+      });
+
+      return res.json({
+        success: true,
+        role: "admin",
+        token,
+        user: {
+          id: admin._id,
+          name: admin.name,
+          email: admin.email,
+          role: "admin",
+        },
+      });
+    }
+
+    // ── 2. Check Collector ─────────────────────────────
+    const collector = await Collector.findOne({ email: normalizedEmail, isActive: true });
+    if (collector) {
+      const isMatch = await bcrypt.compare(password, collector.password);
+      if (!isMatch) {
+        return res.status(401).json({ success: false, message: "Incorrect password." });
+      }
+
+      const token = generateToken({
+        id: collector._id,
         role: "collector",
-        email,
+        email: collector.email,
       });
 
       return res.json({
@@ -42,33 +68,30 @@ const login = async (req, res) => {
         role: "collector",
         token,
         user: {
-          fullname: "Trash Collector",
-          email,
+          id: collector._id,
+          name: collector.name,
+          employeeId: collector.employeeId,
+          assignedBarangay: collector.assignedBarangay,
+          contact: collector.contact,
+          email: collector.email,
+          totalCollections: collector.totalCollections,
           role: "collector",
         },
       });
     }
 
-    // Household login
-    const household = await Household.findOne({
-      email: email.trim().toLowerCase(),
-      isActive: true,
-    });
-
+    // ── 3. Check Household ─────────────────────────────
+    const household = await Household.findOne({ email: normalizedEmail, isActive: true });
     if (!household) {
       return res.status(401).json({
         success: false,
-        message: "No registered household found with that email.",
+        message: "No account found with that email.",
       });
     }
 
-    // Compare hashed password
     const isMatch = await bcrypt.compare(password, household.password);
     if (!isMatch) {
-      return res.status(401).json({
-        success: false,
-        message: "Incorrect password.",
-      });
+      return res.status(401).json({ success: false, message: "Incorrect password." });
     }
 
     const token = generateToken({
@@ -77,11 +100,10 @@ const login = async (req, res) => {
       email: household.email,
     });
 
-    res.json({
+    return res.json({
       success: true,
       role: "household",
       token,
-      message: "Login successful",
       user: {
         id: household._id,
         fullname: household.fullname,

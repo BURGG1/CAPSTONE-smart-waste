@@ -1,10 +1,11 @@
 const Household = require("../models/Household");
 const RfidLog = require("../models/RfidLog");
+const Bin = require("../models/Bin");
 
 // POST /api/rfid/scan
 const scanRfid = async (req, res) => {
   try {
-    const { rfid } = req.body;
+    const { rfid, binId } = req.body; // binId is optional
 
     if (!rfid)
       return res.status(400).json({ success: false, message: "RFID code is required" });
@@ -12,25 +13,28 @@ const scanRfid = async (req, res) => {
     const household = await Household.findOne({ rfid, isActive: true });
 
     if (!household) {
-      // Still log it — frontend will poll this to auto-fill the field
       await RfidLog.create({
         rfid,
         household: null,
+        binId: binId || null,
         action: "scan",
-        note: "Unregistered RFID scanned — pending registration",
+        note: binId
+          ? `Unregistered RFID scanned at ${binId}`
+          : "Unregistered RFID scanned — pending registration",
       });
       return res.status(404).json({
         success: false,
         message: "RFID not registered",
-        rfid, // 👈 send the UID back so frontend can use it
+        rfid,
       });
     }
 
     await RfidLog.create({
       rfid,
       household: household._id,
-      action: "scan",
-      note: "Entry scan",
+      binId: binId || null,
+      action: binId ? "dispose" : "scan",
+      note: binId ? `Scanned at ${binId}` : "Entry scan",
     });
 
     res.json({
@@ -43,6 +47,63 @@ const scanRfid = async (req, res) => {
           address: household.address,
           familyMember: household.familyMember,
         },
+      },
+    });
+  } catch (error) {
+    res.status(500).json({ success: false, message: error.message });
+  }
+};
+
+// POST /api/rfid/scan-bin
+// ESP32 calls this when household taps RFID at a specific bin
+const scanAtBin = async (req, res) => {
+  try {
+    const { rfid, binId } = req.body;
+
+    if (!rfid || !binId)
+      return res.status(400).json({ success: false, message: "rfid and binId are required" });
+
+    const household = await Household.findOne({ rfid, isActive: true });
+    if (!household) {
+      await RfidLog.create({
+        rfid,
+        household: null,
+        binId,
+        action: "scan",
+        note: `Unregistered RFID scanned at ${binId}`,
+      });
+      return res.status(404).json({ success: false, message: "RFID not registered", rfid });
+    }
+
+    const bin = await Bin.findOne({ binId, isActive: true });
+    if (!bin)
+      return res.status(404).json({ success: false, message: `Bin ${binId} not found` });
+
+    // Count how many dispose logs already exist for this bin → next order number
+    const existingCount = await RfidLog.countDocuments({
+      binId,
+      action: "dispose",
+    });
+    const disposalOrder = existingCount + 1;
+
+    await RfidLog.create({
+      rfid,
+      household: household._id,
+      binId,
+      action: "dispose",
+      disposalOrder,
+      note: `${household.fullname} tapped at ${binId} (${bin.type})`,
+    });
+
+    res.json({
+      success: true,
+      message: `Logged: ${household.fullname} tapped at ${binId}`,
+      data: {
+        household: household.fullname,
+        binId,
+        binType: bin.type,
+        disposalOrder,
+        scannedAt: new Date(),
       },
     });
   } catch (error) {
@@ -68,21 +129,17 @@ const checkRfid = async (req, res) => {
 };
 
 // GET /api/rfid/latest-scan
-// Frontend polls this to auto-fill the RFID input when ESP32 scans a card
 const getLatestScan = async (req, res) => {
   try {
     const latest = await RfidLog.findOne({ action: "scan", household: null })
       .sort({ scannedAt: -1 });
 
-    if (!latest) {
+    if (!latest)
       return res.json({ success: false, message: "No pending scan" });
-    }
 
-    // Only return scans from the last 3 seconds (fresh scans only)
     const threeSecondsAgo = new Date(Date.now() - 3000);
-    if (latest.scannedAt < threeSecondsAgo) {
+    if (latest.scannedAt < threeSecondsAgo)
       return res.json({ success: false, message: "No recent scan" });
-    }
 
     res.json({ success: true, rfid: latest.rfid });
   } catch (error) {
@@ -93,15 +150,16 @@ const getLatestScan = async (req, res) => {
 // GET /api/rfid/logs
 const getRfidLogs = async (req, res) => {
   try {
-    const { rfid, action, page = 1, limit = 20 } = req.query;
+    const { rfid, action, binId, page = 1, limit = 20 } = req.query;
     const query = {};
     if (rfid) query.rfid = rfid;
     if (action) query.action = action;
+    if (binId) query.binId = binId; // filter by bin
 
     const skip = (parseInt(page) - 1) * parseInt(limit);
     const [logs, total] = await Promise.all([
       RfidLog.find(query)
-        .populate("household", "fullname address contactNumber")
+        .populate("household", "fullname address contactNumber email")
         .sort({ scannedAt: -1 })
         .skip(skip)
         .limit(parseInt(limit)),
@@ -127,7 +185,7 @@ const getRfidLogs = async (req, res) => {
 const getRfidHistory = async (req, res) => {
   try {
     const logs = await RfidLog.find({ rfid: req.params.rfid })
-      .populate("household", "fullname address")
+      .populate("household", "fullname address contactNumber email")
       .sort({ scannedAt: -1 });
 
     res.json({ success: true, data: logs });
@@ -136,4 +194,4 @@ const getRfidHistory = async (req, res) => {
   }
 };
 
-module.exports = { scanRfid, checkRfid, getLatestScan, getRfidLogs, getRfidHistory };
+module.exports = { scanRfid, scanAtBin, checkRfid, getLatestScan, getRfidLogs, getRfidHistory };

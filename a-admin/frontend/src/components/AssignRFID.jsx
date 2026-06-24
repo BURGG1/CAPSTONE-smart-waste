@@ -83,7 +83,7 @@ export default function AssignRFIDModal({ isOpen, onClose, onAssign }) {
                     {/* BUTTONS */}
                     <div className="flex gap-2 mt-4">
                         <button
-                            onClick={handleRegister}
+                            onClick={handleAssign}
                             className="flex-1 bg-green-600 cursor-pointer text-white py-2 rounded-lg"
                         >
                             Register

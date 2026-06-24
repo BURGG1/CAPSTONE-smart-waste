@@ -1,20 +1,53 @@
 import { useState } from "react";
-import { View, Text, TextInput, TouchableOpacity } from "react-native";
+import { View, Text, TextInput, TouchableOpacity, Alert } from "react-native";
 import { Feather } from "@expo/vector-icons";
 import { useRouter } from "expo-router";
+import AsyncStorage from "@react-native-async-storage/async-storage";
 import RegisterHousehold from "@/components/RegisterHouseholdModal";
 
 export default function AuthPage() {
   const router = useRouter();
   const [form, setForm] = useState({ email: "", password: "" });
   const [isModalOpen, setIsModalOpen] = useState(false);
+  const [loading, setLoading] = useState(false);
 
+  const handleLogin = async () => {
+    if (!form.email || !form.password) {
+      Alert.alert("Error", "Please enter your email and password.");
+      return;
+    }
 
-  const handleLogin = () => {
-    if (form.email === "collector" && form.password === "collector") {
-      router.replace("/(collectorTabs)/home");
-    } else {
-      router.replace("/(userTabs)/home");
+    setLoading(true);
+    try {
+      const response = await fetch("http://192.168.1.226:5000/api/auth/login", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          email: form.email.trim().toLowerCase(),
+          password: form.password,
+        }),
+      });
+
+      const data = await response.json();
+
+      if (!response.ok || !data.success) {
+        Alert.alert("Login Failed", data.message || "Invalid credentials.");
+        return;
+      }
+
+      // Store token and user info
+      await AsyncStorage.setItem("token", data.token);
+      await AsyncStorage.setItem("user", JSON.stringify(data.user));
+
+      if (data.role === "collector") {
+        router.replace("/(collectorTabs)/home");
+      } else {
+        router.replace("/(userTabs)/home");
+      }
+    } catch (err) {
+      Alert.alert("Error", "Cannot connect to server. Make sure the backend is running.");
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -47,17 +80,15 @@ export default function AuthPage() {
           {/* EMAIL */}
           <View>
             <Text className="text-sm mb-1 font-semibold">Email</Text>
-
             <View className="flex-row items-center mb-4 bg-gray-100 rounded-lg px-3 py-3">
               <Feather name="mail" size={18} color="gray" />
-
               <TextInput
                 placeholder="Enter your email"
                 value={form.email}
-                onChangeText={(text) =>
-                  setForm({ ...form, email: text })
-                }
+                onChangeText={(text) => setForm({ ...form, email: text })}
                 className="flex-1 ml-3"
+                autoCapitalize="none"
+                keyboardType="email-address"
               />
             </View>
           </View>
@@ -65,17 +96,13 @@ export default function AuthPage() {
           {/* PASSWORD */}
           <View>
             <Text className="text-sm mb-1 font-semibold">Password</Text>
-
             <View className="flex-row items-center bg-gray-100 rounded-lg px-3 py-3">
               <Feather name="lock" size={18} color="gray" />
-
               <TextInput
                 placeholder="Enter your password"
                 secureTextEntry
                 value={form.password}
-                onChangeText={(text) =>
-                  setForm({ ...form, password: text })
-                }
+                onChangeText={(text) => setForm({ ...form, password: text })}
                 className="flex-1 ml-3"
               />
             </View>
@@ -84,25 +111,22 @@ export default function AuthPage() {
           {/* LOGIN BUTTON */}
           <TouchableOpacity
             onPress={handleLogin}
+            disabled={loading}
             className="bg-green-600 mt-4 mb-4 py-3 rounded-lg"
+            style={{ opacity: loading ? 0.6 : 1 }}
           >
             <Text className="text-white text-center font-medium">
-              Login
+              {loading ? "Logging in..." : "Login"}
             </Text>
           </TouchableOpacity>
 
           <Text className="text-sm text-gray-500 text-center">
             Forgot your password?{" "}
-            <Text className="text-green-600 font-medium">
-              Reset here
-            </Text>
+            <Text className="text-green-600 font-medium">Reset here</Text>
           </Text>
 
           {/* REGISTER BUTTON */}
-          <TouchableOpacity
-            onPress={() => setIsModalOpen(true)}
-
-          >
+          <TouchableOpacity onPress={() => setIsModalOpen(true)}>
             <Text className="text-green-400 text-center font-medium mt-5">
               Register Household
             </Text>

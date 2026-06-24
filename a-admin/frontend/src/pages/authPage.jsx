@@ -1,40 +1,59 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
-import {
-  Leaf,
-  Mail,
-  Lock,
-  User,
-  Recycle,
-  Trash2,
-  Eye,
-  EyeOff
-
-} from "lucide-react";
-
-
+import { Trash2, Mail, Lock } from "lucide-react";
 
 export default function AuthPage() {
   const [form, setForm] = useState({ email: "", password: "" });
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState("");
   const navigate = useNavigate();
-  const [access, setAccess] = useState();
-
-
-  // temporary login
-  const handleLogin = () => {
-    if (form.email === "user" && form.password === "user123") {
-      localStorage.setItem("role", "user");
-      navigate("/qrcode");
-    } else {
-      localStorage.setItem("role", "admin");
-       navigate("/dashboard");
-    }
-  };
-
 
   const handleChange = (e) =>
     setForm({ ...form, [e.target.name]: e.target.value });
 
+  const handleLogin = async () => {
+    if (!form.email || !form.password) {
+      setError("Please enter your email and password.");
+      return;
+    }
+
+    setLoading(true);
+    setError("");
+
+    try {
+      const response = await fetch("http://localhost:5000/api/auth/login", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          email: form.email.trim().toLowerCase(),
+          password: form.password,
+        }),
+      });
+
+      const data = await response.json();
+
+      if (!response.ok || !data.success) {
+        setError(data.message || "Invalid credentials.");
+        return;
+      }
+
+      if (data.role !== "admin") {
+        setError("Access denied. This portal is for admins only.");
+        return;
+      }
+
+      // Store token
+      localStorage.setItem("token", data.token);
+      localStorage.setItem("user", JSON.stringify(data.user));
+      localStorage.setItem("role", data.role);
+
+      navigate("/dashboard");
+    } catch (err) {
+      setError("Cannot connect to server. Make sure the backend is running.");
+    } finally {
+      setLoading(false);
+    }
+  };
 
   return (
     <div className="min-h-screen w-full flex items-center justify-center bg-gray-100 px-4">
@@ -62,9 +81,7 @@ export default function AuthPage() {
           <div className="space-y-1">
             <label className="block text-start text-bold text-sm mb-1">Email</label>
             <div className="flex items-center gap-2 rounded-lg px-3 py-2 bg-gray-50">
-              <span>
-                <Mail size={18} />
-              </span>
+              <span><Mail size={18} /></span>
               <input
                 type="email"
                 name="email"
@@ -74,7 +91,6 @@ export default function AuthPage() {
                 className="w-full bg-transparent outline-none pl-4"
                 required
               />
-
             </div>
           </div>
 
@@ -82,9 +98,7 @@ export default function AuthPage() {
           <div className="relative">
             <label className="block text-sm text-start mb-1">Password</label>
             <div className="flex items-center gap-2 rounded-lg px-3 py-2 bg-gray-50">
-              <span>
-                <Lock size={18} />
-              </span>
+              <span><Lock size={18} /></span>
               <input
                 type="password"
                 name="password"
@@ -95,15 +109,20 @@ export default function AuthPage() {
                 required
               />
             </div>
-
           </div>
+
+          {/* Error message */}
+          {error && (
+            <p className="text-red-500 text-sm text-left">{error}</p>
+          )}
 
           <button
             onClick={handleLogin}
+            disabled={loading}
             type="button"
-            className="w-full cursor-pointer bg-green-600 hover:bg-green-700 text-white font-medium py-3 rounded-lg transition"
+            className="w-full cursor-pointer bg-green-600 hover:bg-green-700 text-white font-medium py-3 rounded-lg transition disabled:opacity-50"
           >
-            Login
+            {loading ? "Logging in..." : "Login"}
           </button>
 
           <p className="text-sm text-gray-500">

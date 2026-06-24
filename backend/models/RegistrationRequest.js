@@ -21,6 +21,10 @@ const registrationRequestSchema = new mongoose.Schema(
       trim: true,
       default: null,
     },
+    contactNumber: {
+      type: String,
+      default: null,
+    },
     status: {
       type: String,
       enum: ["pending", "approved", "declined"],

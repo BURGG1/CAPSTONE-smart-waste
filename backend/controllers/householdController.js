@@ -128,11 +128,21 @@ const createHousehold = async (req, res) => {
 // PUT /api/households/:id
 const updateHousehold = async (req, res) => {
   try {
-    const { fullname, birthday, familyMember, address, contactNumber, email, rfid } = req.body;
+    const { fullname, birthday, familyMember, address, contactNumber, email, rfid, currentPassword, newPassword } = req.body;
 
     const household = await Household.findById(req.params.id);
     if (!household)
       return res.status(404).json({ success: false, message: "Household not found" });
+
+    // Handle password change if requested
+    if (currentPassword && newPassword) {
+      const bcrypt = require("bcryptjs");
+      const isMatch = await bcrypt.compare(currentPassword, household.password);
+      if (!isMatch) {
+        return res.status(401).json({ success: false, message: "Current password is incorrect." });
+      }
+      household.password = await bcrypt.hash(newPassword, 10);
+    }
 
     if (rfid && rfid !== household.rfid) {
       const conflict = await Household.findOne({ rfid, _id: { $ne: req.params.id } });
@@ -142,30 +152,24 @@ const updateHousehold = async (req, res) => {
           message: `RFID "${rfid}" is already assigned to another household`,
         });
       }
-
       await RfidLog.create([
-        {
-          rfid: household.rfid,
-          household: household._id,
-          action: "unassign",
-          note: `Replaced by new RFID ${rfid}`,
-        },
-        {
-          rfid,
-          household: household._id,
-          action: "assign",
-          note: `Reassigned to ${fullname || household.fullname}`,
-        },
+        { rfid: household.rfid, household: household._id, action: "unassign", note: `Replaced by new RFID ${rfid}` },
+        { rfid, household: household._id, action: "assign", note: `Reassigned to ${fullname || household.fullname}` },
       ]);
     }
 
-    const updated = await Household.findByIdAndUpdate(
-      req.params.id,
-      { fullname, birthday, familyMember, address, contactNumber, email, rfid },
-      { new: true, runValidators: true }
-    );
+    // Update other fields
+    if (fullname) household.fullname = fullname;
+    if (birthday) household.birthday = birthday;
+    if (familyMember !== undefined) household.familyMember = familyMember;
+    if (address) household.address = address;
+    if (contactNumber) household.contactNumber = contactNumber;
+    if (email) household.email = email;
+    if (rfid) household.rfid = rfid;
 
-    res.json({ success: true, message: "Household updated successfully", data: updated });
+    await household.save();
+
+    res.json({ success: true, message: "Household updated successfully", data: household });
   } catch (error) {
     if (error.name === "ValidationError") {
       const messages = Object.values(error.errors).map((e) => e.message);

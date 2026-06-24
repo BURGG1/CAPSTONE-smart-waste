@@ -1,54 +1,8 @@
 import { X, Calendar, Clipboard, Trash2, Award } from "lucide-react";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import AssignPointsModal from "./AssignPointsModal";
 
-// ── These are still hardcoded until you build those backend endpoints ──
-const disposalLogs = [
-    {
-        id: 1,
-        counter: 7,
-        binID: "BIN-001",
-        binType: "Biodegradable",
-        date: "2026-02-01",
-        time: "09:52:08",
-        resident: "Joel Dela Cruz",
-        duration: "38s",
-        points: 20,
-    },
-    {
-        id: 2,
-        counter: 7,
-        binID: "BIN-002",
-        binType: "Non-Biodegradable",
-        date: "2026-02-01",
-        time: "09:35:12",
-        resident: "Joel Dela Cruz",
-        duration: "41s",
-        points: 20,
-    },
-    {
-        id: 3,
-        counter: 14,
-        binID: "BIN-002",
-        binType: "Non-Biodegradable",
-        date: "2026-01-31",
-        time: "08:12:44",
-        resident: "Joel Dela Cruz",
-        duration: "52s",
-        points: 0,
-    },
-    {
-        id: 4,
-        counter: 14,
-        binID: "BIN-001",
-        binType: "Biodegradable",
-        date: "2026-01-31",
-        time: "08:12:44",
-        resident: "Joel Dela Cruz",
-        duration: "52s",
-        points: 0,
-    },
-];
+const API = "http://localhost:5000/api";
 
 const recentActivityData = [
     {
@@ -85,78 +39,91 @@ const recentActivityData = [
     },
 ];
 
-// ── Helper: compute age from birthday ────────────────────────────────────────
 function computeAge(birthday) {
     if (!birthday) return null;
     const birth = new Date(birthday);
     const today = new Date();
     let age = today.getFullYear() - birth.getFullYear();
     const monthDiff = today.getMonth() - birth.getMonth();
-    if (monthDiff < 0 || (monthDiff === 0 && today.getDate() < birth.getDate())) {
-        age--;
-    }
+    if (monthDiff < 0 || (monthDiff === 0 && today.getDate() < birth.getDate())) age--;
     return age;
 }
 
-// ── Helper: format MongoDB createdAt date ─────────────────────────────────────
 function formatDate(dateStr) {
     if (!dateStr) return "—";
     return new Date(dateStr).toLocaleDateString("en-US", {
-        year: "numeric",
-        month: "long",
-        day: "numeric",
+        year: "numeric", month: "long", day: "numeric",
     });
 }
 
 export default function HouseholdRecordModal({ isOpen, onClose, household }) {
-    // ── Hooks must always be at the top — never inside conditions ──
-    const [activeTab, setActiveTab] = useState("disposal");
-    const [fromDate, setFromDate] = useState("");
-    const [toDate, setToDate] = useState("");
+    const [activeTab, setActiveTab]             = useState("disposal");
+    const [fromDate, setFromDate]               = useState("");
+    const [toDate, setToDate]                   = useState("");
     const [openPointsModal, setOpenPointsModal] = useState(false);
+    const [disposalLogs, setDisposalLogs]       = useState([]);
+    const [logsLoading, setLogsLoading]         = useState(false);
+    const [logsError, setLogsError]             = useState("");
 
-    // Guard after all hooks
+    // Fetch real disposal logs when modal opens
+    useEffect(() => {
+        if (!isOpen || !household?.rfid) return;
+
+        const fetchLogs = async () => {
+            setLogsLoading(true);
+            setLogsError("");
+            try {
+                const res  = await fetch(`${API}/rfid/logs/${household.rfid}`);
+                const data = await res.json();
+                if (data.success) {
+                    // Only keep dispose action logs, sorted newest first
+                    const disposals = data.data.filter((log) => log.action === "dispose");
+                    setDisposalLogs(disposals);
+                } else {
+                    setLogsError("Failed to load disposal logs.");
+                }
+            } catch (err) {
+                setLogsError("Network error. Could not load logs.");
+            } finally {
+                setLogsLoading(false);
+            }
+        };
+
+        fetchLogs();
+    }, [isOpen, household?.rfid]);
+
     if (!isOpen || !household) return null;
 
-    // ── Derived display values from the MongoDB household object ──
-    const fullname = household.fullname || "—";
-    const address =
-        [household.address?.houseNo, household.address?.street]
-            .filter(Boolean)
-            .join(", ") || "—";
-    const age = computeAge(household.birthday);
-    const familyMembers = household.familyMember ?? "—";
-    const contact = household.contactNumber
-        ? `+63-${household.contactNumber}`
-        : "—";
-    const email = household.email || "—";
-    const rfid = household.rfid || "—";
-    const householdId = household._id
-        ? `HH-${household._id.slice(-8).toUpperCase()}`
-        : "—";
+    const fullname        = household.fullname || "—";
+    const address         = [household.address?.houseNo, household.address?.street].filter(Boolean).join(", ") || "—";
+    const age             = computeAge(household.birthday);
+    const familyMembers   = household.familyMember ?? "—";
+    const contact         = household.contactNumber ? `+63-${household.contactNumber}` : "—";
+    const email           = household.email || "—";
+    const rfid            = household.rfid || "—";
+    const householdId     = household._id ? `HH-${household._id.slice(-8).toUpperCase()}` : "—";
     const registeredSince = formatDate(household.createdAt);
+    const points          = household.points?.total ?? "N/A";
+    const violation       = household.violation ?? 0;
+    const suffix          = ["st", "nd", "rd"];
 
-    // ── These fields don't exist in the schema yet — show placeholder ──
-    const points = household.points?.total ?? "N/A";
-    const violation = household.violation ?? 0;
-    const suffix = ["st", "nd", "rd"];
-
-    // ── Filter logs by date range ─────────────────────────────────────────────
+    // Filter disposal logs by date range
     const filteredLogs = disposalLogs.filter((log) => {
         if (!fromDate && !toDate) return true;
-        const logDate = new Date(log.date);
+        const logDate = new Date(log.scannedAt);
         return (
             (!fromDate || logDate >= new Date(fromDate)) &&
-            (!toDate || logDate <= new Date(toDate))
+            (!toDate   || logDate <= new Date(toDate))
         );
     });
 
+    // Filter activity logs by date range (unchanged)
     const filteredActivity = recentActivityData.filter((log) => {
         if (!fromDate && !toDate) return true;
         const logDate = new Date(log.date);
         return (
             (!fromDate || logDate >= new Date(fromDate)) &&
-            (!toDate || logDate <= new Date(toDate))
+            (!toDate   || logDate <= new Date(toDate))
         );
     });
 
@@ -172,69 +139,36 @@ export default function HouseholdRecordModal({ isOpen, onClose, household }) {
                     </button>
                 </div>
 
-                {/* INFO + FILTER */}
+                {/* INFO + FILTER — unchanged */}
                 <div className="w-full flex flex-col">
-
-                    {/* Household info columns */}
                     <div className="w-full flex flex-col md:flex-row justify-between px-6 py-4 border-b">
-
-                        {/* Left column */}
                         <div className="flex-1 text-left space-y-0.5">
-                            <p className="text-sm">
-                                ID: <span className="font-semibold">{householdId}</span>
-                            </p>
-                            <p className="text-sm">
-                                Name: <span className="font-semibold">{fullname}</span>
-                            </p>
-                            <p className="text-sm">
-                                Address: <span className="font-semibold">{address}</span>
-                            </p>
-                            <p className="text-sm">
-                                Age:{" "}
-                                <span className="font-semibold">
-                                    {age !== null ? `${age} yrs old` : "—"}
-                                </span>
-                            </p>
-                            <p className="text-sm">
-                                Members: <span className="font-semibold">{familyMembers}</span>
-                            </p>
-                            <p className="text-sm">
-                                Registered:{" "}
-                                <span className="font-semibold">{registeredSince}</span>
-                            </p>
+                            <p className="text-sm">ID: <span className="font-semibold">{householdId}</span></p>
+                            <p className="text-sm">Name: <span className="font-semibold">{fullname}</span></p>
+                            <p className="text-sm">Address: <span className="font-semibold">{address}</span></p>
+                            <p className="text-sm">Age: <span className="font-semibold">{age !== null ? `${age} yrs old` : "—"}</span></p>
+                            <p className="text-sm">Members: <span className="font-semibold">{familyMembers}</span></p>
+                            <p className="text-sm">Registered: <span className="font-semibold">{registeredSince}</span></p>
                         </div>
-
-                        {/* Right column */}
                         <div className="flex-1 text-left space-y-0.5">
-                            <p className="text-sm">
-                                Contact: <span className="font-semibold">{contact}</span>
-                            </p>
-                            <p className="text-sm">
-                                Email: <span className="font-semibold">{email}</span>
-                            </p>
-                            <p className="text-sm">
-                                RFID:{" "}
-                                <span className="font-semibold font-mono">{rfid}</span>
-                            </p>
-                            <p className="text-sm">
-                                Points:{" "}
-                                <span className="font-semibold text-green-600">{points}</span>
-                            </p>
+                            <p className="text-sm">Contact: <span className="font-semibold">{contact}</span></p>
+                            <p className="text-sm">Email: <span className="font-semibold">{email}</span></p>
+                            <p className="text-sm">RFID: <span className="font-semibold font-mono">{rfid}</span></p>
+                            <p className="text-sm">Points: <span className="font-semibold text-green-600">{points}</span></p>
                             <p className="text-sm">
                                 Violations:{" "}
                                 {violation === 0 ? (
                                     <span className="font-semibold">No violation</span>
                                 ) : (
                                     <span className="font-semibold text-red-500">
-                                        {violation}
-                                        {suffix[violation - 1] ?? "th"} offense
+                                        {violation}{suffix[violation - 1] ?? "th"} offense
                                     </span>
                                 )}
                             </p>
                         </div>
                     </div>
 
-                    {/* Date filter + Add Points */}
+                    {/* Date filter + Add Points — unchanged */}
                     <div className="w-full flex flex-col gap-2 md:flex-row px-6 py-2 border-b">
                         <div className="flex-1 flex items-center gap-2 w-auto">
                             <Calendar size={16} />
@@ -258,11 +192,11 @@ export default function HouseholdRecordModal({ isOpen, onClose, household }) {
                     </div>
                 </div>
 
-                {/* TABS */}
+                {/* TABS — unchanged */}
                 <div className="w-full flex overflow-x-auto bg-gray-200 rounded-tr-3xl rounded-tl-3xl mt-3 ml-1 px-1 justify-center md:w-fit justify-evenly text-[#4A3B47] pt-1 space-x-2">
                     {[
                         { id: "disposal", label: "Disposal Log", icon: <Trash2 size={15} /> },
-                        { id: "reward", label: "Activity Log", icon: <Clipboard size={15} /> },
+                        { id: "reward",   label: "Activity Log", icon: <Clipboard size={15} /> },
                     ].map((tab) => (
                         <button
                             key={tab.id}
@@ -279,45 +213,63 @@ export default function HouseholdRecordModal({ isOpen, onClose, household }) {
                     ))}
                 </div>
 
-                {/* DISPOSAL LOG */}
+                {/* DISPOSAL LOG — now real data, same columns as before */}
                 {activeTab === "disposal" && (
-                    <div className="overflow-x-auto">
-                        <table className="w-full text-sm">
-                            <thead className="bg-gray-400">
-                                <tr>
-                                    <th className="py-3">Bin ID</th>
-                                    <th>Bin Type</th>
-                                    <th>Disposal Order</th>
-                                    <th>Date & Time</th>
-                                    <th>Resident</th>
-                                </tr>
-                            </thead>
-                            <tbody className="text-center">
-                                {filteredLogs.map((log) => (
-                                    <tr key={log.id}>
-                                        <td className="py-3 font-medium">#{log.binID}</td>
-                                        <td className="py-3 font-medium">{log.binType}</td>
-                                        <td className="py-3 font-medium">#{log.counter}</td>
-                                        <td>
-                                            <p>{log.date}</p>
-                                            <p className="text-xs text-gray-500">{log.time}</p>
-                                        </td>
-                                        <td>{log.resident}</td>
-                                    </tr>
-                                ))}
-                                {filteredLogs.length === 0 && (
+                    <div className="overflow-x-auto overflow-y-auto max-h-[160px]">
+                        {logsLoading ? (
+                            <p className="text-center py-6 text-gray-400">Loading logs...</p>
+                        ) : logsError ? (
+                            <p className="text-center py-6 text-red-500">{logsError}</p>
+                        ) : (
+                            <table className="w-full text-sm">
+                                <thead className="bg-gray-400 sticky top-0">
                                     <tr>
-                                        <td colSpan="5" className="text-center py-6 text-gray-500">
-                                            No records found for selected dates
-                                        </td>
+                                        <th className="py-3">Bin ID</th>
+                                        <th>Bin Type</th>
+                                        <th>Disposal Order</th>
+                                        <th>Date & Time</th>
+                                        <th>Resident</th>
                                     </tr>
-                                )}
-                            </tbody>
-                        </table>
+                                </thead>
+                                <tbody className="text-center">
+                                    {filteredLogs.length === 0 ? (
+                                        <tr>
+                                            <td colSpan="5" className="text-center py-6 text-gray-500">
+                                                No records found for selected dates
+                                            </td>
+                                        </tr>
+                                    ) : (
+                                        filteredLogs.map((log, index) => {
+                                            const scannedAt = new Date(log.scannedAt);
+                                            const date = scannedAt.toLocaleDateString("en-CA"); // YYYY-MM-DD
+                                            const time = scannedAt.toLocaleTimeString("en-US", {
+                                                hour: "2-digit", minute: "2-digit", second: "2-digit",
+                                            });
+                                            // Extract bin type from note e.g. "Scanned at BIN-001 (Biodegradable)"
+                                            const binTypeMatch = log.note?.match(/\((.+)\)/);
+                                            const binType = binTypeMatch ? binTypeMatch[1] : "—";
+
+                                            return (
+                                                <tr key={log._id}>
+                                                    <td className="py-3 font-medium">#{log.binId ?? "—"}</td>
+                                                    <td className="py-3 font-medium">{binType}</td>
+                                                    <td className="py-3 font-medium">#{log.disposalOrder ?? "—"}</td>
+                                                    <td>
+                                                        <p>{date}</p>
+                                                        <p className="text-xs text-gray-500">{time}</p>
+                                                    </td>
+                                                    <td>{log.household?.fullname ?? fullname}</td>
+                                                </tr>
+                                            );
+                                        })
+                                    )}
+                                </tbody>
+                            </table>
+                        )}
                     </div>
                 )}
 
-                {/* ACTIVITY LOG */}
+                {/* ACTIVITY LOG — completely unchanged */}
                 {activeTab === "reward" && (
                     <div className="overflow-x-auto">
                         <table className="w-full text-sm">
@@ -337,16 +289,8 @@ export default function HouseholdRecordModal({ isOpen, onClose, household }) {
                                         <td className="w-fit py-3 font-medium">{activity.type}</td>
                                         <td>{activity.via}</td>
                                         <td>{activity.amount}</td>
-                                        <td
-                                            className={`font-semibold ${
-                                                activity.points > 0
-                                                    ? "text-green-600"
-                                                    : "text-red-500"
-                                            }`}
-                                        >
-                                            {activity.points > 0
-                                                ? `+${activity.points}`
-                                                : activity.points}
+                                        <td className={`font-semibold ${activity.points > 0 ? "text-green-600" : "text-red-500"}`}>
+                                            {activity.points > 0 ? `+${activity.points}` : activity.points}
                                         </td>
                                     </tr>
                                 ))}
