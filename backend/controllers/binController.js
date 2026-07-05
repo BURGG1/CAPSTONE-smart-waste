@@ -1,6 +1,9 @@
 const Bin = require("../models/Bin");
 const Disposal = require("../models/Disposal");
 const Household = require("../models/Household");
+const PointLog = require("../models/PointLog");
+const Device = require("../models/Device");
+const { checkAndAwardPoints } = require("../services/streakService");
 
 // Helper: auto-generate next Bin ID
 async function generateBinId() {
@@ -17,31 +20,55 @@ const dispose = async (req, res) => {
     if (!rfid || !binId) {
       return res.status(400).json({ success: false, message: "rfid and binId are required." });
     }
+
     const household = await Household.findOne({ rfid, isActive: true });
     if (!household) {
       return res.status(404).json({ success: false, message: "RFID not registered." });
     }
+
     const bin = await Bin.findOne({ binId, isActive: true });
     if (!bin) {
       return res.status(404).json({ success: false, message: "Bin not found." });
     }
+
     const pointsMap = { Biodegradable: 10, "Non-biodegradable": 5, Recyclable: 15 };
-    const pointsEarned = pointsMap[bin.type] || 10;
+    const basePoints = pointsMap[bin.type] || 10;
+
+    // Add base points to household
+    if (!household.points) household.points = { total: 0, thisMonth: 0 };
+    household.points.total += basePoints;
+    household.points.thisMonth += basePoints;
+
+    // Log the disposal
     const disposal = await Disposal.create({
       household: household._id,
       bin: bin._id,
       rfid,
       binId,
       wasteType: bin.type,
-      pointsEarned,
+      pointsEarned: basePoints,
     });
+
+    // Log base points
+    await PointLog.create({
+      household: household._id,
+      points: basePoints,
+      reason: `Disposed ${bin.type} waste at ${binId}`,
+    });
+
+    // ── Check and award streak/weekly/monthly points ──
+    const streakAwards = await checkAndAwardPoints(household);
+
     res.json({
       success: true,
-      message: `Disposal logged. ${pointsEarned} points earned!`,
+      message: `Disposal logged. ${basePoints} base points earned!`,
       data: {
         household: household.fullname,
         wasteType: bin.type,
-        pointsEarned,
+        basePointsEarned: basePoints,
+        streakAwards,
+        currentStreak: household.streak?.currentStreak ?? 1,
+        totalPoints: household.points.total,
         disposedAt: disposal.disposedAt,
       },
     });
@@ -73,25 +100,43 @@ const getAllBins = async (req, res) => {
 // POST /api/bins
 const createBin = async (req, res) => {
   try {
-    const { name, type, capacity, location, lat, lng } = req.body;
-    if (!name || !type || !capacity || !location) {
+    const { name, type, capacity, location, deviceId } = req.body;
+    if (!name || !type || !capacity || !location || !deviceId) {
       return res.status(400).json({
         success: false,
-        message: "name, type, capacity, and location are required.",
+        message: "name, type, capacity, location, and deviceId are required.",
       });
     }
-    const binId = await generateBinId();
+
+    const device = await Device.findOne({ deviceId });
+    if (!device) {
+      return res.status(404).json({
+        success: false,
+        message: `Device "${deviceId}" hasn't reported a location yet. Make sure the ESP32 is powered on and has a GPS fix.`,
+      });
+    }
+    if (device.assignedBin) {
+      return res.status(400).json({
+        success: false,
+        message: `Device "${deviceId}" is already assigned to a bin.`,
+      });
+    }
+
     const bin = await Bin.create({
-      binId,
+      binId: deviceId, // the ESP32's hardcoded ID becomes the bin's official ID
       name,
       type,
       capacity,
       location,
-      lat: lat || null,
-      lng: lng || null,
+      lat: device.lat,
+      lng: device.lng,
       fill: 0,
       lastEmptied: null,
     });
+
+    device.assignedBin = bin._id;
+    await device.save();
+
     res.status(201).json({ success: true, data: bin });
   } catch (error) {
     if (error.code === 11000) {
@@ -101,4 +146,67 @@ const createBin = async (req, res) => {
   }
 };
 
-module.exports = { dispose, getAllBins, createBin };
+// PUT /api/bins/:id
+const updateBin = async (req, res) => {
+  try {
+    const bin = await Bin.findByIdAndUpdate(req.params.id, req.body, { new: true });
+    if (!bin) return res.status(404).json({ success: false, message: "Bin not found." });
+    res.json({ success: true, data: bin });
+  } catch (error) {
+    res.status(500).json({ success: false, message: error.message });
+  }
+};
+
+// DELETE /api/bins/:id
+const deleteBin = async (req, res) => {
+  try {
+    const bin = await Bin.findByIdAndDelete(req.params.id);
+    if (!bin) return res.status(404).json({ success: false, message: "Bin not found." });
+    res.json({ success: true, message: "Bin deleted." });
+  } catch (error) {
+    res.status(500).json({ success: false, message: error.message });
+  }
+};
+
+// GET /api/bins/assigned?mac=XX:XX:XX:XX:XX:XX
+const getBinByMac = async (req, res) => {
+  try {
+    const { mac } = req.query;
+    if (!mac) {
+      return res.status(400).json({ success: false, message: "MAC address is required." });
+    }
+    const bin = await Bin.findOne({ macAddress: mac.toUpperCase(), isActive: true });
+    if (!bin) {
+      return res.status(404).json({
+        success: false,
+        message: `No bin assigned to MAC: ${mac}`,
+      });
+    }
+    res.json({
+      success: true,
+      data: { binId: bin.binId, name: bin.name, type: bin.type, location: bin.location },
+    });
+  } catch (error) {
+    res.status(500).json({ success: false, message: error.message });
+  }
+};
+
+// GET /api/bins/count
+const getBinCount = async (req, res) => {
+  try {
+    const count = await Bin.countDocuments(); 
+    res.json({ success: true, count });
+  } catch (error) {
+    res.status(500).json({ success: false, message: error.message });
+  }
+};
+
+module.exports = {
+  dispose,
+  getAllBins,
+  createBin,
+  updateBin,
+  deleteBin,
+  getBinByMac,
+  getBinCount,
+};

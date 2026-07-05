@@ -58,7 +58,7 @@ const scanRfid = async (req, res) => {
 // ESP32 calls this when household taps RFID at a specific bin
 const scanAtBin = async (req, res) => {
   try {
-    const { rfid, binId } = req.body;
+    const { rfid, binId, lat, lng, fillLevel, distanceCm } = req.body;
 
     if (!rfid || !binId)
       return res.status(400).json({ success: false, message: "rfid and binId are required" });
@@ -78,6 +78,28 @@ const scanAtBin = async (req, res) => {
     const bin = await Bin.findOne({ binId, isActive: true });
     if (!bin)
       return res.status(404).json({ success: false, message: `Bin ${binId} not found` });
+
+    // ── Auto-update bin's GPS coordinates if ESP32 sent a valid fix ──────────
+    const hasValidCoords =
+      typeof lat === "number" &&
+      typeof lng === "number" &&
+      !Number.isNaN(lat) &&
+      !Number.isNaN(lng) &&
+      (lat !== 0 || lng !== 0); // guards against uninitialised 0.0/0.0 from GPS lib
+
+    if (hasValidCoords) {
+      bin.lat = lat;
+      bin.lng = lng;
+    }
+
+    // ── While we're at it, the ESP32 also sends fill level on scan ───────────
+    if (typeof fillLevel === "number" && fillLevel >= 0) {
+      bin.fill = fillLevel;
+    }
+
+    if (hasValidCoords || typeof fillLevel === "number") {
+      await bin.save();
+    }
 
     // Count how many dispose logs already exist for this bin → next order number
     const existingCount = await RfidLog.countDocuments({
@@ -103,6 +125,10 @@ const scanAtBin = async (req, res) => {
         binId,
         binType: bin.type,
         disposalOrder,
+        coordsUpdated: hasValidCoords,
+        lat: bin.lat,
+        lng: bin.lng,
+        fill: bin.fill,
         scannedAt: new Date(),
       },
     });
@@ -110,7 +136,6 @@ const scanAtBin = async (req, res) => {
     res.status(500).json({ success: false, message: error.message });
   }
 };
-
 // GET /api/rfid/check/:rfid
 const checkRfid = async (req, res) => {
   try {

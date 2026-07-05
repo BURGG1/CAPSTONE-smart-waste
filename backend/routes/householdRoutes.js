@@ -6,13 +6,17 @@ const {
   createHousehold,
   updateHousehold,
   deleteHousehold,
+  getHouseholdCount,  
 } = require("../controllers/householdController");
 const { protect, allowRoles } = require("../middleware/authMiddleware");
 
+
 // All public for admin dashboard
 router.route("/")
-  .get(getAllHouseholds)
-  .post(createHousehold);              
+.get(getAllHouseholds)
+.post(createHousehold);              
+
+router.get("/count", getHouseholdCount);
 
 router.route("/:id")
   .get(getHouseholdById)

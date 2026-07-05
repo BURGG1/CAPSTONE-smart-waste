@@ -2,29 +2,14 @@ const mongoose = require("mongoose");
 
 const householdSchema = new mongoose.Schema(
   {
-    fullname: {
-      type: String,
-      required: [true, "Fullname is required"],
-      trim: true,
-    },
-    birthday: {
-      type: Date,
-      default: null,
-    },
-    familyMember: {
-      type: Number,
-      min: [1, "Family member count must be at least 1"],
-      default: null,
-    },
+    fullname: { type: String, required: [true, "Fullname is required"], trim: true },
+    birthday: { type: Date, default: null },
+    familyMember: { type: Number, min: [1, "Family member count must be at least 1"], default: null },
     address: {
       houseNo: { type: String, trim: true, default: null },
       street: { type: String, trim: true, default: null },
     },
-    contactNumber: {
-      type: String,
-      required: [true, "Contact number is required"],
-      trim: true,
-    },
+    contactNumber: { type: String, required: [true, "Contact number is required"], trim: true },
     email: {
       type: String,
       lowercase: true,
@@ -32,19 +17,23 @@ const householdSchema = new mongoose.Schema(
       default: null,
       match: [/^\S+@\S+\.\S+$/, "Please enter a valid email address"],
     },
-    rfid: {
-      type: String,
-      required: [true, "RFID is required"],
-      unique: true,
-      trim: true,
+    rfid: { type: String, required: [true, "RFID is required"], unique: true, trim: true },
+    password: { type: String, default: null },
+    isActive: { type: Boolean, default: true },
+
+    // ── Points tracking ──────────────────────────────
+    points: {
+      total: { type: Number, default: 0 },
+      thisMonth: { type: Number, default: 0 },
     },
-    password: {
-      type: String,
-      default: null,
-    },
-    isActive: {
-      type: Boolean,
-      default: true,
+
+    // ── Streak tracking ──────────────────────────────
+    streak: {
+      currentStreak: { type: Number, default: 0 },        // consecutive disposal days
+      lastDisposalDate: { type: Date, default: null },     // last day they disposed
+      lastWeeklyAward: { type: Date, default: null },      // last weekly award date
+      lastMonthlyAward: { type: Date, default: null },     // last monthly award date
+      awardedStreaks: [{ type: Number }],                  // streakDays already awarded (e.g. [10, 30])
     },
   },
   { timestamps: true }

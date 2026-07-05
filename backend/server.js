@@ -5,6 +5,7 @@ const morgan = require("morgan");
 const path = require("path");
 
 const connectDB = require("./config/db");
+const deviceRoutes = require("./routes/deviceRoutes");
 const householdRoutes = require("./routes/householdRoutes");
 const rfidRoutes = require("./routes/rfidRoutes");
 const binRoutes = require("./routes/binRoutes");
@@ -16,7 +17,7 @@ const collectorRoutes = require("./routes/collectorRoutes");
 const errorHandler = require("./middleware/errorHandler");
 const authRoutes = require("./routes/authRoutes");
 const registrationRequestRoutes = require("./routes/registrationRequestRoutes");
-
+  
 const app = express();
 const PORT = process.env.PORT || 5000;
 
@@ -39,7 +40,7 @@ app.use("/api/auth", authRoutes);
 app.use("/api/requests", registrationRequestRoutes);
 app.use("/api/bins", binRoutes);
 app.use("/api/collectors", collectorRoutes);
-
+app.use("/api/devices", deviceRoutes);
 app.get("/api/health", (req, res) => {
   res.json({ success: true, message: "Server is running" });
 });

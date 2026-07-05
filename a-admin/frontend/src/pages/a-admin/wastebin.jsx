@@ -12,13 +12,10 @@ import {
     Asterisk,
     Plus,
     Filter,
-    Trash2,
 } from "lucide-react";
 
 import ConfirmationModal from "../../components/confirmationModal";
 import CounterInfoModal from "../../components/CounterInfoModal";
-
-// ─── Constants ────────────────────────────────────────────────────────────────
 
 const API = "http://localhost:5000/api/bins";
 
@@ -58,47 +55,51 @@ function getStatusFromFill(fill) {
     return "good";
 }
 
-// ─── Component ────────────────────────────────────────────────────────────────
-
 export default function WasteBin() {
 
     // Modals
-    const [openConModal, setOpenConModal]         = useState(false);
-    const [activeBin, setActiveBin]               = useState(null);
+    const [openConModal, setOpenConModal] = useState(false);
+    const [activeBin, setActiveBin] = useState(null);
     const [openCounterModal, setOpenCounterModal] = useState(false);
 
-    // Pending bin — holds staged form data before the user confirms
+    // Pending bin
     const [pendingBin, setPendingBin] = useState(null);
 
     // Add form
-    const [binName, setBinName]   = useState("");
+    const [binName, setBinName] = useState("");
     const [category, setCategory] = useState("");
     const [capacity, setCapacity] = useState("");
     const [location, setLocation] = useState("");
+    const [lat, setLat] = useState("");
+    const [lng, setLng] = useState("");
     const [addError, setAddError] = useState("");
-    const [adding, setAdding]     = useState(false);
+    const [adding, setAdding] = useState(false);
+    const [devices, setDevices] = useState([]);
+    const [deviceId, setDeviceId] = useState("");
 
     // Table
     const [binsData, setBinsData] = useState([]);
-    const [loading, setLoading]   = useState(true);
-    const [search, setSearch]     = useState("");
-    const [filter, setFilter]     = useState("all");
+    const [loading, setLoading] = useState(true);
+    const [search, setSearch] = useState("");
+    const [filter, setFilter] = useState("all");
 
     // Inline edit
-    const inputRef                            = useRef(null);
-    const [editingId, setEditingId]           = useState(null);
+    const inputRef = useRef(null);
+    const [editingId, setEditingId] = useState(null);
     const [editedLocation, setEditedLocation] = useState("");
-    const [saving, setSaving]                 = useState(false);
+    const [saving, setSaving] = useState(false);
 
-    // ── Fetch all bins on mount ──────────────────────────────────────────────
     useEffect(() => {
         fetchBins();
+        fetchDevices();
     }, []);
+
+
 
     async function fetchBins() {
         setLoading(true);
         try {
-            const res  = await fetch(API);
+            const res = await fetch(API);
             const data = await res.json();
             if (data.success) {
                 setBinsData(data.data.map(normaliseBin));
@@ -110,44 +111,49 @@ export default function WasteBin() {
         }
     }
 
+    async function fetchDevices() {
+        try {
+            const res = await fetch("http://localhost:5000/api/devices/available");
+            const data = await res.json();
+            if (data.success) setDevices(data.data);
+        } catch (err) {
+            console.error("Failed to fetch devices:", err);
+        }
+    }
+
     function normaliseBin(doc) {
         return {
-            _id:         doc._id,
-            id:          doc.binId,
-            name:        doc.name,
-            type:        doc.type,
-            capacity:    doc.capacity,
-            location:    doc.location,
-            fill:        doc.fill ?? 0,
+            _id: doc._id,
+            id: doc.binId,
+            name: doc.name,
+            type: doc.type,
+            capacity: doc.capacity,
+            location: doc.location,
+            fill: doc.fill ?? 0,
             lastEmptied: doc.lastEmptied ? new Date(doc.lastEmptied) : null,
-            lat:         doc.lat,
-            lng:         doc.lng,
+            lat: doc.lat,
+            lng: doc.lng,
         };
     }
 
-    // ── Step 1: Validate & stage — opens confirmation modal ─────────────────
     function handleAddBin() {
         setAddError("");
-
-        if (!binName.trim() || !category || !capacity || !location) {
-            setAddError("All fields are required.");
+        if (!binName.trim() || !category || !capacity || !location || !deviceId) {
+            setAddError("All fields, including the bin device, are required.");
             return;
         }
-
-        // Stage the data, then ask for confirmation — do NOT POST yet
         setPendingBin({
-            name:     binName.trim(),
-            type:     category,
+            name: binName.trim(),
+            type: category,
             capacity,
             location,
+            deviceId,
         });
         setOpenConModal(true);
     }
 
-    // ── Step 2: User confirmed — now POST to the API ─────────────────────────
     async function handleConfirmAdd() {
         if (!pendingBin) {
-            // This was a save-location success notice, not an add confirmation
             setOpenConModal(false);
             return;
         }
@@ -155,25 +161,27 @@ export default function WasteBin() {
         setAdding(true);
         try {
             const res = await fetch(API, {
-                method:  "POST",
+                method: "POST",
                 headers: { "Content-Type": "application/json" },
                 body: JSON.stringify({
-                    name:     pendingBin.name,
-                    type:     pendingBin.type,
-                    capacity: `${pendingBin.capacity}L`,
+                    name: pendingBin.name,
+                    type: pendingBin.type,
+                    capacity: pendingBin.capacity,
                     location: pendingBin.location,
+                    deviceId: pendingBin.deviceId,
                 }),
             });
             const data = await res.json();
 
             if (data.success) {
                 setBinsData((prev) => [...prev, normaliseBin(data.data)]);
-                // Reset form fields
                 setBinName("");
                 setCategory("");
                 setCapacity("");
                 setLocation("");
+                setDeviceId("");
                 setPendingBin(null);
+                fetchDevices(); // refresh so the just-assigned device drops out of the list
             } else {
                 setAddError(data.message || "Failed to add bin.");
             }
@@ -185,19 +193,17 @@ export default function WasteBin() {
         }
     }
 
-    // ── User cancelled the confirmation modal ────────────────────────────────
     function handleCancelModal() {
         setOpenConModal(false);
-        setPendingBin(null); // discard staged data
+        setPendingBin(null);
     }
 
-    // ── Save edited location ─────────────────────────────────────────────────
     async function handleSave(item) {
         if (!editedLocation.trim()) return;
         setSaving(true);
         try {
             const res = await fetch(`${API}/${item._id}`, {
-                method:  "PUT",
+                method: "PUT",
                 headers: { "Content-Type": "application/json" },
                 body: JSON.stringify({ location: editedLocation }),
             });
@@ -210,7 +216,6 @@ export default function WasteBin() {
                     )
                 );
                 setEditingId(null);
-                // Open as a success notice (pendingBin is null here)
                 setOpenConModal(true);
             }
         } catch (err) {
@@ -220,11 +225,10 @@ export default function WasteBin() {
         }
     }
 
-    // ── Delete bin ───────────────────────────────────────────────────────────
     async function handleDelete(item) {
         if (!window.confirm(`Delete ${item.id}?`)) return;
         try {
-            const res  = await fetch(`${API}/${item._id}`, { method: "DELETE" });
+            const res = await fetch(`${API}/${item._id}`, { method: "DELETE" });
             const data = await res.json();
             if (data.success) {
                 setBinsData((prev) => prev.filter((b) => b._id !== item._id));
@@ -234,12 +238,10 @@ export default function WasteBin() {
         }
     }
 
-    // Auto-focus inline edit input
     useEffect(() => {
         if (editingId && inputRef.current) inputRef.current.focus();
     }, [editingId]);
 
-    // ── Filtered table data ──────────────────────────────────────────────────
     const filteredData = binsData.filter((h) => {
         const matchSearch =
             h.type.toLowerCase().includes(search.toLowerCase()) ||
@@ -248,7 +250,6 @@ export default function WasteBin() {
         return matchSearch && matchFilter;
     });
 
-    // ── Render ───────────────────────────────────────────────────────────────
     return (
         <div className="flex-1">
             <Navbar />
@@ -288,6 +289,7 @@ export default function WasteBin() {
                         )}
 
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+
                             {/* Bin Name */}
                             <div className="flex items-center">
                                 <Asterisk className="text-red-500 w-4 h-4 shrink-0" />
@@ -323,8 +325,8 @@ export default function WasteBin() {
                                     className="ml-2 w-full py-2 border rounded-lg bg-white focus:ring-2 focus:ring-green-500"
                                 >
                                     <option value="">Capacity</option>
-                                    <option value="100">100L</option>
-                                    <option value="500">500L</option>
+                                    <option value="100L">100L</option>
+                                    <option value="500L">500L</option>
                                 </select>
                             </div>
 
@@ -342,6 +344,24 @@ export default function WasteBin() {
                                     <option value="Bonifacio St.">Bonifacio St.</option>
                                 </select>
                             </div>
+
+                            {/* Bin Device */}
+                            <div className="flex items-center">
+                                <Asterisk className="text-red-500 w-4 h-4 shrink-0" />
+                                <select
+                                    value={deviceId}
+                                    onChange={(e) => setDeviceId(e.target.value)}
+                                    className="ml-2 w-full py-2 border rounded-lg bg-white focus:ring-2 focus:ring-green-500"
+                                >
+                                    <option value="">Select Bin Device (e.g. BIN-001)</option>
+                                    {devices.map((d) => (
+                                        <option key={d.deviceId} value={d.deviceId}>
+                                            {d.deviceId} ({d.lat?.toFixed(5)}, {d.lng?.toFixed(5)})
+                                        </option>
+                                    ))}
+                                </select>
+                            </div>
+
                         </div>
 
                         <div className="mt-3 flex justify-end gap-2">
@@ -363,7 +383,6 @@ export default function WasteBin() {
                             </h2>
 
                             <div className="flex flex-col sm:flex-row gap-3 w-full sm:w-auto">
-                                {/* Search */}
                                 <div className="relative">
                                     <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" size={18} />
                                     <input
@@ -375,7 +394,6 @@ export default function WasteBin() {
                                     />
                                 </div>
 
-                                {/* Filter */}
                                 <div className="relative">
                                     <Filter className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" size={18} />
                                     <select
@@ -467,7 +485,7 @@ export default function WasteBin() {
                         <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6 mt-5">
                             {binsData.map((bin) => {
                                 const status = getStatusFromFill(bin.fill);
-                                const style  = statusColors[status];
+                                const style = statusColors[status];
 
                                 return (
                                     <div
@@ -519,11 +537,6 @@ export default function WasteBin() {
                 </main>
             </div>
 
-            {/*
-                ConfirmationModal is used in two modes:
-                1. pendingBin is set  → user is confirming a new bin add (onConfirm posts to API)
-                2. pendingBin is null → success notice after saving a location (onConfirm just closes)
-            */}
             <ConfirmationModal
                 isOpen={openConModal}
                 onClose={handleCancelModal}

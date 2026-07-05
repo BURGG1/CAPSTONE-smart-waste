@@ -202,10 +202,22 @@ const deleteHousehold = async (req, res) => {
   }
 };
 
+// GET /api/households/count
+const getHouseholdCount = async (req, res) => {
+  try {
+    const count = await Household.countDocuments({ isActive: true });
+    res.json({ success: true, count });
+  } catch (error) {
+    res.status(500).json({ success: false, message: error.message });
+  }
+};
+
+
 module.exports = {
   getAllHouseholds,
   getHouseholdById,
   createHousehold,
   updateHousehold,
   deleteHousehold,
+  getHouseholdCount,
 };

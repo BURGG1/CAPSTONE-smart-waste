@@ -14,9 +14,7 @@ import Gamified from "./pages/a-admin/gamified";
 import QRhandler from "./pages/a-user/QRhandler";
 import WasteBin from "./pages/a-admin/wastebin";
 import HomePage from "./pages/a-user/home";
-
-
-
+import AdminDashboard from "./pages/admin";
 
 
 function App() {
@@ -27,6 +25,7 @@ function App() {
       <Routes>
         <Route path="/" element={<AuthPage />} />
         <Route path="/landing" element={<Landing />} />
+        <Route path="/admin" element={<AdminDashboard />} />
         {/* User */}
         <Route path="/home" element={<HomePage/>} />
         <Route path="/qrcode" element={<QRhandler />} />

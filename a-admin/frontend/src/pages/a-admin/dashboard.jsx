@@ -1,16 +1,10 @@
 import {
     Users,
-    CheckCircle,
-    AlertTriangle,
-    XCircle,
     Medal, Trophy, Star,
     Trash2,
     TrendingUp
 } from "lucide-react";
 import {
-    PieChart,
-    Pie,
-    Cell,
     BarChart,
     Bar,
     XAxis,
@@ -20,141 +14,13 @@ import {
     ResponsiveContainer,
 } from "recharts";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import Navbar from "../../components/Navbar";
 import NavigationShell from "../../navigation/mainNav";
 import Footer from "../../components/Footer";
 
+// ── Static data ───────────────────────────────────────────────────────────────
 
-const householdRecords = [
-    {
-        id: "HH-24680135",
-        name: "Dela Cruz Family",
-        address: "Green St.",
-        disposals: 48,
-        points: 1240,
-        status: "compliant",
-    },
-    {
-        id: "HH-13579246",
-        name: "Santos Family",
-        address: "Sunshine Ave.",
-        disposals: 35,
-        points: 920,
-        status: "compliant",
-    },
-    {
-        id: "HH-86420975",
-        name: "Reyes Household",
-        address: "Eco Lane",
-        disposals: 22,
-        points: 450,
-        status: "compliant",
-    },
-    {
-        id: "HH-97531468",
-        name: "Garcia Family",
-        address: "Clean Rd.",
-        disposals: 12,
-        points: 180,
-        status: "compliant",
-    },
-    {
-        id: "HH-75391482",
-        name: "Martinez Family",
-        address: "Fresh Blvd.",
-        disposals: 41,
-        points: 1050,
-        status: "compliant",
-    },
-    {
-        id: "HH-15948673",
-        name: "Lopez Household",
-        address: "Nature St.",
-        disposals: 18,
-        points: 380,
-        status: "compliant",
-    },
-
-];
-
-
-const totalHouseholds = householdRecords.length;
-
-// automation compliant
-const compliantCount = householdRecords.filter(
-    (h) => h.status === "compliant"
-).length;
-
-const nonCompliantCount = householdRecords.filter(
-    (h) => h.status !== "compliant"
-).length;
-
-const compliantPercent = totalHouseholds
-    ? Math.round((compliantCount / totalHouseholds) * 100)
-    : 0;
-
-const nonCompliantPercent = totalHouseholds
-    ? Math.round((nonCompliantCount / totalHouseholds) * 100)
-    : 0;
-
-
-// dashboard data-------------------------------
-const stats = [
-    {
-        title: "Total Households",
-        subtitle: "",
-        value: totalHouseholds,
-        icon: Users,
-        iconBg: "bg-blue-100",
-        iconColor: "text-blue-600",
-    },
-    {
-        title: "Total Bins",
-        subtitle: "",
-        value: 6,
-        icon: Trash2,
-        iconBg: "bg-blue-100",
-        iconColor: "text-blue-600",
-    },
-
-    {
-        title: "Average Bin Capacity",
-        subtitle: "2 Critical",
-        value: "58%",
-        icon: TrendingUp,
-        iconBg: "bg-blue-100",
-        iconColor: "text-blue-600",
-    },
-    // {
-    //     title: "Properly Segregating",
-    //     value: compliantCount,
-    //     icon: CheckCircle,
-    //     iconBg: "bg-green-100",
-    //     iconColor: "text-green-600",
-    //     percentage: `${compliantPercent}%`,
-    //     percentColor: "text-green-600",
-    // },
-    // {
-    //     title: "For Improvement",
-    //     value: nonCompliantCount,
-    //     icon: XCircle,
-    //     iconBg: "bg-red-100",
-    //     iconColor: "text-red-600",
-    //     percentage: `${nonCompliantPercent}%`,
-    //     percentColor: "text-red-600",
-    // },
-];
-
-
-// Pie chart data
-const wasteDistribution = [
-    { name: "Biodegradable", value: 45, color: "#10b981" },
-    { name: "Non-biodegradable", value: 30, color: "#f97316" },
-    { name: "Recyclable", value: 25, color: "#3b82f6" },
-];
-
-// Bar chart data
 const monthlyCompliance = [
     { month: "Oct", compliant: 85, nonCompliant: 1 },
     { month: "Nov", compliant: 85, nonCompliant: 1 },
@@ -164,65 +30,19 @@ const monthlyCompliance = [
     { month: "Mar", compliant: 92, nonCompliant: 2 },
 ];
 
-
-// for leaderboard lahat ng nasa baba --------------------
 const rawData = [
-    {
-        family: "Joel Dela Cruz",
-        address: "Rizal St.",
-        householdId: "HH-13579246",
-        disposals: 62,
-        points: 1580,
-        trend: "up",
-        isYou: false,
-    },
-    {
-        family: "Rolando Martinez",
-        address: "Mabini St.",
-        householdId: "HH-75391482",
-        disposals: 54,
-        points: 1350,
-        trend: "up",
-        isYou: false,
-    },
-    {
-        family: "Remedios Delo Santos",
-        address: "Mabini St.",
-        householdId: "HH-24680135",
-        disposals: 48,
-        points: 1240,
-        trend: "up",
-        isYou: true,
-    },
-    {
-        family: "Lopez Household",
-        address: "Bonifacio St.",
-        householdId: "HH-15948673",
-        disposals: 38,
-        points: 920,
-        trend: "down",
-        isYou: false,
-    },
+    { family: "Joel Dela Cruz", address: "Rizal St.", householdId: "HH-13579246", disposals: 62, points: 1580, trend: "up", isYou: false },
+    { family: "Rolando Martinez", address: "Mabini St.", householdId: "HH-75391482", disposals: 54, points: 1350, trend: "up", isYou: false },
+    { family: "Remedios Delo Santos", address: "Mabini St.", householdId: "HH-24680135", disposals: 48, points: 1240, trend: "up", isYou: true },
+    { family: "Lopez Household", address: "Bonifacio St.", householdId: "HH-15948673", disposals: 38, points: 920, trend: "down", isYou: false },
 ];
+
 const medalStyles = {
-    Gold: {
-        ring: "border-yellow-400 text-yellow-500",
-        podium: "bg-yellow-400",
-    },
-    Silver: {
-        ring: "border-gray-300 text-gray-400",
-        podium: "bg-gray-300",
-    },
-    Bronze: {
-        ring: "border-orange-400 text-orange-500",
-        podium: "bg-orange-400",
-    },
+    Gold: { ring: "border-yellow-400 text-yellow-500", podium: "bg-yellow-400" },
+    Silver: { ring: "border-gray-300 text-gray-400", podium: "bg-gray-300" },
+    Bronze: { ring: "border-orange-400 text-orange-500", podium: "bg-orange-400" },
 };
-const tierStyles = {
-    Gold: "bg-yellow-100 text-yellow-700",
-    Silver: "bg-gray-100 text-gray-700",
-    Bronze: "bg-orange-100 text-orange-700",
-};
+
 const getTierByRank = (rank) => {
     if (rank === 1) return "Gold";
     if (rank === 2) return "Silver";
@@ -230,11 +50,91 @@ const getTierByRank = (rank) => {
     return null;
 };
 
-
-
+// ── Component ─────────────────────────────────────────────────────────────────
 
 export default function ComplianceDashboard() {
 
+    const [totalHouseholds, setTotalHouseholds] = useState(null);
+    const [totalBins, setTotalBins] = useState(null);
+    const [avgFill, setAvgFill] = useState(null);
+    const [criticalBins, setCriticalBins] = useState(0);
+    const [countError, setCountError] = useState(false);
+
+    useEffect(() => {
+        const fetchCounts = async () => {
+            try {
+                const [hhRes, binRes, binsListRes] = await Promise.all([
+                    fetch("http://localhost:5000/api/households/count"),
+                    fetch("http://localhost:5000/api/bins/count"),
+                    fetch("http://localhost:5000/api/bins"),
+                ]);
+
+                if (!hhRes.ok || !binRes.ok || !binsListRes.ok) {
+                    throw new Error("Failed to fetch counts");
+                }
+
+                const [hhData, binData, binsListData] = await Promise.all([
+                    hhRes.json(),
+                    binRes.json(),
+                    binsListRes.json(),
+                ]);
+
+                setTotalHouseholds(hhData.count);
+                setTotalBins(binData.count);
+
+                const bins = binsListData.data || [];
+                if (bins.length > 0) {
+                    const totalFill = bins.reduce((sum, b) => sum + (b.fill || 0), 0);
+                    setAvgFill(Math.round(totalFill / bins.length));
+                    setCriticalBins(bins.filter((b) => (b.fill || 0) >= 80).length);
+                } else {
+                    setAvgFill(0);
+                    setCriticalBins(0);
+                }
+
+                setCountError(false); // clear any previous error once a fetch succeeds
+            } catch (err) {
+                console.error("Dashboard count fetch error:", err);
+                setCountError(true);
+            }
+        };
+
+        fetchCounts(); // run once immediately on mount
+
+        const intervalId = setInterval(fetchCounts, 5000); // then every 5 seconds
+
+        return () => clearInterval(intervalId); // cleanup on unmount
+    }, []);
+    // ── Stats built inside component so they read live state ─────────────────
+    const stats = [
+        {
+            title: "Total Households",
+            value: totalHouseholds,
+            icon: Users,
+            iconBg: "bg-blue-100",
+            iconColor: "text-blue-600",
+            isLive: true,
+        },
+        {
+            title: "Total Bins",
+            value: totalBins,
+            icon: Trash2,
+            iconBg: "bg-blue-100",
+            iconColor: "text-blue-600",
+            isLive: true,
+        },
+        {
+            title: "Average Bin Capacity",
+            subtitle: avgFill !== null ? `${criticalBins} Critical` : undefined,
+            value: avgFill !== null ? `${avgFill}%` : null,
+            icon: TrendingUp,
+            iconBg: "bg-blue-100",
+            iconColor: "text-blue-600",
+            isLive: true, // ← flip this to true now that it's real data
+        },
+    ];
+
+    // ── Leaderboard ───────────────────────────────────────────────────────────
     const rankedData = [...rawData]
         .sort((a, b) => b.points - a.points)
         .map((item, index) => ({
@@ -245,20 +145,16 @@ export default function ComplianceDashboard() {
 
     const podiumData = rankedData.slice(0, 3);
 
-    const [search, setSearch] = useState("");
-    const [filter, setFilter] = useState("all");
+    // ── Stat value renderer: skeleton → error → number ────────────────────────
+    const StatValue = ({ value }) => {
+        if (countError)
+            return <span className="text-red-400 text-sm font-medium">Unavailable</span>;
+        if (value === null)
+            return <span className="h-8 w-16 bg-gray-200 animate-pulse rounded block" />;
+        return <p className="text-2xl font-bold">{value}</p>;
+    };
 
-    const filteredData = householdRecords.filter((h) => {
-        const matchSearch =
-            h.name.toLowerCase().includes(search.toLowerCase()) ||
-            h.id.toLowerCase().includes(search.toLowerCase());
-
-        const matchFilter = filter === "all" || h.status === filter;
-
-        return matchSearch && matchFilter;
-    });
-
-
+    // ── Render ────────────────────────────────────────────────────────────────
     return (
         <div className="min-h-screen flex flex-col">
             <Navbar />
@@ -266,30 +162,23 @@ export default function ComplianceDashboard() {
             <div className="flex flex-col min-h-screen bg-gray-50 md:flex-row">
 
                 <div className="flex gap-4">
-                    {/* FOR MOBILE */}
                     <NavigationShell />
                     <div className="py-2 md:hidden">
-                        <h1 className="text-lg sm:text-3xl font-bold text-gray-900">
-                            Dashboard
-                        </h1>
-                        <p className="text-gray-500 text-xs sm:text-lg ">
+                        <h1 className="text-lg sm:text-3xl font-bold text-gray-900">Dashboard</h1>
+                        <p className="text-gray-500 text-xs sm:text-lg">
                             Integrated smart waste management and compliance monitoring.
                         </p>
                     </div>
-
                 </div>
 
                 <main className="flex-1 w-full p-4 sm:p-6 space-y-6">
 
                     <div className="hidden md:block">
-                        <h1 className="text-lg sm:text-3xl font-bold text-gray-900">
-                            Dashboard
-                        </h1>
-                        <p className="text-gray-500 text-xs sm:text-lg ">
+                        <h1 className="text-lg sm:text-3xl font-bold text-gray-900">Dashboard</h1>
+                        <p className="text-gray-500 text-xs sm:text-lg">
                             Integrated smart waste management and compliance monitoring.
                         </p>
                     </div>
-
 
                     <section className="flex flex-col gap-5">
 
@@ -300,25 +189,25 @@ export default function ComplianceDashboard() {
                                 return (
                                     <div
                                         key={item.title}
-                                        className="w-full bg-white rounded-xl shadow-sm  p-5 flex justify-between items-center hover:shadow-xl"
+                                        className="w-full bg-white rounded-xl shadow-sm p-5 flex justify-between items-center hover:shadow-xl"
                                     >
                                         <div className="w-full flex flex-col gap-4">
-
                                             <div className="w-full flex justify-between">
                                                 <div className={`p-3 rounded-lg ${item.iconBg}`}>
-                                                    <Icon className={`${item.iconColor}`} />
+                                                    <Icon className={item.iconColor} />
                                                 </div>
-                                                {item.percentage && (
-                                                    <span
-                                                        className={`text-sm font-medium ${item.percentColor}`}
-                                                    >
-                                                        {item.percentage}
-                                                    </span>
-                                                )}
                                             </div>
-                                            <div className="flex flex-col">
-                                                <p className="text-2xl font-bold">{item.value}</p>
+                                            <div className="flex flex-col gap-1">
+                                                {/* Live cards get skeleton/error handling; static cards render directly */}
+                                                {item.isLive ? (
+                                                    <StatValue value={item.value} />
+                                                ) : (
+                                                    <p className="text-2xl font-bold">{item.value}</p>
+                                                )}
                                                 <p className="text-sm text-gray-500">{item.title}</p>
+                                                {item.subtitle && (
+                                                    <p className="text-xs text-gray-400">{item.subtitle}</p>
+                                                )}
                                             </div>
                                         </div>
                                     </div>
@@ -326,65 +215,19 @@ export default function ComplianceDashboard() {
                             })}
                         </div>
 
-                        {/* Charts */}
+                        {/* Bar Chart */}
                         <div className="flex flex-col xl:flex-row gap-6">
-                            
-                            {/* Pie Chart
-                            <div className="bg-white rounded-xl shadow-sm  p-6">
-                                <h3 className="text-lg font-semibold mb-4">
-                                    Waste Segregation Distribution
-                                </h3>
-
-                                <div className="h-64">
-                                    <ResponsiveContainer width="100%" height={256}>
-                                        <PieChart>
-                                            <Pie
-                                                data={wasteDistribution}
-                                                dataKey="value"
-                                                nameKey="name"
-                                                cx="50%"
-                                                cy="50%"
-                                                outerRadius={90}
-                                                label={({ name, value }) => `${name} ${value}%`}
-                                            >
-                                                {wasteDistribution.map((entry, index) => (
-                                                    <Cell
-                                                        key={index}
-                                                        fill={entry.color}
-                                                    />
-                                                ))}
-                                            </Pie>
-                                            <Tooltip />
-                                        </PieChart>
-                                    </ResponsiveContainer>
-                                </div>
-                            </div> */}
-
-                            {/* Bar Chart */}
                             <div className="bg-white w-full rounded-xl shadow-sm p-6">
-                                <h3 className="text-lg font-semibold mb-4">
-                                    Monthly Compliance Trend
-                                </h3>
-                                {/* h-64 height 254 */}
-                                <div className="h-84"> 
+                                <h3 className="text-lg font-semibold mb-4">Monthly Compliance Trend</h3>
+                                <div className="h-84">
                                     <ResponsiveContainer width="100%" height={366}>
                                         <BarChart data={monthlyCompliance}>
                                             <CartesianGrid strokeDasharray="3 3" />
                                             <XAxis dataKey="month" />
                                             <YAxis />
                                             <Tooltip />
-                                            <Bar
-                                                dataKey="compliant"
-                                                fill="#10b981"
-                                                name="Properly Segregating %"
-                                                radius={[6, 6, 0, 0]}
-                                            />
-                                            <Bar
-                                                dataKey="nonCompliant"
-                                                fill="#ef4444"
-                                                name="Need Improvement  %"
-                                                radius={[6, 6, 0, 0]}
-                                            />
+                                            <Bar dataKey="compliant" fill="#10b981" name="Properly Segregating %" radius={[6, 6, 0, 0]} />
+                                            <Bar dataKey="nonCompliant" fill="#ef4444" name="Need Improvement %" radius={[6, 6, 0, 0]} />
                                         </BarChart>
                                     </ResponsiveContainer>
                                 </div>
@@ -393,86 +236,55 @@ export default function ComplianceDashboard() {
 
                     </section>
 
+                    {/* Leaderboard */}
                     <section className="w-full bg-gradient-to-b from-green-50 to-white rounded-xl p-4 sm:p-6 shadow">
 
-                        {/* ===== MOBILE PODIUM ===== */}
+                        {/* Mobile */}
                         <div className="flex flex-col gap-4 lg:hidden">
-                            <h3 className="text-lg font-semibold mb-4">
-                                Leaderboard
-                            </h3>
-
+                            <h3 className="text-lg font-semibold mb-4">Leaderboard</h3>
                             {[1, 2, 3].map((pos) => {
                                 const item = podiumData.find((i) => i.rank === pos);
                                 if (!item) return null;
-
                                 return (
-                                    <div
-                                        key={item.rank}
-                                        className="bg-white rounded-xl shadow p-4 flex items-center gap-4"
-                                    >
+                                    <div key={item.rank} className="bg-white rounded-xl shadow p-4 flex items-center gap-4">
                                         <div className="w-12 h-12 rounded-full bg-green-100 flex items-center justify-center font-bold">
                                             #{item.rank}
                                         </div>
-
                                         <div className="flex-1">
                                             <h3 className="font-semibold">{item.family}</h3>
-                                            <p className="text-xs text-gray-400">
-                                                {item.address}
-                                            </p>
-                                            <p className="text-sm text-green-600 font-bold">
-                                                {item.points} pts
-                                            </p>
+                                            <p className="text-xs text-gray-400">{item.address}</p>
+                                            <p className="text-sm text-green-600 font-bold">{item.points} pts</p>
                                         </div>
-
                                         {item.rank === 1 && <Trophy className="text-yellow-500" />}
                                     </div>
                                 );
                             })}
                         </div>
 
-                        {/* ===== DESKTOP PODIUM ===== */}
+                        {/* Desktop */}
                         <div className="hidden lg:flex w-full justify-center items-end gap-6 p-10">
                             {[2, 1, 3].map((pos) => {
                                 const item = podiumData.find((i) => i.rank === pos);
                                 if (!item) return null;
-
                                 const style = medalStyles[item.tier];
-
                                 return (
-                                    <div
-                                        key={item.rank}
-                                        className={`flex flex-col items-center ${item.rank === 1 ? "-mt-6" : ""
-                                            }`}
-                                    >
-                                        <div
-                                            className={`w-20 h-20 rounded-full border-4 flex items-center justify-center mb-3 ${style.ring}`}
-                                        >
+                                    <div key={item.rank} className={`flex flex-col items-center ${item.rank === 1 ? "-mt-6" : ""}`}>
+                                        <div className={`w-20 h-20 rounded-full border-4 flex items-center justify-center mb-3 ${style.ring}`}>
                                             {item.rank === 1 ? <Trophy /> : <Medal />}
                                         </div>
-
                                         <div className="bg-white rounded-xl shadow px-6 py-4 text-center min-w-[180px]">
                                             <p className="text-2xl font-bold">
                                                 {item.rank === 1 ? "1st" : item.rank === 2 ? "2nd" : "3rd"}
                                             </p>
                                             <h3 className="font-bold">{item.family}</h3>
-                                            <p className="text-green-600 font-bold mt-1">
-                                                {item.points} pts
-                                            </p>
-                                            <p className="text-xs text-gray-400">
-                                                {item.address}
-                                            </p>
+                                            <p className="text-green-600 font-bold mt-1">{item.points} pts</p>
+                                            <p className="text-xs text-gray-400">{item.address}</p>
                                         </div>
-
                                         <div
                                             className={`w-full mt-4 rounded-t-xl ${style.podium}`}
-                                            style={{
-                                                height:
-                                                    item.rank === 1 ? "120px" : item.rank === 2 ? "90px" : "70px",
-                                            }}
+                                            style={{ height: item.rank === 1 ? "120px" : item.rank === 2 ? "90px" : "70px" }}
                                         />
                                     </div>
-
-
                                 );
                             })}
                         </div>
@@ -484,7 +296,6 @@ export default function ComplianceDashboard() {
                             </div>
                         </div>
                     </section>
-
 
                 </main>
             </div>
