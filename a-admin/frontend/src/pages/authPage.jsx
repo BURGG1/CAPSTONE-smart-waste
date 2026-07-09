@@ -43,11 +43,28 @@ export default function AuthPage() {
       }
 
       // Store token
-      localStorage.setItem("token", data.token);
-      localStorage.setItem("user", JSON.stringify(data.user));
-      localStorage.setItem("role", data.role);
+      sessionStorage.setItem("token", data.token);
+      sessionStorage.setItem("user", JSON.stringify(data.user));
+      sessionStorage.setItem("role", data.role);
 
-      navigate("/dashboard");
+      if (data.role === "admin") {
+        sessionStorage.setItem("token", data.token);
+        sessionStorage.setItem("user", JSON.stringify(data.user));
+        sessionStorage.setItem("role", data.role);
+        navigate("/dashboard");
+      } else if (data.role === "collector") {
+        sessionStorage.setItem("token", data.token);
+        sessionStorage.setItem("user", JSON.stringify(data.user));
+        sessionStorage.setItem("role", data.role);
+        navigate("/collector");
+      } else if (data.role === "household") {
+        sessionStorage.setItem("token", data.token);
+        sessionStorage.setItem("user", JSON.stringify(data.user));
+        sessionStorage.setItem("role", data.role);
+        navigate("/home");
+      } else {
+        setError("Access denied.");
+      }
     } catch (err) {
       setError("Cannot connect to server. Make sure the backend is running.");
     } finally {

@@ -12,9 +12,11 @@ export default function Navbar() {
   };
 
   const handleLogout = () => {
-    localStorage.removeItem("role")
+    sessionStorage.removeItem("token");
+    sessionStorage.removeItem("role");
+    sessionStorage.removeItem("user");
     navigate("/");
-  };
+};
 
   return (
     <header className="w-full bg-white border-b border-gray-200 sticky top-0 z-50">
@@ -44,7 +46,7 @@ export default function Navbar() {
         onClose={()=> {
           setOpenConModal(false)}
         }
-        onConfirm={handleLogin}
+        onConfirm={handleLogout}
       />
     </header>
 
