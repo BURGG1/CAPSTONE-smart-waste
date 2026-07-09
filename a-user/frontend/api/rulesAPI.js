@@ -1,7 +1,9 @@
-const API_BASE = "http://192.168.0.103:5000/api/rules"; // adjust to your server's host/port
+import {API_BASE} from "../config.ts";
+
+const RULES_API_BASE = `${API_BASE}/api/rules`;
 
 export async function getRules() {
-  const res = await fetch(API_BASE);
+  const res = await fetch(RULES_API_BASE);
   if (!res.ok) throw new Error("Failed to fetch rules");
   return res.json();
 }
@@ -15,7 +17,7 @@ export async function createRule({ name, decs, points, freq, auto, imageFile }) 
   formData.append("auto", auto ?? false);
   if (imageFile) formData.append("image", imageFile);
 
-  const res = await fetch(API_BASE, { method: "POST", body: formData });
+  const res = await fetch(RULES_API_BASE, { method: "POST", body: formData });
   if (!res.ok) throw new Error("Failed to create rule");
   return res.json();
 }
@@ -29,13 +31,13 @@ export async function updateRule(id, { name, decs, points, freq, auto, imageFile
   if (auto !== undefined) formData.append("auto", auto);
   if (imageFile) formData.append("image", imageFile);
 
-  const res = await fetch(`${API_BASE}/${id}`, { method: "PUT", body: formData });
+  const res = await fetch(`${RULES_API_BASE}/${id}`, { method: "PUT", body: formData });
   if (!res.ok) throw new Error("Failed to update rule");
   return res.json();
 }
 
 export async function deleteRule(id) {
-  const res = await fetch(`${API_BASE}/${id}`, { method: "DELETE" });
+  const res = await fetch(`${RULES_API_BASE}/${id}`, { method: "DELETE" });
   if (!res.ok) throw new Error("Failed to delete rule");
   return res.json();
 }

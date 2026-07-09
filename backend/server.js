@@ -3,6 +3,8 @@ const express = require("express");
 const cors = require("cors");
 const morgan = require("morgan");
 const path = require("path");
+const { Bonjour } = require("bonjour-service");
+const bonjour = new Bonjour();
 
 const connectDB = require("./config/db");
 const deviceRoutes = require("./routes/deviceRoutes");
@@ -67,4 +69,7 @@ app.listen(PORT, "0.0.0.0", () => {
   // console.log(`Server running on http://localhost:${PORT}`);
   console.log(`Environment: ${process.env.NODE_ENV}`);
   console.log("Server running on port " + PORT);
+
+  bonjour.publish({ name: "SmartBin", type: "http", port: PORT });
+  console.log("mDNS broadcast: http://smartbin.local:" + PORT);
 });
