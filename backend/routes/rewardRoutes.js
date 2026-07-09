@@ -1,17 +1,15 @@
 const express = require("express");
 const router = express.Router();
 const Reward = require("../models/Reward");
+const { getAllRewards, redeemReward } = require("../controllers/rewardsController");
 const { upload, cloudinary } = require("../middleware/upload");
 
 // GET /api/rewards
-router.get("/", async (req, res) => {
-    try {
-        const rewards = await Reward.find().sort({ createdAt: -1 });
-        res.json({ success: true, data: rewards });
-    } catch (err) {
-        res.status(500).json({ success: false, message: err.message });
-    }
-});
+router.get("/", getAllRewards);
+
+// POST /api/rewards/:id/redeem
+router.post("/:id/redeem", redeemReward);
+
 
 // GET /api/rewards/:id
 router.get("/:id", async (req, res) => {

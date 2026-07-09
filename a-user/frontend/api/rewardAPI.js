@@ -1,4 +1,5 @@
 import {API_BASE} from "../config.ts";
+import AsyncStorage from "@react-native-async-storage/async-storage";
 
 const REWARD_API_BASE = `${API_BASE}/api/rewards`;
 
@@ -37,3 +38,30 @@ export async function deleteReward(id) {
   if (!res.ok) throw new Error("Failed to delete reward");
   return res.json();
 }
+
+export const redeemReward = async (rewardId, householdId) => {
+  const token = await AsyncStorage.getItem("token");
+  const res = await fetch(`${API_BASE}/api/rewards/${rewardId}/redeem`, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      Authorization: `Bearer ${token}`,
+    },
+    body: JSON.stringify({ householdId }),
+  });
+  const data = await res.json();
+  if (!res.ok || !data.success) {
+    throw new Error(data.message || "Failed to redeem reward");
+  }
+  return data;
+};
+
+export const getHouseholdActivity = async (householdId, limit = 10) => {
+  const token = await AsyncStorage.getItem("token");
+  const res = await fetch(`${API_BASE}/api/households/${householdId}/activity?limit=${limit}`, {
+    headers: { Authorization: `Bearer ${token}` },
+  });
+  const data = await res.json();
+  if (!res.ok || !data.success) throw new Error(data.message || "Failed to fetch activity");
+  return data.data;
+};

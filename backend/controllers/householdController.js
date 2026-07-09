@@ -1,5 +1,7 @@
 const Household = require("../models/Household");
 const RfidLog = require("../models/RfidLog");
+const PointLog = require("../models/PointLog");
+const RewardLog = require("../models/RewardLog");
 const { sendPasswordEmail } = require("../config/mailer");
 const bcrypt = require("bcryptjs");
 
@@ -370,6 +372,85 @@ const checkContactExists = async (req, res) => {
   }
 };
 
+// POST /api/households/:id/award-points
+const awardPoints = async (req, res) => {
+  try {
+    const { points, ruleId, reason } = req.body;
+
+    if (!points || points < 1) {
+      return res.status(400).json({ success: false, message: "Points must be at least 1." });
+    }
+
+    const household = await Household.findById(req.params.id);
+    if (!household) {
+      return res.status(404).json({ success: false, message: "Household not found." });
+    }
+
+    household.points.total     += points;
+    household.points.thisMonth += points;
+    await household.save();
+
+    await PointLog.create({
+      household: household._id,
+      rule: ruleId || null,
+      points,
+      reason: reason || "Manual award",
+    });
+
+    res.json({
+      success: true,
+      message: `${points} points awarded to ${household.fullname}`,
+      data: {
+        totalPoints: household.points.total,
+        thisMonth:   household.points.thisMonth,
+      },
+    });
+  } catch (error) {
+    res.status(500).json({ success: false, message: error.message });
+  }
+};
+
+// GET /api/households/:id/activity?limit=10
+const getHouseholdActivity = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const limit = Math.min(parseInt(req.query.limit, 10) || 10, 50);
+
+    const [earned, redeemed] = await Promise.all([
+      PointLog.find({ household: id })
+        .sort({ createdAt: -1 })
+        .limit(limit)
+        .populate("rule", "name")
+        .lean(),
+      RewardLog.find({ household: id })
+        .sort({ createdAt: -1 })
+        .limit(limit)
+        .lean(),
+    ]);
+
+    const activity = [
+      ...earned.map((e) => ({
+        type: "Earned points",
+        via: e.rule?.name || e.reason || "Points awarded",
+        date: e.createdAt,
+        points: e.points,
+      })),
+      ...redeemed.map((r) => ({
+        type: "Redeemed Reward",
+        via: r.rewardName,
+        date: r.createdAt,
+        points: -r.pointsSpent,
+      })),
+    ]
+      .sort((a, b) => new Date(b.date) - new Date(a.date))
+      .slice(0, limit);
+
+    res.json({ success: true, data: activity });
+  } catch (error) {
+    res.status(500).json({ success: false, message: error.message });
+  }
+};
+
 module.exports = {
   getAllHouseholds,
   getHouseholdById,
@@ -379,4 +460,6 @@ module.exports = {
   getHouseholdCount,
   checkEmailExists,
   checkContactExists,
+  awardPoints,
+  getHouseholdActivity,
 };

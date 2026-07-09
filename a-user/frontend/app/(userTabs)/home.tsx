@@ -1,18 +1,12 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { View, FlatList, Text, ScrollView, Image, TextInput, TouchableOpacity, Linking, ActivityIndicator } from "react-native";
 import { Feather } from "@expo/vector-icons";
 import { SafeAreaView } from "react-native-safe-area-context";
-import { API_BASE } from "@/config";
-import AsyncStorage from "@react-native-async-storage/async-storage";
+import { useFocusEffect } from "expo-router";
 
-import { getRules } from "../../api/rulesAPI"; // API function to fetch rules
-
-const recentActivityData = [
-    { type: "Earned points", via: "Rule 1. Return of recyclable material", amount: "2kg", date: "2026-01-24", points: 30 },
-    { type: "Redeemed Reward", via: "Vitamins/Medicine", amount: "1pc", date: "2026-01-23", points: -500 },
-    { type: "Earned points", via: "Rule 2. 10-days Streak", date: "2026-01-22", points: 30 },
-    { type: "Earned points", via: "Rule 1. Return of recyclable material", amount: "3kg", date: "2026-01-22", points: 45 },
-];
+import { getRules } from "../../api/rulesAPI";
+import { getHouseholdActivity } from "../../api/rewardAPI";
+import { useHousehold, fetchHousehold } from "../store/householdStore";
 
 type Rule = {
     _id: string;
@@ -24,61 +18,45 @@ type Rule = {
     [key: string]: any;
 };
 
-type Household = {
-    fullname?: string;
-    rank?: number;
-    points?: {
-        total?: number;
-        thisMonth?: number;
-    };
-    [key: string]: any;
-};
+type ActivityItem = { type: string; via: string; date: string; points: number; amount?: string };
 
 export default function Home() {
     const [search, setSearch] = useState("");
-    const [household, setHousehold] = useState<Household | null>(null);
-    const [loading, setLoading] = useState(true);
+    const household = useHousehold();
+    const [householdLoading, setHouseholdLoading] = useState(!household);
 
-    // ---- Rules now come from the database ----
     const [rules, setRules] = useState<Rule[]>([]);
     const [rulesLoading, setRulesLoading] = useState(true);
     const [rulesError, setRulesError] = useState("");
 
-    useEffect(() => {
-        const fetchHousehold = async () => {
-            try {
-                const token = await AsyncStorage.getItem("token");
-                const userStr = await AsyncStorage.getItem("user");
-                const user = userStr ? JSON.parse(userStr) : null;
-                if (!user?.id) return;
+    const [activity, setActivity] = useState<ActivityItem[]>([]);
+    const [activityLoading, setActivityLoading] = useState(true);
 
-                const res = await fetch(`${API_BASE}/api/households/${user.id}`, {
-                    headers: { Authorization: `Bearer ${token}` },
-                });
-                const data = await res.json();
-                if (data.success) setHousehold(data.data);
-            } catch (err) {
-                console.error("Failed to fetch household:", err);
-            } finally {
-                setLoading(false);
-            }
-        };
-
-        fetchHousehold();
+    const loadHousehold = useCallback(async () => {
+        setHouseholdLoading(true);
+        await fetchHousehold();
+        setHouseholdLoading(false);
     }, []);
 
-    const fetchRules = async () => {
+    const loadActivity = useCallback(async (householdId?: string) => {
+        if (!householdId) return;
+        try {
+            setActivityLoading(true);
+            const data = await getHouseholdActivity(householdId, 5);
+            setActivity(data);
+        } catch (err) {
+            console.error("Failed to load activity:", err);
+        } finally {
+            setActivityLoading(false);
+        }
+    }, []);
+
+    const fetchRules = useCallback(async () => {
         try {
             setRulesLoading(true);
             const data = await getRules();
-            // Handle all possible response shapes
-            if (Array.isArray(data)) {
-                setRules(data);
-            } else if (Array.isArray(data?.data)) {
-                setRules(data.data);
-            } else {
-                setRules([]); // fallback to empty array
-            }
+            const list = Array.isArray(data) ? data : Array.isArray(data?.data) ? data.data : [];
+            setRules(list);
         } catch (err) {
             console.error(err);
             setRules([]);
@@ -86,17 +64,29 @@ export default function Home() {
         } finally {
             setRulesLoading(false);
         }
-    };
+    }, []);
 
     useEffect(() => {
+        loadHousehold();
         fetchRules();
     }, []);
 
-    const filteredRules = rules.filter((r) =>
-        r.name.toLowerCase().includes(search.toLowerCase())
+    useEffect(() => {
+        if (household?._id) loadActivity(household._id);
+    }, [household?._id]);
+
+    // Refresh points & activity whenever Home regains focus — catches a
+    // redemption made on the Rewards screen or points awarded via RFID scan
+    useFocusEffect(
+        useCallback(() => {
+            loadHousehold();
+            if (household?._id) loadActivity(household._id);
+        }, [household?._id])
     );
 
-    if (loading) {
+    const filteredRules = rules.filter((r) => r.name.toLowerCase().includes(search.toLowerCase()));
+
+    if (householdLoading) {
         return (
             <SafeAreaView className="flex-1 items-center justify-center">
                 <ActivityIndicator size="large" color="#16A34A" />
@@ -107,14 +97,11 @@ export default function Home() {
     return (
         <SafeAreaView className="flex-1">
             <ScrollView className="flex-1 px-4 py-2">
-
-                {/* Header */}
                 <View>
                     <Text className="text-3xl font-bold">Home</Text>
                     <Text className="text-gray-500 mb-6">Keep up the great work with waste segregation</Text>
                 </View>
 
-                {/* Reward Points */}
                 <View className="bg-green-600 text-white rounded-xl shadow p-6 gap-4">
                     <Text className="text-white">Welcome back,</Text>
                     <Text className="text-4xl text-white font-bold">{household?.fullname ?? "—"}!</Text>
@@ -164,9 +151,7 @@ export default function Home() {
                         </View>
                     )}
 
-                    {!!rulesError && (
-                        <Text className="text-red-500 mb-2">{rulesError}</Text>
-                    )}
+                    {!!rulesError && <Text className="text-red-500 mb-2">{rulesError}</Text>}
 
                     <FlatList
                         data={filteredRules}
@@ -177,19 +162,13 @@ export default function Home() {
                         contentContainerStyle={{ gap: 10 }}
                         ListEmptyComponent={
                             !rulesLoading && !rulesError ? (
-                                <Text className="text-gray-500 text-center py-6 w-full">
-                                    No rules found.
-                                </Text>
+                                <Text className="text-gray-500 text-center py-6 w-full">No rules found.</Text>
                             ) : null
                         }
                         renderItem={({ item: r, index }) => (
                             <View className="flex-1 bg-gray-50 rounded-xl shadow-lg overflow-hidden">
                                 {r.image ? (
-                                    <Image
-                                        source={{ uri: r.image }}
-                                        className="w-full h-40"
-                                        resizeMode="cover"
-                                    />
+                                    <Image source={{ uri: r.image }} className="w-full h-40" resizeMode="cover" />
                                 ) : (
                                     <View className="w-full h-40 bg-gray-200 items-center justify-center">
                                         <Text className="text-gray-400">No image</Text>
@@ -246,23 +225,36 @@ export default function Home() {
                     <Text className="text-green-600 font-medium">See full text of RA 9003</Text>
                 </TouchableOpacity>
 
-                {/* Recent Activity */}
-                <View className="bg-white rounded-xl p-6 shadow mt-5">
+                {/* Recent Activity — now from the database */}
+                <View className="bg-white rounded-xl p-6 shadow mt-5 mb-5">
                     <Text className="text-lg font-semibold mb-4">Recent Activity</Text>
-                    {recentActivityData.map((activity, i) => (
+
+                    {activityLoading && (
+                        <View className="items-center py-6">
+                            <ActivityIndicator color="#16A34A" />
+                        </View>
+                    )}
+
+                    {activity.map((a, i) => (
                         <View key={i} className="flex-row justify-between items-center mb-2">
                             <View>
-                                <Text className="font-medium">{activity.type}</Text>
-                                <Text className="text-xs">{activity.via}{activity.amount ? ` - ${activity.amount}` : ""}</Text>
-                                <Text className="text-xs text-gray-500">{activity.date}</Text>
+                                <Text className="font-medium">{a.type}</Text>
+                                <Text className="text-xs">
+                                    {a.via}
+                                    {a.amount ? ` - ${a.amount}` : ""}
+                                </Text>
+                                <Text className="text-xs text-gray-500">{new Date(a.date).toLocaleDateString()}</Text>
                             </View>
-                            <Text className={`font-semibold ${activity.points > 0 ? 'text-green-600' : 'text-red-500'}`}>
-                                {activity.points > 0 ? `+${activity.points}` : activity.points}
+                            <Text className={`font-semibold ${a.points > 0 ? "text-green-600" : "text-red-500"}`}>
+                                {a.points > 0 ? `+${a.points}` : a.points}
                             </Text>
                         </View>
                     ))}
-                </View>
 
+                    {!activityLoading && activity.length === 0 && (
+                        <Text className="text-gray-500 text-center py-6">No activity yet.</Text>
+                    )}
+                </View>
             </ScrollView>
         </SafeAreaView>
     );

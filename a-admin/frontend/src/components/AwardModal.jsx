@@ -1,186 +1,168 @@
-import { X, Calendar, Pin, Flag, Search, PlusCircle } from "lucide-react";
-import { useState } from "react";
+import { X, Pin, Search } from "lucide-react";
+import { useState, useEffect } from "react";
+import BASE_URL from "../config";
 
-const disposalLogs = [
-    {
-        id: 1,
-        date: "2026-02-01",
-        time: "09:52:08",
-        duration: "38s",
-        houseId: "HH-202610001",
-        resident: "Joel Dela Cruz",
-        address: "Rizal St.",
-        contact: "+63-917-123-4567",
-        email: "delacruzjoel@gmail.com"
-    },
-    {
-        id: 2,
-        date: "2026-02-01",
-        time: "09:35:12",
-        duration: "41s",
-        houseId: "HH-202610002",
-        resident: "Remedios Delo Santos",
-        address: "Mabini St.",
-        contact: "+63-917-123-4567",
-        email: "remydelosantos@gmail.com"
-    },
-    {
-        id: 3,
-        date: "2026-01-31",
-        time: "08:12:44",
-        duration: "52s",
-        houseId: "HH-202610003",
-        resident: "Ramon Reyes",
-        address: "Mabini St.",
-        contact: "+63-917-123-4567",
-        email: "rreyes1234@gmail.com"
-    },
-    {
-        id: 4,
-        date: "2026-01-31",
-        time: "08:12:44",
-        duration: "52s",
-        houseId: "HH-202610004",
-        resident: "Cecilia Garcia",
-        address: "Rizal St.",
-        contact: "+63-917-123-4567",
-        email: "cecilgarcia13@gmail.com"
-    },
-    {
-        id: 5,
-        date: "2026-01-31",
-        time: "08:12:44",
-        duration: "52s",
-        houseId: "HH-202610005",
-        resident: "Amado Aquino",
-        address: "Mabini St.",
-        contact: "+63-917-123-4567",
-        email: "amads_@gmail.com"
-    },
-    {
-        id: 6,
-        date: "2026-01-31",
-        time: "08:12:44",
-        duration: "52s",
-        houseId: "HH-202610006",
-        resident: "Rolando Martinez",
-        address: "Bonifacio St.",
-        contact: "+63-917-123-4567",
-        email: "odnalor1234@gmail.com"
-    },
-    {
-        id: 7,
-        date: "2026-01-31",
-        time: "08:12:44",
-        duration: "52s",
-        houseId: "HH-202610007",
-        resident: "Martin Lopez",
-        address: "Bonifacio St.",
-        contact: "+63-917-123-4567",
-        email: "martinlopez@gmail.com"
-    },
+export default function AwardModal({ isOpen, onClose, rule, onAwarded }) {
 
-];
+    const [households, setHouseholds]       = useState([]);
+    const [loadingHH, setLoadingHH]         = useState(true);
+    const [selectedId, setSelectedId]       = useState(null);   // single selection
+    const [selectedHH, setSelectedHH]       = useState(null);   // full object
+    const [search, setSearch]               = useState("");
+    const [location, setLocation]           = useState("all");
+    const [quantity, setQuantity]           = useState(1);
+    const [awarding, setAwarding]           = useState(false);
+    const [error, setError]                 = useState("");
+    const [success, setSuccess]             = useState("");
 
+    // ── Fetch all active households ───────────────────────────────────────────
+    useEffect(() => {
+        if (!isOpen) return;
+        setSelectedId(null);
+        setSelectedHH(null);
+        setSearch("");
+        setLocation("all");
+        setQuantity(1);
+        setError("");
+        setSuccess("");
 
-export default function AwardModal({ isOpen, onClose, rule }) {
+        const fetchHouseholds = async () => {
+            setLoadingHH(true);
+            try {
+                const res  = await fetch(`${BASE_URL}/api/households?limit=500`);
+                const data = await res.json();
+                if (data.success) setHouseholds(data.data);
+            } catch (err) {
+                console.error("Failed to fetch households:", err);
+                setError("Failed to load households.");
+            } finally {
+                setLoadingHH(false);
+            }
+        };
 
-    const today = new Date();
-    const dayName = today.toLocaleDateString("en-US", { weekday: "long" }); // "Monday", etc
-    const formattedDate = today.toISOString().split("T")[0]; // "2026-02-22"
+        fetchHouseholds();
+    }, [isOpen]);
 
-    const [selectedIds, setSelectedIds] = useState([]);
-    const [location, setLocation] = useState();
-    const [fromDate, setFromDate] = useState();
-    const [toDate, setToDate] = useState("");
+    if (!isOpen || !rule) return null;
 
-    const [search, setSearch] = useState("")
+    // ── Points calculation ────────────────────────────────────────────────────
+    const rulePoints   = parseInt(rule.points) || 0;
+    const awardedPoints = rulePoints * quantity;
+    const currentTotal  = selectedHH?.points?.total ?? 0;
+    const newTotal      = currentTotal + awardedPoints;
+    const calculation   = `${rulePoints} × ${quantity} = ${awardedPoints}`;
 
-    const [quantity, setQuantity] = useState(1);
-    const [points, setPoints] = useState(1240);
-    let awardedPoints = 0;
+    // ── Filtered households ───────────────────────────────────────────────────
+    const filteredHouseholds = households.filter((h) => {
+        const matchSearch =
+            h.fullname?.toLowerCase().includes(search.toLowerCase()) ||
+            h._id?.toLowerCase().includes(search.toLowerCase()) ||
+            h.contactNumber?.includes(search);
 
-    if (!isOpen) return null;
+        const street = h.address?.street?.toLowerCase() ?? "";
+        const matchLocation =
+            location === "all" ||
+            street.includes(location.toLowerCase());
 
-    const filteredLogs = disposalLogs.filter((log) => {
-        if (!fromDate && !toDate) return true;
-        const logDate = new Date(log.date);
-        return (
-            (!fromDate || logDate >= new Date(fromDate)) &&
-            (!toDate || logDate <= new Date(toDate))
-        );
+        return matchSearch && matchLocation;
     });
 
-    const handleCheckboxChange = (id) => {
-        if (selectedIds.includes(id)) {
-            // remove if already selected
-            setSelectedIds(selectedIds.filter(item => item !== id));
-        } else {
-            // add if not selected
-            setSelectedIds([...selectedIds, id]);
-        }
+    // ── Select household ──────────────────────────────────────────────────────
+    const handleSelect = (hh) => {
+        setSelectedId(hh._id);
+        setSelectedHH(hh);
+        setError("");
+        setSuccess("");
     };
 
-
-    // for calcu
-
-    if (rule) {
-        if (typeof rule.points === "number") {
-            awardedPoints = rule.points * quantity;
-
-
-        } else if (typeof rule.points === "object") {
-            awardedPoints = rule.points.minPoints * quantity;
+    // ── Award points ──────────────────────────────────────────────────────────
+    const handleAward = async () => {
+        if (!selectedId) {
+            setError("Please select a household first.");
+            return;
         }
-    }
-
-    const totalPoints = points + awardedPoints;
-
-    let calculation = "";
-
-    if (rule) {
-        if (typeof rule.points === "number") {
-            calculation = `${rule.points} × ${quantity} = ${awardedPoints}`;
-        } else if (typeof rule.points === 1) {
-            calculation = `${rule.points.minPoints} × ${quantity} = ${awardedPoints} (min applied)`;
+        if (quantity < 1) {
+            setError("Quantity must be at least 1.");
+            return;
         }
-    }
 
+        setAwarding(true);
+        setError("");
+        setSuccess("");
+
+        try {
+            const res = await fetch(
+                `${BASE_URL}/api/households/${selectedId}/award-points`,
+                {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({
+                        points: awardedPoints,
+                        ruleId: rule._id,
+                        reason: `${rule.name} — ${quantity} × ${rulePoints} pts (manual award)`,
+                    }),
+                }
+            );
+
+            const data = await res.json();
+
+            if (!res.ok || !data.success) {
+                setError(data.message || "Failed to award points.");
+                return;
+            }
+
+            setSuccess(
+                `✅ ${awardedPoints} points awarded to ${selectedHH.fullname}! New total: ${data.data.totalPoints}`
+            );
+
+            // Update local state so total reflects new value immediately
+            setSelectedHH((prev) => ({
+                ...prev,
+                points: { ...prev.points, total: data.data.totalPoints },
+            }));
+            setHouseholds((prev) =>
+                prev.map((h) =>
+                    h._id === selectedId
+                        ? { ...h, points: { ...h.points, total: data.data.totalPoints } }
+                        : h
+                )
+            );
+
+            onAwarded && onAwarded();
+        } catch (err) {
+            setError("Cannot connect to server.");
+        } finally {
+            setAwarding(false);
+        }
+    };
 
     return (
         <div className="fixed inset-0 z-50 bg-black/40 flex items-center justify-center p-4">
             <div className="bg-white h-auto max-h-[650px] w-full max-w-5xl rounded-2xl shadow-lg flex flex-col">
 
                 {/* HEADER */}
-                <div className="flex justify-between items-center px-6 py-1 border-b">
-                    <h2 className="text-md text-gray-600 font-semi-bold">Assign Points</h2>
+                <div className="flex justify-between items-center px-6 py-3 border-b">
+                    <h2 className="text-md text-gray-600 font-semibold">Assign Points</h2>
                     <button onClick={onClose}>
                         <X className="text-gray-500 cursor-pointer hover:text-gray-800" />
                     </button>
                 </div>
 
-                {/* Filter */}
-                <div className="w-full flex flex-col gap-5 px-4 py-2 border-b lg:flex-row">
+                {/* RULE INFO + FILTERS */}
+                <div className="w-full flex flex-col gap-4 px-4 py-3 border-b lg:flex-row">
                     <div className="flex-1">
-                        <h2 className="text-md font-bold md:text-lg">Rule {rule.id} - <span>{rule.name}</span></h2>
-                        <p>{rule.decs}</p>
-                        
-                        <p className="text-green-400 font-bold">{rule.points} points <span className="text-gray-400 font-normal">-{rule.freq}</span></p>
-
+                        <h2 className="text-md font-bold md:text-lg">{rule.name}</h2>
+                        <p className="text-sm text-gray-500">{rule.decs}</p>
+                        <p className="text-green-500 font-bold mt-1">
+                            {rule.points} points{" "}
+                            <span className="text-gray-400 font-normal text-sm">— {rule.freq}</span>
+                        </p>
                     </div>
+
                     <div className="flex flex-col gap-2 w-auto">
-
-                        {/* <Calendar className="w-4 h-4 md:w-5 h-5" />
-                        <p>Date Collected:</p>
-                        <input
-                            type="date"
-                            value={fromDate}
-                            onChange={(e) => setFromDate(e.target.value)}
-                            className="border rounded-lg px-3 py-2 text-sm w-50"
-                        /> */}
-
+                        {/* Search */}
                         <div className="relative">
-                            <Search className="absolute left-3 top-5 -translate-y-1/2 text-gray-400" size={18} />
+                            <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" size={18} />
                             <input
                                 type="text"
                                 placeholder="Search household"
@@ -190,114 +172,145 @@ export default function AwardModal({ isOpen, onClose, rule }) {
                             />
                         </div>
 
+                        {/* Location filter */}
                         <div className="relative">
-                            <Pin className="absolute left-3 top-5 -translate-y-1/2 text-gray-400" size={18} />
+                            <Pin className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" size={18} />
                             <select
                                 value={location}
                                 onChange={(e) => setLocation(e.target.value)}
-                                className="pl-10 pr-4 py-2 border rounded-lg w-full sm:w-64 focus:ring-2 focus:ring-green-500"
+                                className="pl-10 pr-4 py-2 border rounded-lg w-full sm:w-64 focus:ring-2 focus:ring-green-500 bg-white"
                             >
-                                <option value="all">Location</option>
-                                <option value="Rizal st."> Rizal Street </option>
-                                <option value="Mabini st."> Mabini Street </option>
-                                <option value="Bonifacio st."> Bonifacio Street </option>
-
+                                <option value="all">All Locations</option>
+                                <option value="Rizal">Rizal Street</option>
+                                <option value="Mabini">Mabini Street</option>
+                                <option value="Bonifacio">Bonifacio Street</option>
                             </select>
                         </div>
                     </div>
                 </div>
 
-                {/* TABLE-------------------- */}
-                <div className="flex-2 h-[300px] overflow-y-auto overflow-x-auto">
-                    <table className="w-full text-sm">
-                        <thead className="bg-gray-100">
-                            <tr>
-                                <th className="px-6 py-3">Household ID</th>
-                                <th>Address</th>
-                                <th>Resident</th>
-                                <th>Contact no.</th>
-                                <th>Email</th>
-                                <th>Action</th>
-                            </tr>
-                        </thead>
-
-                        <tbody className="text-center">
-                            {filteredLogs.map((log) => (
-                                <tr key={log.id}>
-
-                                    <td>{log.houseId}</td>
-
-                                    <td className="px-6 py-3">{log.address}</td>
-
-                                    <td>{log.resident}</td>
-                                    <td>{log.contact}</td>
-                                    <td>{log.email}</td>
-                                    <td>
-                                        <input
-                                            type="checkbox"
-                                            checked={selectedIds.includes(log.id)}
-                                            onChange={() => handleCheckboxChange(log.id)}
-                                        />
-                                    </td>
-
-                                </tr>
-                            ))}
-
-                            {filteredLogs.length === 0 && (
+                {/* TABLE */}
+                <div className="flex-1 overflow-y-auto overflow-x-auto">
+                    {loadingHH ? (
+                        <p className="text-center text-gray-400 py-8">Loading households...</p>
+                    ) : (
+                        <table className="w-full text-sm">
+                            <thead className="bg-gray-100 sticky top-0">
                                 <tr>
-                                    <td colSpan="6" className="text-center py-6 text-gray-500">
-                                        No records found for selected dates
-                                    </td>
+                                    <th className="px-4 py-3 text-left">Household ID</th>
+                                    <th className="px-4 py-3 text-left">Name</th>
+                                    <th className="px-4 py-3 text-left">Address</th>
+                                    <th className="px-4 py-3 text-left">Contact</th>
+                                    <th className="px-4 py-3 text-left">Email</th>
+                                    <th className="px-4 py-3 text-left">Points</th>
+                                    <th className="px-4 py-3 text-center">Select</th>
                                 </tr>
-                            )}
-                        </tbody>
-                    </table>
+                            </thead>
+                            <tbody>
+                                {filteredHouseholds.length === 0 ? (
+                                    <tr>
+                                        <td colSpan="7" className="text-center py-8 text-gray-400">
+                                            No households found.
+                                        </td>
+                                    </tr>
+                                ) : (
+                                    filteredHouseholds.map((hh) => (
+                                        <tr
+                                            key={hh._id}
+                                            onClick={() => handleSelect(hh)}
+                                            className={`cursor-pointer border-b hover:bg-gray-50 ${
+                                                selectedId === hh._id ? "bg-green-50" : ""
+                                            }`}
+                                        >
+                                            <td className="px-4 py-3 font-mono text-xs">
+                                                {hh._id.slice(-8).toUpperCase()}
+                                            </td>
+                                            <td className="px-4 py-3 font-medium">{hh.fullname}</td>
+                                            <td className="px-4 py-3 text-gray-500">
+                                                {[hh.address?.houseNo, hh.address?.street]
+                                                    .filter(Boolean)
+                                                    .join(", ") || "—"}
+                                            </td>
+                                            <td className="px-4 py-3">+63 {hh.contactNumber}</td>
+                                            <td className="px-4 py-3">{hh.email || "—"}</td>
+                                            <td className="px-4 py-3 font-bold text-green-600">
+                                                {hh.points?.total ?? 0}
+                                            </td>
+                                            <td className="px-4 py-3 text-center">
+                                                <input
+                                                    type="radio"
+                                                    name="selectedHousehold"
+                                                    checked={selectedId === hh._id}
+                                                    onChange={() => handleSelect(hh)}
+                                                    className="accent-green-600 w-4 h-4"
+                                                />
+                                            </td>
+                                        </tr>
+                                    ))
+                                )}
+                            </tbody>
+                        </table>
+                    )}
                 </div>
-                {/* POINTTTS----------------------- */}
-                <div className="flex flex-col justify-between mt-4 border-t p-4 gap-5 lg:flex-row">
 
-                    <div className="flex-1 bg-green-100 p-4 rounded-lg">
-                        <div className="flex justify-between pb-3 border-b border-gray-500">
-                            <div className="flex flex-col">
-                                <h1 className="font-semibold">Points to be Awarded</h1>
-                                <p className="text-green-600 font-bold text-2xl">
-                                    +{awardedPoints}
-                                </p>
+                {/* POINTS SUMMARY + AWARD */}
+                <div className="flex flex-col justify-between border-t p-4 gap-4 lg:flex-row">
+
+                    {/* Points preview */}
+                    <div className="flex-1 bg-green-50 border border-green-200 p-4 rounded-lg">
+                        <div className="flex justify-between pb-3 border-b border-green-200 mb-3">
+                            <div>
+                                <p className="text-sm text-gray-500">Selected</p>
+                                <p className="font-semibold">{selectedHH?.fullname ?? "—"}</p>
                             </div>
-
-                            <div className="flex flex-col">
-                                <h1 className="font-semibold">Total Points</h1>
-                                <p className="text-green-600 font-bold text-2xl">
-                                    {totalPoints}
-                                </p>
+                            <div className="text-right">
+                                <p className="text-sm text-gray-500">Current Points</p>
+                                <p className="font-bold text-xl">{currentTotal}</p>
                             </div>
                         </div>
 
-                        <p className="text-xs p-2">Calculation: {calculation}</p>
+                        <div className="flex justify-between">
+                            <div>
+                                <p className="text-sm text-gray-500">Points to Award</p>
+                                <p className="text-green-600 font-bold text-2xl">+{awardedPoints}</p>
+                            </div>
+                            <div className="text-right">
+                                <p className="text-sm text-gray-500">New Total</p>
+                                <p className="text-green-600 font-bold text-2xl">{newTotal}</p>
+                            </div>
+                        </div>
 
+                        <p className="text-xs text-gray-400 mt-2">Calculation: {calculation}</p>
                     </div>
-                    <div className="flex-1">
 
-                        {/* Quantity */}
-                        <div className="w-full flex flex-col">
-                            <label className="font-semibold">Quantity</label>
+                    {/* Quantity + Submit */}
+                    <div className="flex-1 flex flex-col gap-3">
+                        <div>
+                            <label className="font-semibold text-sm">Quantity</label>
                             <input
                                 value={quantity}
-                                onChange={(e) => setQuantity(Number(e.target.value))}
+                                onChange={(e) => {
+                                    const val = Math.max(1, parseInt(e.target.value) || 1);
+                                    setQuantity(val);
+                                }}
                                 type="number"
-                                className="mt-1 px-3 py-2 rounded-lg border w-full"
+                                min="1"
+                                className="mt-1 px-3 py-2 rounded-lg border w-full focus:ring-2 focus:ring-green-500"
                             />
                         </div>
-                        {/* Submit Button */}
+
+                        {error && <p className="text-red-500 text-sm">{error}</p>}
+                        {success && <p className="text-green-600 text-sm">{success}</p>}
+
                         <button
-                            onClick={() => setActive(true)}
-                            className="w-full mt-4 bg-green-600 text-white py-2 rounded-lg hover:bg-green-700 transition"
+                            onClick={handleAward}
+                            disabled={awarding || !selectedId}
+                            className="w-full bg-green-600 text-white py-2 rounded-lg hover:bg-green-700 transition disabled:opacity-50 disabled:cursor-not-allowed"
                         >
-                            Assign Points
+                            {awarding ? "Awarding..." : "Assign Points"}
                         </button>
                     </div>
                 </div>
-
 
             </div>
         </div>
