@@ -77,11 +77,18 @@ export default function Rewards() {
         try {
             setRewardsLoading(true);
             const data = await getRewards();
-            setRewards(data);
-            setRewardsError("");
+            // Handle all possible response shapes
+            if (Array.isArray(data)) {
+                setRewards(data);
+            } else if (Array.isArray(data?.data)) {
+                setRewards(data.data);
+            } else {
+                setRewards([]); // fallback to empty array
+            }
         } catch (err) {
             console.error(err);
-            setRewardsError("Failed to load rewards. Is the server running?");
+            setRewards([]);
+            setRewardsError("Failed to load rewards. Please try again later.");
         } finally {
             setRewardsLoading(false);
         }

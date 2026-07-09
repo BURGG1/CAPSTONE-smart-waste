@@ -26,7 +26,7 @@ interface FormState {
     houseNo: string;
     street: string;
     email: string;
-    contactNumber: string;
+    contactNumber: string; // holds only the local part typed after +63, e.g. "9123456789"
 }
 
 interface FormErrors {
@@ -62,6 +62,26 @@ const STREET_OPTIONS = [
 const PH_MOBILE_REGEX = /^09\d{9}$/;
 const EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
+// Mirrors the admin panel's + backend's normalizeContactNumber so every
+// surface agrees on a single canonical format: "09XXXXXXXXX".
+// Since this form only captures the part after the fixed +63 badge,
+// the input is expected to be a 10-digit local number starting with "9"
+// (e.g. "9123456789"), but this still tolerates a pasted "09..." or
+// "+63..." value just in case.
+const normalizeContactNumber = (input: string): string | null => {
+    if (!input || typeof input !== "string") return null;
+
+    let digits = input.replace(/\D/g, "");
+
+    if (digits.startsWith("63") && digits.length === 12) {
+        digits = "0" + digits.slice(2);
+    } else if (digits.length === 10 && digits.startsWith("9")) {
+        digits = "0" + digits;
+    }
+
+    return digits;
+};
+
 export default function RegisterHousehold({ isOpen, onClose }: RegisterHouseholdProps) {
     const [loading, setLoading] = useState(false);
     const [form, setForm] = useState<FormState>(INITIAL_FORM);
@@ -81,13 +101,40 @@ export default function RegisterHousehold({ isOpen, onClose }: RegisterHousehold
         setErrors({});
     };
 
-    const validate = (): FormErrors => {
+    const isEmailTaken = async (email: string): Promise<boolean> => {
+        try {
+            const res = await fetch(
+                `${API_BASE}/api/households/check-email?email=${encodeURIComponent(email)}`
+            );
+            const data = await res.json();
+            if (!data?.success) return false; // fail open, server still enforces uniqueness
+            return !!data.exists;
+        } catch (err) {
+            console.error("Email check failed:", err);
+            return false;
+        }
+    };
+
+    const isContactTaken = async (contactNumber: string): Promise<boolean> => {
+        try {
+            const res = await fetch(
+                `${API_BASE}/api/households/check-contact?contactNumber=${encodeURIComponent(contactNumber)}`
+            );
+            const data = await res.json();
+            if (!data?.success) return false;
+            return !!data.exists;
+        } catch (err) {
+            console.error("Contact check failed:", err);
+            return false;
+        }
+    };
+
+    const validate = (normalizedContact: string | null): FormErrors => {
         const next: FormErrors = {};
         const fullname = form.fullname.trim();
         const houseNo = form.houseNo.trim();
         const street = form.street.trim();
         const email = form.email.trim();
-        const contactNumber = form.contactNumber.trim();
 
         if (!fullname) {
             next.fullname = "Fullname is required.";
@@ -98,13 +145,14 @@ export default function RegisterHousehold({ isOpen, onClose }: RegisterHousehold
         if (!houseNo) next.houseNo = "House number is required.";
         if (!street) next.street = "Please select your street/purok.";
 
-        if (!contactNumber) {
+        if (!form.contactNumber.trim()) {
             next.contactNumber = "Contact number is required.";
-        } else if (!PH_MOBILE_REGEX.test(contactNumber)) {
-            next.contactNumber = "Enter a valid number, e.g. 09123456789.";
+        } else if (!normalizedContact || !PH_MOBILE_REGEX.test(normalizedContact)) {
+            next.contactNumber = "Enter a valid number, e.g. 912-345-6789.";
         }
 
-        if (email && !EMAIL_REGEX.test(email)) {
+        if (!email) next.email = "Email is required.";
+        else if (email && !EMAIL_REGEX.test(email)) {
             next.email = "Enter a valid email address.";
         }
 
@@ -119,7 +167,7 @@ export default function RegisterHousehold({ isOpen, onClose }: RegisterHousehold
     };
 
     // ── Actual submission, only called after user confirms ──
-    const submitRequest = async () => {
+    const submitRequest = async (normalizedContact: string) => {
         if (submittingRef.current) return;
         submittingRef.current = true;
         setLoading(true);
@@ -138,7 +186,7 @@ export default function RegisterHousehold({ isOpen, onClose }: RegisterHousehold
                         street: form.street.trim(),
                     },
                     email: form.email.trim() ? form.email.trim().toLowerCase() : null,
-                    contactNumber: form.contactNumber.trim(),
+                    contactNumber: normalizedContact,
                 }),
             });
 
@@ -180,14 +228,27 @@ export default function RegisterHousehold({ isOpen, onClose }: RegisterHousehold
     };
 
     // ── Validate, then show confirmation before actually sending ──
-    // ── Validate, then show confirmation before actually sending ──
-    const handleRegister = () => {
+    const handleRegister = async () => {
         if (submittingRef.current) return;
 
-        const validationErrors = validate();
-        setErrors(validationErrors);
+        const normalizedContact = normalizeContactNumber(form.contactNumber.trim());
 
-        if (Object.keys(validationErrors).length > 0) {
+        const validationErrors = validate(normalizedContact);
+        setErrors(validationErrors);
+        if (Object.keys(validationErrors).length > 0) return;
+
+        // normalizedContact is guaranteed valid past this point
+        const [emailTaken, contactTaken] = await Promise.all([
+            isEmailTaken(form.email.trim().toLowerCase()),
+            isContactTaken(normalizedContact as string),
+        ]);
+
+        const conflictErrors: FormErrors = {};
+        if (emailTaken) conflictErrors.email = "This email is already registered.";
+        if (contactTaken) conflictErrors.contactNumber = "This contact number is already registered.";
+
+        if (Object.keys(conflictErrors).length > 0) {
+            setErrors((prev) => ({ ...prev, ...conflictErrors }));
             return;
         }
 
@@ -196,7 +257,7 @@ export default function RegisterHousehold({ isOpen, onClose }: RegisterHousehold
             "Are you sure your inputted information is correct?",
             [
                 { text: "Cancel", style: "cancel" },
-                { text: "Confirm", onPress: submitRequest },
+                { text: "Confirm", onPress: () => submitRequest(normalizedContact as string) },
             ]
         );
     };
@@ -219,7 +280,7 @@ export default function RegisterHousehold({ isOpen, onClose }: RegisterHousehold
                 >
                     <Pressable
                         className="bg-white w-full max-w-lg rounded-2xl overflow-hidden"
-                        onPress={() => {}}
+                        onPress={() => { }}
                     >
                         {/* HEADER */}
                         <View className="flex-row justify-between items-center px-6 py-4 border-b border-gray-200">
@@ -242,9 +303,8 @@ export default function RegisterHousehold({ isOpen, onClose }: RegisterHousehold
                                     onChangeText={(v) => handleChange("fullname", v)}
                                     maxLength={100}
                                     editable={!loading}
-                                    className={`border rounded-lg px-3 py-2 mt-1 ${
-                                        errors.fullname ? "border-red-500" : "border-gray-300"
-                                    }`}
+                                    className={`border rounded-lg px-3 py-2 mt-1 ${errors.fullname ? "border-red-500" : "border-gray-300"
+                                        }`}
                                 />
                                 {errors.fullname && (
                                     <Text className="text-red-500 text-xs mt-1">{errors.fullname}</Text>
@@ -261,9 +321,8 @@ export default function RegisterHousehold({ isOpen, onClose }: RegisterHousehold
                                     onChangeText={(v) => handleChange("familyMember", v.replace(/[^0-9]/g, ""))}
                                     maxLength={2}
                                     editable={!loading}
-                                    className={`border rounded-lg px-3 py-2 mt-1 ${
-                                        errors.familyMember ? "border-red-500" : "border-gray-300"
-                                    }`}
+                                    className={`border rounded-lg px-3 py-2 mt-1 ${errors.familyMember ? "border-red-500" : "border-gray-300"
+                                        }`}
                                 />
                                 {errors.familyMember && (
                                     <Text className="text-red-500 text-xs mt-1">{errors.familyMember}</Text>
@@ -289,9 +348,8 @@ export default function RegisterHousehold({ isOpen, onClose }: RegisterHousehold
                                             onChangeText={(v) => handleChange("houseNo", v)}
                                             maxLength={20}
                                             editable={!loading}
-                                            className={`border rounded-lg px-3 py-2 mt-1 ${
-                                                errors.houseNo ? "border-red-500" : "border-gray-300"
-                                            }`}
+                                            className={`border rounded-lg px-3 py-2 mt-1 ${errors.houseNo ? "border-red-500" : "border-gray-300"
+                                                }`}
                                         />
                                         {errors.houseNo && (
                                             <Text className="text-red-500 text-xs mt-1">{errors.houseNo}</Text>
@@ -307,9 +365,8 @@ export default function RegisterHousehold({ isOpen, onClose }: RegisterHousehold
                                         <TouchableOpacity
                                             onPress={() => !loading && setStreetPickerOpen(true)}
                                             disabled={loading}
-                                            className={`border rounded-lg px-3 py-2 mt-1 flex-row justify-between items-center ${
-                                                errors.street ? "border-red-500" : "border-gray-300"
-                                            }`}
+                                            className={`border rounded-lg px-3 py-2 mt-1 flex-row justify-between items-center ${errors.street ? "border-red-500" : "border-gray-300"
+                                                }`}
                                         >
                                             <Text className={form.street ? "text-black" : "text-gray-400"}>
                                                 {form.street || "Select street/purok"}
@@ -325,7 +382,10 @@ export default function RegisterHousehold({ isOpen, onClose }: RegisterHousehold
 
                             {/* Email */}
                             <View className="mb-3">
-                                <Text className="text-lg font-semibold">Email</Text>
+                                <View className="flex-row items-center">
+                                    <Text className="text-lg font-semibold">Email</Text>
+                                    <Text className="text-red-500 ml-1">*</Text>
+                                </View>
                                 <TextInput
                                     placeholder="ex. janicedelacruz@gmail.com"
                                     keyboardType="email-address"
@@ -335,32 +395,37 @@ export default function RegisterHousehold({ isOpen, onClose }: RegisterHousehold
                                     onChangeText={(v) => handleChange("email", v)}
                                     maxLength={100}
                                     editable={!loading}
-                                    className={`border rounded-lg px-3 py-2 mt-1 ${
-                                        errors.email ? "border-red-500" : "border-gray-300"
-                                    }`}
+                                    className={`border rounded-lg px-3 py-2 mt-1 ${errors.email ? "border-red-500" : "border-gray-300"
+                                        }`}
                                 />
                                 {errors.email && (
                                     <Text className="text-red-500 text-xs mt-1">{errors.email}</Text>
                                 )}
                             </View>
 
-                            {/* Contact Number */}
+                            {/* Contact Number — same +63 prefix pattern as the admin panel */}
                             <View className="mb-3">
                                 <View className="flex-row items-center">
                                     <Text className="text-lg font-semibold">Contact Number</Text>
                                     <Text className="text-red-500 ml-1">*</Text>
                                 </View>
-                                <TextInput
-                                    placeholder="ex. 09123456789"
-                                    keyboardType="phone-pad"
-                                    value={form.contactNumber}
-                                    onChangeText={(v) => handleChange("contactNumber", v.replace(/[^0-9]/g, ""))}
-                                    maxLength={11}
-                                    editable={!loading}
-                                    className={`border rounded-lg px-3 py-2 mt-1 ${
-                                        errors.contactNumber ? "border-red-500" : "border-gray-300"
-                                    }`}
-                                />
+                                <View
+                                    className={`flex-row items-center border rounded-lg overflow-hidden mt-1 ${errors.contactNumber ? "border-red-500" : "border-gray-300"
+                                        }`}
+                                >
+                                    <View className="bg-gray-100 px-3 py-2">
+                                        <Text className="text-gray-700 text-sm">🇵🇭 +63</Text>
+                                    </View>
+                                    <TextInput
+                                        placeholder="912-345-6789"
+                                        keyboardType="phone-pad"
+                                        value={form.contactNumber}
+                                        onChangeText={(v) => handleChange("contactNumber", v.replace(/[^0-9]/g, ""))}
+                                        maxLength={10}
+                                        editable={!loading}
+                                        className="flex-1 px-3 py-2"
+                                    />
+                                </View>
                                 {errors.contactNumber && (
                                     <Text className="text-red-500 text-xs mt-1">{errors.contactNumber}</Text>
                                 )}
@@ -395,7 +460,7 @@ export default function RegisterHousehold({ isOpen, onClose }: RegisterHousehold
                     >
                         <Pressable
                             className="bg-white rounded-t-2xl max-h-[70%]"
-                            onPress={() => {}}
+                            onPress={() => { }}
                         >
                             <View className="flex-row justify-between items-center px-5 py-4 border-b border-gray-200">
                                 <Text className="text-lg font-bold">Select Street/Purok</Text>

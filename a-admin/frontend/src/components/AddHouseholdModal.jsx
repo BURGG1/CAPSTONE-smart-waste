@@ -3,6 +3,27 @@ import { useState, useEffect } from "react";
 import ConfirmationModal from "./confirmationModal";
 import SuccessToast from "../assets/Toast";
 
+const EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+const PH_MOBILE_REGEX = /^09\d{9}$/;
+
+// Mirrors the backend's normalizeContactNumber so client-side validation
+// matches what the server will ultimately store/check.
+// Handles "912-345-6789" (as typed here, without the leading 0 since
+// the UI already shows a fixed +63 prefix) -> "09123456789"
+const normalizeContactNumber = (input) => {
+  if (!input || typeof input !== "string") return null;
+
+  let digits = input.replace(/\D/g, "");
+
+  if (digits.startsWith("63") && digits.length === 12) {
+    digits = "0" + digits.slice(2);
+  } else if (digits.length === 10 && digits.startsWith("9")) {
+    digits = "0" + digits;
+  }
+
+  return digits;
+};
+
 export default function AddHousehold({ isOpen, onClose }) {
   const [active, setActive] = useState(false);
   const [showToast, setShowToast] = useState(false);
@@ -48,15 +69,82 @@ export default function AddHousehold({ isOpen, onClose }) {
     setError("");
   };
 
-  const handleRegisterClick = () => {
+  // ── Availability checks (mirrors mobile app) ──
+  const isEmailTaken = async (email) => {
+    try {
+      const res = await fetch(
+        `http://localhost:5000/api/households/check-email?email=${encodeURIComponent(email)}`
+      );
+      const data = await res.json();
+      if (!data?.success) return false; // fail open, server still enforces uniqueness
+      return !!data.exists;
+    } catch (err) {
+      console.error("Email check failed:", err);
+      return false;
+    }
+  };
+
+  const isContactTaken = async (contactNumber) => {
+    try {
+      const res = await fetch(
+        `http://localhost:5000/api/households/check-contact?contactNumber=${encodeURIComponent(contactNumber)}`
+      );
+      const data = await res.json();
+      if (!data?.success) return false;
+      return !!data.exists;
+    } catch (err) {
+      console.error("Contact check failed:", err);
+      return false;
+    }
+  };
+
+  const handleRegisterClick = async () => {
+    // Required fields
     if (!form.fullname || !form.contactNumber || !form.rfid) {
       setError("Fullname, Contact Number, and RFID are required.");
       return;
     }
-    if (!form.email) {
+
+    // Contact number format validation
+    const normalizedContact = normalizeContactNumber(form.contactNumber);
+    if (!normalizedContact || !PH_MOBILE_REGEX.test(normalizedContact)) {
+      setError("Enter a valid contact number, e.g. 912-345-6789.");
+      return;
+    }
+
+    // Email format validation (only if provided)
+    let normalizedEmail = "";
+    if (form.email) {
+      normalizedEmail = form.email.trim().toLowerCase();
+      if (!EMAIL_REGEX.test(normalizedEmail)) {
+        setError("Enter a valid email address.");
+        return;
+      }
+    } else {
       setError("No email provided — login credentials will not be sent.");
       // still allow registration to proceed after warning
     }
+
+    // Availability checks against backend
+    setLoading(true);
+    try {
+      const [emailTaken, contactTaken] = await Promise.all([
+        normalizedEmail ? isEmailTaken(normalizedEmail) : Promise.resolve(false),
+        isContactTaken(normalizedContact),
+      ]);
+
+      if (emailTaken) {
+        setError("This email is already registered.");
+        return;
+      }
+      if (contactTaken) {
+        setError("This contact number is already registered.");
+        return;
+      }
+    } finally {
+      setLoading(false);
+    }
+
     setActive(true);
   };
 

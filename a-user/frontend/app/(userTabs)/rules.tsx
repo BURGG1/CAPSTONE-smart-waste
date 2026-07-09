@@ -67,11 +67,18 @@ export default function Rules() {
         try {
             setRulesLoading(true);
             const data = await getRules();
-            setRules(data);
-            setRulesError("");
+            // Handle all possible response shapes
+            if (Array.isArray(data)) {
+                setRules(data);
+            } else if (Array.isArray(data?.data)) {
+                setRules(data.data);
+            } else {
+                setRules([]); // fallback to empty array
+            }
         } catch (err) {
             console.error(err);
-            setRulesError("Failed to load rules. Is the server running?");
+            setRules([]);
+            setRulesError("Failed to load rules. Please try again later.");
         } finally {
             setRulesLoading(false);
         }

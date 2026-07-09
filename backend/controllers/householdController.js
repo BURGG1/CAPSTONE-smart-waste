@@ -3,12 +3,34 @@ const RfidLog = require("../models/RfidLog");
 const { sendPasswordEmail } = require("../config/mailer");
 const bcrypt = require("bcryptjs");
 
+const EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+const PH_MOBILE_REGEX = /^09\d{9}$/;
+
 // generates a random 8-character password e.g. "Xk3#mP9q"
 const generatePassword = () => {
   const chars = "ABCDEFGHJKLMNPQRSTUVWXYZabcdefghjkmnpqrstuvwxyz23456789!@#";
   return Array.from({ length: 8 }, () =>
     chars[Math.floor(Math.random() * chars.length)]
   ).join("");
+};
+
+// Normalizes any of these into "09182345432":
+// "9182345432"     -> "09182345432"
+// "09182345432"    -> "09182345432"
+// "+639182345432"  -> "09182345432"
+// "639182345432"   -> "09182345432"
+const normalizeContactNumber = (input) => {
+  if (!input || typeof input !== "string") return null;
+
+  let digits = input.replace(/\D/g, ""); // strip spaces, dashes, +, etc.
+
+  if (digits.startsWith("63") && digits.length === 12) {
+    digits = "0" + digits.slice(2); // 639182345432 -> 09182345432
+  } else if (digits.length === 10 && digits.startsWith("9")) {
+    digits = "0" + digits; // 9182345432 -> 09182345432
+  }
+
+  return digits;
 };
 
 // GET /api/households
@@ -79,6 +101,35 @@ const createHousehold = async (req, res) => {
       });
     }
 
+    const normalizedEmail = email ? email.trim().toLowerCase() : null;
+    const normalizedContact = normalizeContactNumber(contactNumber);
+
+    if (normalizedEmail) {
+      if (!EMAIL_REGEX.test(normalizedEmail)) {
+        return res.status(400).json({ success: false, message: "Invalid email format." });
+      }
+      const existingEmail = await Household.findOne({ email: normalizedEmail });
+      if (existingEmail) {
+        return res.status(409).json({
+          success: false,
+          message: "This email is already registered.",
+        });
+      }
+    }
+
+    if (normalizedContact) {
+      if (!PH_MOBILE_REGEX.test(normalizedContact)) {
+        return res.status(400).json({ success: false, message: "Invalid contact number format." });
+      }
+      const existingContact = await Household.findOne({ contactNumber: normalizedContact });
+      if (existingContact) {
+        return res.status(409).json({
+          success: false,
+          message: "This contact number is already registered.",
+        });
+      }
+    }
+
     // Generate plain password then hash it
     const plainPassword = generatePassword();
     const hashedPassword = await bcrypt.hash(plainPassword, 10);
@@ -91,8 +142,8 @@ const createHousehold = async (req, res) => {
         houseNo: address?.houseNo || null,
         street: address?.street || null,
       },
-      contactNumber,
-      email: email || null,
+      contactNumber: normalizedContact,
+      email: normalizedEmail,
       rfid,
       password: hashedPassword, // store hashed
     });
@@ -105,18 +156,24 @@ const createHousehold = async (req, res) => {
     });
 
     // Send plain password to email
-    if (email) {
-      await sendPasswordEmail({ to: email, fullname, password: plainPassword });
+    if (normalizedEmail) {
+      await sendPasswordEmail({ to: normalizedEmail, fullname, password: plainPassword });
     }
 
     res.status(201).json({
       success: true,
-      message: email
+      message: normalizedEmail
         ? "Household registered. Login credentials sent to email."
         : "Household registered. No email — credentials not sent.",
       data: household,
     });
   } catch (error) {
+    if (error.code === 11000 && error.keyPattern?.email) {
+      return res.status(409).json({ success: false, message: "This email is already registered." });
+    }
+    if (error.code === 11000 && error.keyPattern?.contactNumber) {
+      return res.status(409).json({ success: false, message: "This contact number is already registered." });
+    }
     if (error.name === "ValidationError") {
       const messages = Object.values(error.errors).map((e) => e.message);
       return res.status(400).json({ success: false, message: messages });
@@ -136,7 +193,6 @@ const updateHousehold = async (req, res) => {
 
     // Handle password change if requested
     if (currentPassword && newPassword) {
-      const bcrypt = require("bcryptjs");
       const isMatch = await bcrypt.compare(currentPassword, household.password);
       if (!isMatch) {
         return res.status(401).json({ success: false, message: "Current password is incorrect." });
@@ -144,6 +200,7 @@ const updateHousehold = async (req, res) => {
       household.password = await bcrypt.hash(newPassword, 10);
     }
 
+    // RFID reassignment check
     if (rfid && rfid !== household.rfid) {
       const conflict = await Household.findOne({ rfid, _id: { $ne: req.params.id } });
       if (conflict) {
@@ -158,19 +215,65 @@ const updateHousehold = async (req, res) => {
       ]);
     }
 
-    // Update other fields
+    // Email uniqueness (only if changing)
+    let normalizedEmail;
+    if (email !== undefined) {
+      normalizedEmail = email ? email.trim().toLowerCase() : null;
+
+      if (normalizedEmail && !EMAIL_REGEX.test(normalizedEmail)) {
+        return res.status(400).json({ success: false, message: "Invalid email format." });
+      }
+
+      if (normalizedEmail && normalizedEmail !== household.email) {
+        const existingEmail = await Household.findOne({
+          email: normalizedEmail,
+          _id: { $ne: req.params.id },
+        });
+        if (existingEmail) {
+          return res.status(409).json({ success: false, message: "This email is already registered." });
+        }
+      }
+    }
+
+    // Contact number uniqueness (only if changing)
+    let normalizedContact;
+    if (contactNumber !== undefined) {
+      normalizedContact = normalizeContactNumber(contactNumber);
+
+      if (normalizedContact && !PH_MOBILE_REGEX.test(normalizedContact)) {
+        return res.status(400).json({ success: false, message: "Invalid contact number format." });
+      }
+
+      if (normalizedContact && normalizedContact !== household.contactNumber) {
+        const existingContact = await Household.findOne({
+          contactNumber: normalizedContact,
+          _id: { $ne: req.params.id },
+        });
+        if (existingContact) {
+          return res.status(409).json({ success: false, message: "This contact number is already registered." });
+        }
+      }
+    }
+
+    // Apply updates
     if (fullname) household.fullname = fullname;
     if (birthday) household.birthday = birthday;
     if (familyMember !== undefined) household.familyMember = familyMember;
     if (address) household.address = address;
-    if (contactNumber) household.contactNumber = contactNumber;
-    if (email) household.email = email;
+    if (contactNumber !== undefined) household.contactNumber = normalizedContact;
+    if (email !== undefined) household.email = normalizedEmail;
     if (rfid) household.rfid = rfid;
 
     await household.save();
 
     res.json({ success: true, message: "Household updated successfully", data: household });
   } catch (error) {
+    if (error.code === 11000 && error.keyPattern?.email) {
+      return res.status(409).json({ success: false, message: "This email is already registered." });
+    }
+    if (error.code === 11000 && error.keyPattern?.contactNumber) {
+      return res.status(409).json({ success: false, message: "This contact number is already registered." });
+    }
     if (error.name === "ValidationError") {
       const messages = Object.values(error.errors).map((e) => e.message);
       return res.status(400).json({ success: false, message: messages });
@@ -212,6 +315,60 @@ const getHouseholdCount = async (req, res) => {
   }
 };
 
+// GET /api/households/check-email?email=someone@example.com
+const checkEmailExists = async (req, res) => {
+  try {
+    const rawEmail = req.query.email;
+
+    if (!rawEmail || typeof rawEmail !== "string") {
+      return res.status(400).json({ success: false, message: "Email is required." });
+    }
+
+    const email = rawEmail.trim().toLowerCase();
+
+    if (!EMAIL_REGEX.test(email)) {
+      return res.status(400).json({ success: false, message: "Invalid email format." });
+    }
+
+    // Only active households count as a conflict — deactivated ones shouldn't
+    // block re-registration under the same email. Drop the isActive filter
+    // if you want deactivated accounts to still count.
+    const existing = await Household.findOne({
+      email,
+      isActive: { $ne: false },
+    }).select("_id");
+
+    return res.json({ success: true, exists: !!existing });
+  } catch (error) {
+    res.status(500).json({ success: false, message: error.message });
+  }
+};
+
+// GET /api/households/check-contact?contactNumber=09123456789
+const checkContactExists = async (req, res) => {
+  try {
+    const rawContact = req.query.contactNumber;
+
+    if (!rawContact || typeof rawContact !== "string") {
+      return res.status(400).json({ success: false, message: "Contact number is required." });
+    }
+
+    const contactNumber = normalizeContactNumber(rawContact);
+
+    if (!PH_MOBILE_REGEX.test(contactNumber)) {
+      return res.status(400).json({ success: false, message: "Invalid contact number format." });
+    }
+
+    const existing = await Household.findOne({
+      contactNumber,
+      isActive: { $ne: false },
+    }).select("_id");
+
+    return res.json({ success: true, exists: !!existing });
+  } catch (error) {
+    res.status(500).json({ success: false, message: error.message });
+  }
+};
 
 module.exports = {
   getAllHouseholds,
@@ -220,4 +377,6 @@ module.exports = {
   updateHousehold,
   deleteHousehold,
   getHouseholdCount,
+  checkEmailExists,
+  checkContactExists,
 };

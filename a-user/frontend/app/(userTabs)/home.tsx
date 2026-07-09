@@ -17,8 +17,8 @@ const recentActivityData = [
 type Rule = {
     _id: string;
     name: string;
-    decs?: string;
-    freq?: string;
+    description?: string;
+    frequency?: string;
     points?: number;
     image?: string;
     [key: string]: any;
@@ -71,11 +71,18 @@ export default function Home() {
         try {
             setRulesLoading(true);
             const data = await getRules();
-            setRules(data);
-            setRulesError("");
+            // Handle all possible response shapes
+            if (Array.isArray(data)) {
+                setRules(data);
+            } else if (Array.isArray(data?.data)) {
+                setRules(data.data);
+            } else {
+                setRules([]); // fallback to empty array
+            }
         } catch (err) {
             console.error(err);
-            setRulesError("Failed to load rules. Is the server running?");
+            setRules([]);
+            setRulesError("Failed to load rules. Please try again later.");
         } finally {
             setRulesLoading(false);
         }
@@ -191,8 +198,8 @@ export default function Home() {
                                 <View className="p-3 gap-1">
                                     <Text className="text-sm font-bold">Rule {index + 1}</Text>
                                     <Text className="text-xs text-gray-500">{r.name}</Text>
-                                    <Text className="text-xs text-gray-400">{r.decs}</Text>
-                                    <Text className="text-xs text-gray-400">{r.freq}</Text>
+                                    <Text className="text-xs text-gray-400">{r.description}</Text>
+                                    <Text className="text-xs text-gray-400">{r.frequency}</Text>
                                 </View>
                                 <View className="absolute top-2 right-2 bg-white rounded-lg p-1 shadow-md">
                                     <Text className="text-green-500 font-bold text-sm text-center">+{r.points}</Text>
