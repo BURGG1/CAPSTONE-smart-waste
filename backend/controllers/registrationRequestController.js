@@ -3,10 +3,26 @@ const RegistrationRequest = require("../models/RegistrationRequest");
 // POST /api/requests  — mobile app submits registration
 const createRequest = async (req, res) => {
   try {
-    const { fullname, familyMember, address, email } = req.body;
+    const { fullname, familyMember, address, email, contactNumber } = req.body;
 
     if (!fullname) {
       return res.status(400).json({ success: false, message: "Fullname is required." });
+    }
+
+    // ── Limit email to one request ──
+    if (email) {
+      const normalizedEmail = email.toLowerCase().trim();
+
+      const existingRequest = await RegistrationRequest.findOne({
+        email: normalizedEmail,
+      });
+
+      if (existingRequest) {
+        return res.status(400).json({
+          success: false,
+          message: "This email has already been used to submit a registration request.",
+        });
+      }
     }
 
     const request = await RegistrationRequest.create({
@@ -16,7 +32,8 @@ const createRequest = async (req, res) => {
         houseNo: address?.houseNo || null,
         street: address?.street || null,
       },
-      email: email || null,
+      email: email ? email.toLowerCase().trim() : null,
+      contactNumber: contactNumber || null,
     });
 
     res.status(201).json({

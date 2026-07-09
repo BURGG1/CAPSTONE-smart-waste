@@ -39,6 +39,9 @@ function RequestTab() {
     const [openRFIDmodal, setopenRFIDmodal] = useState(false);
     const [selectedRequest, setSelectedRequest] = useState(null);
 
+    const [declineActive, setDeclineActive] = useState(false);
+    const [selectedDeclineId, setSelectedDeclineId] = useState(null);
+
     const fetchRequests = async () => {
         setLoading(true);
         try {
@@ -66,13 +69,27 @@ function RequestTab() {
         setopenRFIDmodal(true);
     };
 
-    const handleDecline = async (id) => {
-        await fetch(`${BASE_URL}/api/requests/${id}/status`, {
-            method: "PATCH",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ status: "declined" }),
-        });
-        fetchRequests();
+    const handleDeclineClick = (id) => {
+        setSelectedDeclineId(id);
+        setDeclineActive(true);
+    };
+
+    const handleConfirmDecline = async () => {
+        if (!selectedDeclineId) return;
+
+        try {
+            await fetch(`${BASE_URL}/api/requests/${selectedDeclineId}/status`, {
+                method: "PATCH",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ status: "declined" }),
+            });
+            fetchRequests();
+        } catch (err) {
+            alert("Cannot connect to server.");
+        } finally {
+            setDeclineActive(false);
+            setSelectedDeclineId(null);
+        }
     };
 
     const handleRFIDAssigned = async (rfid) => {
@@ -138,7 +155,7 @@ function RequestTab() {
                                 <th className="px-4 py-3 text-sm font-semibold">Name</th>
                                 <th className="px-4 py-3 text-sm font-semibold">Address</th>
                                 <th className="px-4 py-3 text-sm font-semibold">Email</th>
-                                <th className="px-4 py-3 text-sm font-semibold">Family Members</th>
+                                <th className="px-4 py-3 text-sm font-semibold">Contact Number</th>
                                 <th className="px-4 py-3 text-sm font-semibold">Action</th>
                             </tr>
                         </thead>
@@ -159,7 +176,7 @@ function RequestTab() {
                                                 .join(", ") || "—"}
                                         </td>
                                         <td className="px-4 py-3">{item.email || "—"}</td>
-                                        <td className="px-4 py-3">{item.familyMember || "—"}</td>
+                                        <td className="px-4 py-3">{item.contactNumber || "—"}</td>
                                         <td className="flex flex-row justify-center items-center gap-2 py-3">
                                             <button
                                                 onClick={() => handleApprove(item)}
@@ -168,7 +185,7 @@ function RequestTab() {
                                                 Approve
                                             </button>
                                             <button
-                                                onClick={() => handleDecline(item._id)}
+                                                  onClick={() => handleDeclineClick(item._id)}
                                                 className="cursor-pointer bg-red-600 text-white px-3 py-1 rounded-lg"
                                             >
                                                 Decline
@@ -195,6 +212,15 @@ function RequestTab() {
                     setSelectedRequest(null);
                 }}
                 onAssign={handleRFIDAssigned}
+            />
+
+            <ConfirmationModal
+                isOpen={declineActive}
+                onClose={() => {
+                    setDeclineActive(false);
+                    setSelectedDeclineId(null);
+                }}
+                onConfirm={handleConfirmDecline}
             />
         </section>
     );
