@@ -3,6 +3,7 @@ import { View, Text, ScrollView, TouchableOpacity, ActivityIndicator } from "rea
 import { Feather } from "@expo/vector-icons";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useRouter } from "expo-router";
+import { API_BASE } from "@/config"; // Import the API base URL
 import AsyncStorage from "@react-native-async-storage/async-storage";
 
 export default function CollectorProfile() {
@@ -14,7 +15,7 @@ export default function CollectorProfile() {
     const fetchProfile = async () => {
       try {
         const token = await AsyncStorage.getItem("token");
-        const res = await fetch("http://192.168.43.208:5000/api/collectors/me", {
+        const res = await fetch(`${API_BASE}/api/collectors/me`, {
           headers: { Authorization: `Bearer ${token}` },
         });
         const data = await res.json();

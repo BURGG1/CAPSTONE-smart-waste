@@ -3,8 +3,9 @@ import { View, Text, ScrollView, ActivityIndicator } from "react-native";
 import { WebView } from "react-native-webview";
 import { Feather } from "@expo/vector-icons";
 import { useState, useEffect, useCallback, useRef } from "react";
+import { API_BASE } from "@/config"; // Import the API base URL
 
-const API = "http://192.168.43.208:5000/api/bins";
+const API = `${API_BASE}/api/bins`;
 
 // Match the web dashboard's poll cadence (and the ESP32's FILL_SEND_INTERVAL_MS)
 const POLL_INTERVAL_MS = 10000;

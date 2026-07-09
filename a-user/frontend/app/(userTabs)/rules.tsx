@@ -2,10 +2,11 @@ import { useState, useEffect } from "react";
 import { View, Text, FlatList, ScrollView, Image, TextInput, TouchableOpacity, Linking, ActivityIndicator } from "react-native";
 import { Feather } from "@expo/vector-icons"; // Expo Icons
 import { SafeAreaView } from "react-native-safe-area-context";
+import { API_BASE } from "@/config"; // Import the API_BASE constant
 
 import { getRules } from "../../api/rulesAPI"; // API function to fetch rules
 // Your backend's base URL — used to build full image URLs since the DB only stores a path like "/uploads/x.jpg"
-const IMAGE_BASE = "http://localhost:5000";
+const IMAGE_BASE = `${API_BASE}/uploads`;
 
 // household info
 const household = {
@@ -46,11 +47,21 @@ const recentActivityData = [
     { type: "Earned points", via: "Rule 1. Return of recyclable material", amount: "3kg", date: "2026-01-22", points: 45 },
 ];
 
+type Rule = {
+    _id: string;
+    name: string;
+    decs?: string;
+    freq?: string;
+    points?: number;
+    image?: string;
+    [key: string]: any;
+};
+
 export default function Rules() {
     const [search, setSearch] = useState("");
 
     // ---- Rules now come from the database ----
-    const [rules, setRules] = useState([]);
+    const [rules, setRules] = useState<Rule[]>([]);
     const [rulesLoading, setRulesLoading] = useState(true);
     const [rulesError, setRulesError] = useState("");
 

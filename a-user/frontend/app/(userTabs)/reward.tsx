@@ -2,6 +2,7 @@ import { useState, useEffect } from "react";
 import { View, Text, ScrollView, TouchableOpacity, Image, ActivityIndicator } from "react-native";
 import { Feather, MaterialCommunityIcons } from "@expo/vector-icons"; // Expo icons
 import { SafeAreaView } from "react-native-safe-area-context";
+import { API_BASE } from "@/config"; // Import the API base URL
 
 import { getRewards } from "../../api/rewardAPI"; // API function to fetch rewards
 

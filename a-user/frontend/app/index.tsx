@@ -2,6 +2,7 @@ import { useState } from "react";
 import { View, Text, TextInput, TouchableOpacity, Alert } from "react-native";
 import { Feather } from "@expo/vector-icons";
 import { useRouter } from "expo-router";
+import { API_BASE } from "@/config";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import RegisterHousehold from "@/components/RegisterHouseholdModal";
 
@@ -20,7 +21,7 @@ export default function AuthPage() {
 
     setLoading(true);
     try {
-      const response = await fetch("http://192.168.43.208:5000/api/auth/login", {
+      const response = await fetch(`${API_BASE}/api/auth/login`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({

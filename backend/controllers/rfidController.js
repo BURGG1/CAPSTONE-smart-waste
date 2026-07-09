@@ -63,7 +63,7 @@ const scanAtBin = async (req, res) => {
     if (!rfid || !binId)
       return res.status(400).json({ success: false, message: "rfid and binId are required" });
 
-    const household = await Household.findOne({ rfid, isActive: true });
+    const household = await Household.findOne({ rfid });
     if (!household) {
       await RfidLog.create({
         rfid,

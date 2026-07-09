@@ -10,6 +10,7 @@ import {
     Plus,
     Home
 } from "lucide-react";
+import BASE_URL from "../../config";
 import HouseholdRecordModal from "../../components/HHrecordModal";
 import ConfirmationModal from "../../components/confirmationModal";
 import AssignRFIDModal from "../../components/AssignRFID";
@@ -41,7 +42,7 @@ function RequestTab() {
     const fetchRequests = async () => {
         setLoading(true);
         try {
-            const res = await fetch("http://localhost:5000/api/requests?status=pending");
+            const res = await fetch(`${BASE_URL}/api/requests?status=pending`);
             const data = await res.json();
             if (data.success) setRequests(data.data);
         } catch (err) {
@@ -66,7 +67,7 @@ function RequestTab() {
     };
 
     const handleDecline = async (id) => {
-        await fetch(`http://localhost:5000/api/requests/${id}/status`, {
+        await fetch(`${BASE_URL}/api/requests/${id}/status`, {
             method: "PATCH",
             headers: { "Content-Type": "application/json" },
             body: JSON.stringify({ status: "declined" }),
@@ -78,7 +79,7 @@ function RequestTab() {
         if (!selectedRequest) return;
 
         try {
-            const response = await fetch("http://localhost:5000/api/households", {
+            const response = await fetch(`${BASE_URL}/api/households`, {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
                 body: JSON.stringify({
@@ -101,7 +102,7 @@ function RequestTab() {
                 return;
             }
 
-            await fetch(`http://localhost:5000/api/requests/${selectedRequest._id}/status`, {
+            await fetch(`${BASE_URL}/api/requests/${selectedRequest._id}/status`, {
                 method: "PATCH",
                 headers: { "Content-Type": "application/json" },
                 body: JSON.stringify({ status: "approved" }),
@@ -222,7 +223,7 @@ export default function HouseholdInfo() {
         setFetchError("");
         try {
             const res = await fetch(
-                `http://localhost:5000/api/households?search=${search}&limit=100`
+                `${BASE_URL}/api/households?search=${search}&limit=100`
             );
             const data = await res.json();
             if (data.success) {

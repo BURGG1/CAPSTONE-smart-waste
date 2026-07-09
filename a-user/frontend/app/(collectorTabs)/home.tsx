@@ -2,6 +2,7 @@ import { useState } from "react";
 import { View, Text, ScrollView } from "react-native";
 import { Feather } from "@expo/vector-icons";
 import { SafeAreaView } from "react-native-safe-area-context";
+import { API_BASE } from "@/config"; // Import the API base URL
 
 // Collector Info
 const collector = {

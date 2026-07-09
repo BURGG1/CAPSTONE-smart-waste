@@ -13,6 +13,7 @@ import {
     Tooltip,
     ResponsiveContainer,
 } from "recharts";
+import BASE_URL from "../../config";
 
 import { useState, useEffect } from "react";
 import Navbar from "../../components/Navbar";
@@ -64,9 +65,9 @@ export default function ComplianceDashboard() {
         const fetchCounts = async () => {
             try {
                 const [hhRes, binRes, binsListRes] = await Promise.all([
-                    fetch("http://localhost:5000/api/households/count"),
-                    fetch("http://localhost:5000/api/bins/count"),
-                    fetch("http://localhost:5000/api/bins"),
+                    fetch(`${BASE_URL}/api/households/count`),
+                    fetch(`${BASE_URL}/api/bins/count`),
+                    fetch(`${BASE_URL}/api/bins`),
                 ]);
 
                 if (!hhRes.ok || !binRes.ok || !binsListRes.ok) {

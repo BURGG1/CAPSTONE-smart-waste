@@ -201,12 +201,28 @@ const getBinCount = async (req, res) => {
   }
 };
 
-module.exports = {
-  dispose,
-  getAllBins,
-  createBin,
-  updateBin,
-  deleteBin,
-  getBinByMac,
-  getBinCount,
+// POST /api/bins/heartbeat
+const heartbeat = async (req, res) => {
+  try {
+    const { binId } = req.body;
+    if (!binId) return res.status(400).json({ success: false, message: "binId is required." });
+
+    const bin = await Bin.findOneAndUpdate(
+      { binId },
+      {
+        status: "online",
+        isActive: true,
+        lastHeartbeat: new Date(),
+      },
+      { new: true }
+    );
+
+    if (!bin) return res.status(404).json({ success: false, message: "Bin not found." });
+
+    res.json({ success: true, message: "Heartbeat received.", data: { binId, status: "online" } });
+  } catch (error) {
+    res.status(500).json({ success: false, message: error.message });
+  }
 };
+
+module.exports = { dispose, getAllBins, createBin, updateBin, deleteBin, getBinByMac, heartbeat, getBinCount };

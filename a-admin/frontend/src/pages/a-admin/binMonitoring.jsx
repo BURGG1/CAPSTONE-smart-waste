@@ -4,6 +4,7 @@ import SetSched from "../../components/setCollectionSched";
 import Footer from "../../components/Footer";
 import { useState, useEffect, useCallback, useRef } from "react";
 import { MapContainer, TileLayer, Marker, Popup, Tooltip } from "react-leaflet";
+import BASE_URL from "../../config";
 
 import {
   CheckCircle,
@@ -14,8 +15,8 @@ import {
   Trash,
 } from "lucide-react";
 
-const API = "http://localhost:5000/api/bins";
-const SCHEDULE_API = "http://localhost:5000/api/bins"; // -> /:binId/schedule
+const API = `${BASE_URL}/api/bins`;
+const SCHEDULE_API = `${BASE_URL}/api/bins`; // -> /:binId/schedule
 
 // How often to re-fetch bins from the server. Matches the ESP32's
 // FILL_SEND_INTERVAL_MS (10s) so the dashboard stays roughly live.

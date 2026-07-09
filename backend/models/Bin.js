@@ -46,6 +46,16 @@ const binSchema = new mongoose.Schema(
       type: Number,
       default: null,
     },
+    isActive: {
+      type: Boolean,
+      default: true,
+    },
+    status: {
+      type: String,
+      enum: ["online", "offline"],
+      default: "offline",
+    },
+    lastHeartbeat: { type: Date, default: null },
   },
   { timestamps: true }
 );

@@ -2,6 +2,7 @@ import { useState, useEffect } from "react";
 import { View, FlatList, Text, ScrollView, Image, TextInput, TouchableOpacity, Linking, ActivityIndicator } from "react-native";
 import { Feather } from "@expo/vector-icons";
 import { SafeAreaView } from "react-native-safe-area-context";
+import { API_BASE } from "@/config";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 
 import pandisplay from "../../assets/pandisplay.jpg";
@@ -38,7 +39,7 @@ export default function Home() {
                 const user = userStr ? JSON.parse(userStr) : null;
                 if (!user?.id) return;
 
-                const res = await fetch(`http://localhost:5000/api/households/${user.id}`, {
+                const res = await fetch(`${API_BASE}/api/households/${user.id}`, {
                     headers: { Authorization: `Bearer ${token}` },
                 });
                 const data = await res.json();

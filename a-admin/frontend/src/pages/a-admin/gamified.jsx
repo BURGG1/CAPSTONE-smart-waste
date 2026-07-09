@@ -17,12 +17,13 @@ import ConfirmationModal from "../../components/confirmationModal";
 import RulesModal from "../../components/RulesModal";
 import AwardModal from "../../components/AwardModal";
 import ClaimReward from "../../components/ClaimReward";
+import BASE_URL from "../../config";
 
 import { getRewards, createReward, updateReward } from "../../api/rewardApi";
 import { getRules } from "../../api/rulesAPI";
 
 // Your backend's base URL — used to build full image URLs since the DB only stores a path like "/uploads/x.jpg"
-const IMAGE_BASE = "http://localhost:5000";
+const IMAGE_BASE = `${BASE_URL}`;
 
 // Points summary
 const POINTS = {

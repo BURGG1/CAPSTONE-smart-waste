@@ -1,7 +1,10 @@
 const express = require("express");
 const router  = express.Router();
 const Bin     = require("../models/Bin");
-const { dispose, getAllBins, createBin, updateBin, deleteBin, getBinCount } = require("../controllers/binController");
+const { dispose, getAllBins, createBin, updateBin, deleteBin, getBinCount, heartbeat } = require("../controllers/binController");
+
+
+router.post("/heartbeat", heartbeat);   
 
 // ── Must be before /:id routes ────────────────────────────────────────────────
 router.post("/dispose",          dispose);

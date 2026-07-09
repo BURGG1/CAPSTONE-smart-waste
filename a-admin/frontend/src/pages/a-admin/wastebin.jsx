@@ -2,6 +2,7 @@ import { useState, useRef, useEffect } from "react";
 import Navbar from "../../components/Navbar";
 import NavigationShell from "../../navigation/mainNav";
 import Footer from "../../components/Footer";
+import BASE_URL from "../../config";
 
 import {
     CheckCircle,
@@ -17,7 +18,7 @@ import {
 import ConfirmationModal from "../../components/confirmationModal";
 import CounterInfoModal from "../../components/CounterInfoModal";
 
-const API = "http://localhost:5000/api/bins";
+const API = `${BASE_URL}/api/bins`;
 
 const statusColors = {
     good: {
@@ -113,7 +114,7 @@ export default function WasteBin() {
 
     async function fetchDevices() {
         try {
-            const res = await fetch("http://localhost:5000/api/devices/available");
+            const res = await fetch(`${BASE_URL}/api/devices/available`);
             const data = await res.json();
             if (data.success) setDevices(data.data);
         } catch (err) {

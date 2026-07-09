@@ -20,10 +20,22 @@ const registrationRequestRoutes = require("./routes/registrationRequestRoutes");
   
 const app = express();
 const PORT = process.env.PORT || 5000;
+const { startBinStatusChecker } = require("./jobs/binStatusChecker");
 
 connectDB();
+startBinStatusChecker();
 
-app.use(cors());
+app.use(cors({
+    origin: function(origin, callback) {
+        if (!origin || origin.includes("localhost") || origin.includes("192.168.")) {
+            callback(null, true);
+        } else {
+            callback(new Error("Not allowed by CORS"));
+        }
+    },
+    credentials: true
+}));
+
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
@@ -51,7 +63,8 @@ app.use((req, res) => {
 
 app.use(errorHandler);
 
-app.listen(PORT, () => {
-  console.log(`Server running on http://localhost:${PORT}`);
+app.listen(PORT, "0.0.0.0", () => {
+  // console.log(`Server running on http://localhost:${PORT}`);
   console.log(`Environment: ${process.env.NODE_ENV}`);
+  console.log("Server running on port " + PORT);
 });
