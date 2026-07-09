@@ -23,7 +23,7 @@ import { getRewards, createReward, updateReward } from "../../api/rewardApi";
 import { getRules } from "../../api/rulesAPI";
 
 // Your backend's base URL — used to build full image URLs since the DB only stores a path like "/uploads/x.jpg"
-const IMAGE_BASE = `${BASE_URL}`;
+
 
 // Points summary
 const POINTS = {
@@ -149,27 +149,46 @@ export default function Gamified() {
     const [search, setSearch] = useState("");
 
     const fetchRewards = async () => {
-        try {
-            setRewardsLoading(true);
-            const data = await getRewards();
+    try {
+        setRewardsLoading(true);
+        const data = await getRewards();
+
+        if (Array.isArray(data)) {
             setRewards(data);
-            setRewardsError("");
-        } catch (err) {
-            console.error(err);
-            setRewardsError("Failed to load rewards. Is the server running?");
-        } finally {
-            setRewardsLoading(false);
+        } else if (data?.data && Array.isArray(data.data)) {
+            setRewards(data.data);
+        } else {
+            setRewards([]);
         }
-    };
+
+        setRewardsError("");
+    } catch (err) {
+        console.error(err);
+        setRewards([]);
+        setRewardsError("Failed to load rewards. Is the server running?");
+    } finally {
+        setRewardsLoading(false);
+    }
+};
 
     const fetchRules = async () => {
         try {
             setRulesLoading(true);
             const data = await getRules();
-            setRules(data);
+
+            // Handle both response shapes
+            if (Array.isArray(data)) {
+                setRules(data);
+            } else if (data?.data && Array.isArray(data.data)) {
+                setRules(data.data);
+            } else {
+                setRules([]);
+            }
+
             setRulesError("");
         } catch (err) {
             console.error(err);
+            setRules([]);
             setRulesError("Failed to load rules. Is the server running?");
         } finally {
             setRulesLoading(false);
@@ -411,7 +430,7 @@ export default function Gamified() {
                                         >
                                             {item.image ? (
                                                 <img
-                                                    src={`${IMAGE_BASE}${item.image}`}
+                                                    src={item.image}
                                                     alt={item.name}
                                                     className="h-24 w-full object-cover rounded mb-4"
                                                 />
@@ -563,7 +582,7 @@ export default function Gamified() {
                                             <div className="overflow-hidden">
                                                 {r.image ? (
                                                     <img
-                                                        src={`${IMAGE_BASE}${r.image}`}
+                                                        src={r.image}
                                                         alt={r.name}
                                                         className="w-full h-90 object-cover transform transition-transform rounded-tr-lg rounded-tl-lg duration-500 group-hover:scale-110"
                                                     />

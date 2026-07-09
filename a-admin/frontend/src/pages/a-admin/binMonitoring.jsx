@@ -109,6 +109,7 @@ export default function BinMonitoring() {
           schedule: bin.schedule ?? prev?.schedule ?? null,
           lat: bin.lat ?? 14.86515,
           lng: bin.lng ?? 120.75615,
+          status: bin.status ?? "offline",
         };
       });
 
@@ -358,7 +359,17 @@ export default function BinMonitoring() {
                   >
                     <div className="flex justify-between items-start">
                       <div>
-                        <h3 className="font-bold">{bin.id} - {bin.name}</h3>
+                        <div className="flex items-center gap-2">
+                          <h3 className="font-bold">{bin.id} - {bin.name}</h3>
+                          <span className={`inline-flex items-center gap-1 px-2 py-0.5 text-xs rounded-full font-medium ${bin.status === "online"
+                              ? "bg-green-100 text-green-700"
+                              : "bg-gray-100 text-gray-500"
+                            }`}>
+                            <span className={`w-1.5 h-1.5 rounded-full ${bin.status === "online" ? "bg-green-500" : "bg-gray-400"
+                              }`} />
+                            {bin.status === "online" ? "Online" : "Offline"}
+                          </span>
+                        </div>
                         <p className="flex items-center gap-1 text-sm text-gray-500">
                           <MapPin size={14} />
                           {bin.location}

@@ -1,101 +1,96 @@
 const express = require("express");
 const router = express.Router();
-const fs = require("fs");
-const path = require("path");
 const Rule = require("../models/Rule");
-const upload = require("../middleware/upload");
+const { upload, cloudinary } = require("../middleware/upload");
 
-// GET /api/rules - list all rules
+// GET /api/rules
 router.get("/", async (req, res) => {
-  try {
-    const rules = await Rule.find().sort({ createdAt: -1 });
-    res.json(rules);
-  } catch (err) {
-    res.status(500).json({ message: err.message });
-  }
+    try {
+        const rules = await Rule.find().sort({ createdAt: -1 });
+        res.json({ success: true, data: rules });
+    } catch (err) {
+        res.status(500).json({ success: false, message: err.message });
+    }
 });
 
-// GET /api/rules/:id - single rule
+// GET /api/rules/:id
 router.get("/:id", async (req, res) => {
-  try {
-    const rule = await Rule.findById(req.params.id);
-    if (!rule) return res.status(404).json({ message: "Rule not found" });
-    res.json(rule);
-  } catch (err) {
-    res.status(500).json({ message: err.message });
-  }
+    try {
+        const rule = await Rule.findById(req.params.id);
+        if (!rule) return res.status(404).json({ success: false, message: "Rule not found" });
+        res.json({ success: true, data: rule });
+    } catch (err) {
+        res.status(500).json({ success: false, message: err.message });
+    }
 });
 
-// POST /api/rules - create rule (multipart/form-data: name, decs, points, freq, auto, image)
+// POST /api/rules
 router.post("/", upload.single("image"), async (req, res) => {
-  try {
-    const { name, decs, points, freq, auto } = req.body;
+    try {
+        const { name, decs, points, freq, auto } = req.body;
+        if (!name || !decs || !points || !freq) {
+            return res.status(400).json({ success: false, message: "Name, description, points, and frequency are required" });
+        }
 
-    if (!name || !decs || !points || !freq) {
-      return res
-        .status(400)
-        .json({ message: "Name, description, points, and frequency are required" });
+        const rule = await Rule.create({
+            name,
+            decs,
+            points,
+            freq,
+            auto:  auto === "true" || auto === true,
+            image: req.file ? req.file.path : "",
+        });
+
+        res.status(201).json({ success: true, data: rule });
+    } catch (err) {
+        res.status(500).json({ success: false, message: err.message });
     }
-
-    const rule = new Rule({
-      name,
-      decs,
-      points,
-      freq,
-      auto: auto === "true" || auto === true,
-      image: req.file ? `/uploads/${req.file.filename}` : "",
-    });
-
-    const saved = await rule.save();
-    res.status(201).json(saved);
-  } catch (err) {
-    res.status(500).json({ message: err.message });
-  }
 });
 
-// PUT /api/rules/:id - update rule (any field optional, image optional)
+// PUT /api/rules/:id
 router.put("/:id", upload.single("image"), async (req, res) => {
-  try {
-    const rule = await Rule.findById(req.params.id);
-    if (!rule) return res.status(404).json({ message: "Rule not found" });
+    try {
+        const rule = await Rule.findById(req.params.id);
+        if (!rule) return res.status(404).json({ success: false, message: "Rule not found" });
 
-    const { name, decs, points, freq, auto } = req.body;
+        const { name, decs, points, freq, auto } = req.body;
+        if (name !== undefined)  rule.name  = name;
+        if (decs !== undefined)  rule.decs  = decs;
+        if (points !== undefined) rule.points = points;
+        if (freq !== undefined)  rule.freq  = freq;
+        if (auto !== undefined)  rule.auto  = auto === "true" || auto === true;
 
-    if (name !== undefined) rule.name = name;
-    if (decs !== undefined) rule.decs = decs;
-    if (points !== undefined) rule.points = points;
-    if (freq !== undefined) rule.freq = freq;
-    if (auto !== undefined) rule.auto = auto === "true" || auto === true;
+        if (req.file) {
+            if (rule.image) {
+                const publicId = rule.image.split("/").slice(-2).join("/").split(".")[0];
+                await cloudinary.uploader.destroy(publicId);
+            }
+            rule.image = req.file.path;
+        }
 
-    if (req.file) {
-      if (rule.image) {
-        fs.unlink(path.join(__dirname, "..", rule.image), () => {});
-      }
-      rule.image = `/uploads/${req.file.filename}`;
+        const updated = await rule.save();
+        res.json({ success: true, data: updated });
+    } catch (err) {
+        res.status(500).json({ success: false, message: err.message });
     }
-
-    const updated = await rule.save();
-    res.json(updated);
-  } catch (err) {
-    res.status(500).json({ message: err.message });
-  }
 });
 
 // DELETE /api/rules/:id
 router.delete("/:id", async (req, res) => {
-  try {
-    const rule = await Rule.findById(req.params.id);
-    if (!rule) return res.status(404).json({ message: "Rule not found" });
+    try {
+        const rule = await Rule.findById(req.params.id);
+        if (!rule) return res.status(404).json({ success: false, message: "Rule not found" });
 
-    if (rule.image) {
-      fs.unlink(path.join(__dirname, "..", rule.image), () => {});
+        if (rule.image) {
+            const publicId = rule.image.split("/").slice(-2).join("/").split(".")[0];
+            await cloudinary.uploader.destroy(publicId);
+        }
+
+        await rule.deleteOne();
+        res.json({ success: true, message: "Rule deleted" });
+    } catch (err) {
+        res.status(500).json({ success: false, message: err.message });
     }
-
-    await rule.deleteOne();
-    res.json({ message: "Rule deleted" });
-  } catch (err) {
-    res.status(500).json({ message: err.message });
-  }
 });
 
 module.exports = router;

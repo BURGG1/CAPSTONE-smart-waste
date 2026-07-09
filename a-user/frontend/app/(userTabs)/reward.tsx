@@ -6,9 +6,6 @@ import { API_BASE } from "@/config"; // Import the API base URL
 
 import { getRewards } from "../../api/rewardAPI"; // API function to fetch rewards
 
-// Your backend's base URL — used to build full image URLs since the DB only stores a path like "/uploads/x.jpg"
-const IMAGE_BASE = "http://localhost:5000";
-
 // household information
 const household = {
     id: "HH-202610002",
@@ -72,11 +69,11 @@ const recentActivityData = [
 
 export default function Rewards() {
     // ---- Rewards now come from the database ----
-    const [rewards, setRewards] = useState([]);
+    const [rewards, setRewards] = useState<any[]>([]);
     const [rewardsLoading, setRewardsLoading] = useState(true);
     const [rewardsError, setRewardsError] = useState("");
 
-    const fetchRewards = async () => {
+    const fetchRewards = async () => {  
         try {
             setRewardsLoading(true);
             const data = await getRewards();
@@ -181,7 +178,7 @@ export default function Rewards() {
                                 <View key={item._id} className="bg-gray-50 rounded-xl p-4 flex-1 min-w-[140px] w-full">
                                     {item.image ? (
                                         <Image
-                                            source={{ uri: `${IMAGE_BASE}${item.image}` }}
+                                            source={{ uri: item.image }}
                                             className="h-24 w-full rounded mb-4"
                                             resizeMode="cover"
                                         />

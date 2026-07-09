@@ -45,7 +45,6 @@ if (process.env.NODE_ENV === "development") {
   app.use(morgan("dev"));
 }
 
-app.use("/uploads", express.static(path.join(__dirname, "uploads"))); // serves uploaded images
 app.use("/api/rewards", rewardRoutes);
 app.use("/api/rules", ruleRoutes);
 app.use("/api/households", householdRoutes);

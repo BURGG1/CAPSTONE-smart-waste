@@ -1,98 +1,95 @@
 const express = require("express");
 const router = express.Router();
-const fs = require("fs");
-const path = require("path");
 const Reward = require("../models/Reward");
-const upload = require("../middleware/upload");
+const { upload, cloudinary } = require("../middleware/upload");
 
-// GET /api/rewards - list all rewards
+// GET /api/rewards
 router.get("/", async (req, res) => {
-  try {
-    const rewards = await Reward.find().sort({ createdAt: -1 });
-    res.json(rewards);
-  } catch (err) {
-    res.status(500).json({ message: err.message });
-  }
+    try {
+        const rewards = await Reward.find().sort({ createdAt: -1 });
+        res.json({ success: true, data: rewards });
+    } catch (err) {
+        res.status(500).json({ success: false, message: err.message });
+    }
 });
 
-// GET /api/rewards/:id - single reward
+// GET /api/rewards/:id
 router.get("/:id", async (req, res) => {
-  try {
-    const reward = await Reward.findById(req.params.id);
-    if (!reward) return res.status(404).json({ message: "Reward not found" });
-    res.json(reward);
-  } catch (err) {
-    res.status(500).json({ message: err.message });
-  }
+    try {
+        const reward = await Reward.findById(req.params.id);
+        if (!reward) return res.status(404).json({ success: false, message: "Reward not found" });
+        res.json({ success: true, data: reward });
+    } catch (err) {
+        res.status(500).json({ success: false, message: err.message });
+    }
 });
 
-// POST /api/rewards - create reward (multipart/form-data: name, points, stocks, image)
+// POST /api/rewards
 router.post("/", upload.single("image"), async (req, res) => {
-  try {
-    const { name, points, stocks } = req.body;
+    try {
+        const { name, points, stocks } = req.body;
+        if (!name || points === undefined || stocks === undefined) {
+            return res.status(400).json({ success: false, message: "Name, points, and stocks are required" });
+        }
 
-    if (!name || points === undefined || stocks === undefined) {
-      return res
-        .status(400)
-        .json({ message: "Name, points, and stocks are required" });
+        // Cloudinary returns full URL in req.file.path
+        const reward = await Reward.create({
+            name,
+            points:  Number(points),
+            stocks:  Number(stocks),
+            image:   req.file ? req.file.path : "",
+        });
+
+        res.status(201).json({ success: true, data: reward });
+    } catch (err) {
+        res.status(500).json({ success: false, message: err.message });
     }
-
-    const reward = new Reward({
-      name,
-      points: Number(points),
-      stocks: Number(stocks),
-      image: req.file ? `/uploads/${req.file.filename}` : "",
-    });
-
-    const saved = await reward.save();
-    res.status(201).json(saved);
-  } catch (err) {
-    res.status(500).json({ message: err.message });
-  }
 });
 
-// PUT /api/rewards/:id - update reward (any field optional, image optional)
+// PUT /api/rewards/:id
 router.put("/:id", upload.single("image"), async (req, res) => {
-  try {
-    const reward = await Reward.findById(req.params.id);
-    if (!reward) return res.status(404).json({ message: "Reward not found" });
+    try {
+        const reward = await Reward.findById(req.params.id);
+        if (!reward) return res.status(404).json({ success: false, message: "Reward not found" });
 
-    const { name, points, stocks } = req.body;
+        const { name, points, stocks } = req.body;
+        if (name !== undefined)   reward.name   = name;
+        if (points !== undefined) reward.points = Number(points);
+        if (stocks !== undefined) reward.stocks = Number(stocks);
 
-    if (name !== undefined) reward.name = name;
-    if (points !== undefined) reward.points = Number(points);
-    if (stocks !== undefined) reward.stocks = Number(stocks);
+        if (req.file) {
+            // Delete old image from Cloudinary
+            if (reward.image) {
+                const publicId = reward.image.split("/").slice(-2).join("/").split(".")[0];
+                await cloudinary.uploader.destroy(publicId);
+            }
+            reward.image = req.file.path;
+        }
 
-    if (req.file) {
-      // delete old image file if one exists
-      if (reward.image) {
-        fs.unlink(path.join(__dirname, "..", reward.image), () => {});
-      }
-      reward.image = `/uploads/${req.file.filename}`;
+        const updated = await reward.save();
+        res.json({ success: true, data: updated });
+    } catch (err) {
+        res.status(500).json({ success: false, message: err.message });
     }
-
-    const updated = await reward.save();
-    res.json(updated);
-  } catch (err) {
-    res.status(500).json({ message: err.message });
-  }
 });
 
 // DELETE /api/rewards/:id
 router.delete("/:id", async (req, res) => {
-  try {
-    const reward = await Reward.findById(req.params.id);
-    if (!reward) return res.status(404).json({ message: "Reward not found" });
+    try {
+        const reward = await Reward.findById(req.params.id);
+        if (!reward) return res.status(404).json({ success: false, message: "Reward not found" });
 
-    if (reward.image) {
-      fs.unlink(path.join(__dirname, "..", reward.image), () => {});
+        // Delete image from Cloudinary
+        if (reward.image) {
+            const publicId = reward.image.split("/").slice(-2).join("/").split(".")[0];
+            await cloudinary.uploader.destroy(publicId);
+        }
+
+        await reward.deleteOne();
+        res.json({ success: true, message: "Reward deleted" });
+    } catch (err) {
+        res.status(500).json({ success: false, message: err.message });
     }
-
-    await reward.deleteOne();
-    res.json({ message: "Reward deleted" });
-  } catch (err) {
-    res.status(500).json({ message: err.message });
-  }
 });
 
 module.exports = router;

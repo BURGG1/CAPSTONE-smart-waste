@@ -7,9 +7,6 @@ import AsyncStorage from "@react-native-async-storage/async-storage";
 
 import { getRules } from "../../api/rulesAPI"; // API function to fetch rules
 
-// Your backend's base URL — used to build full image URLs since the DB only stores a path like "/uploads/x.jpg"
-const IMAGE_BASE = `${API_BASE}/uploads`;
-
 const recentActivityData = [
     { type: "Earned points", via: "Rule 1. Return of recyclable material", amount: "2kg", date: "2026-01-24", points: 30 },
     { type: "Redeemed Reward", via: "Vitamins/Medicine", amount: "1pc", date: "2026-01-23", points: -500 },
@@ -182,7 +179,7 @@ export default function Home() {
                             <View className="flex-1 bg-gray-50 rounded-xl shadow-lg overflow-hidden">
                                 {r.image ? (
                                     <Image
-                                        source={{ uri: `${IMAGE_BASE}${r.image}` }}
+                                        source={{ uri: r.image }}
                                         className="w-full h-40"
                                         resizeMode="cover"
                                     />
