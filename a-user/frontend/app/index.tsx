@@ -10,6 +10,7 @@ export default function AuthPage() {
   const [form, setForm] = useState({ email: "", password: "" });
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [loading, setLoading] = useState(false);
+  const [showPassword, setShowPassword] = useState(false);
 
   const handleLogin = async () => {
     if (!form.email || !form.password) {
@@ -19,7 +20,7 @@ export default function AuthPage() {
 
     setLoading(true);
     try {
-      const response = await fetch("http://192.168.1.226:5000/api/auth/login", {
+      const response = await fetch("http://192.168.43.208:5000/api/auth/login", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
@@ -100,11 +101,22 @@ export default function AuthPage() {
               <Feather name="lock" size={18} color="gray" />
               <TextInput
                 placeholder="Enter your password"
-                secureTextEntry
+                secureTextEntry={!showPassword}
                 value={form.password}
                 onChangeText={(text) => setForm({ ...form, password: text })}
                 className="flex-1 ml-3"
+                autoCapitalize="none"
               />
+              <TouchableOpacity
+                onPress={() => setShowPassword((prev) => !prev)}
+                hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+              >
+                <Feather
+                  name={showPassword ? "eye-off" : "eye"}
+                  size={18}
+                  color="gray"
+                />
+              </TouchableOpacity>
             </View>
           </View>
 

@@ -1,14 +1,11 @@
-import { useState } from "react";
-import { View, Text,FlatList ,ScrollView, Image, TextInput, TouchableOpacity, Linking } from "react-native";
+import { useState, useEffect } from "react";
+import { View, Text, FlatList, ScrollView, Image, TextInput, TouchableOpacity, Linking, ActivityIndicator } from "react-native";
 import { Feather } from "@expo/vector-icons"; // Expo Icons
 import { SafeAreaView } from "react-native-safe-area-context";
 
-
-import pandisplay from "../../assets/pandisplay.jpg";
-import plasticBrick from "../../assets/plastic-brick.jpg";
-import recyc1 from "../../assets/recyc1.jpg";
-import tenStreak from "../../assets/tenStreak.png";
-import oneMonth from "../../assets/oneMonth.jpg";
+import { getRules } from "../../api/rulesAPI"; // API function to fetch rules
+// Your backend's base URL — used to build full image URLs since the DB only stores a path like "/uploads/x.jpg"
+const IMAGE_BASE = "http://localhost:5000";
 
 // household info
 const household = {
@@ -41,15 +38,6 @@ const penaltiesData = {
     ],
 };
 
-// reward rules
-const RULES = [
-    { image: recyc1, id: 1, name: "Recyclable Materials", decs: "Earn points by returning recyclable materials such as plastic, paper, glass, and metal", points: 15, freq: "per kilo" },
-    { image: tenStreak, id: 2, name: "10-Day Consistency Streak", decs: "Maintain proper bin usage without any violation for 10 consecutive days", points: 30, freq: "per streak" },
-    { image: plasticBrick, id: 3, name: "Plastic Bottle Bricks", decs: "Create eco-bricks by filling plastic bottles with non-recyclable plastic waste to be used for construction", points: 50, freq: "per brick" },
-    { image: oneMonth, id: 4, name: "1 month Consistency Streak", decs: "Maintain proper bin usage without any violation for 1 month", points: 100, freq: "per streak" },
-    { image: pandisplay, id: 5, name: "Recycled Items or Accessories", decs: "Already recycled items transformed into display pieces or accessories. Points vary based on design creativity and quality", points: "50-200", freq: "per item" },
-];
-
 // recent activity
 const recentActivityData = [
     { type: "Earned points", via: "Rule 1. Return of recyclable material", amount: "2kg", date: "2026-01-24", points: 30 },
@@ -60,6 +48,33 @@ const recentActivityData = [
 
 export default function Rules() {
     const [search, setSearch] = useState("");
+
+    // ---- Rules now come from the database ----
+    const [rules, setRules] = useState([]);
+    const [rulesLoading, setRulesLoading] = useState(true);
+    const [rulesError, setRulesError] = useState("");
+
+    const fetchRules = async () => {
+        try {
+            setRulesLoading(true);
+            const data = await getRules();
+            setRules(data);
+            setRulesError("");
+        } catch (err) {
+            console.error(err);
+            setRulesError("Failed to load rules. Is the server running?");
+        } finally {
+            setRulesLoading(false);
+        }
+    };
+
+    useEffect(() => {
+        fetchRules();
+    }, []);
+
+    const filteredRules = rules.filter((r) =>
+        r.name.toLowerCase().includes(search.toLowerCase())
+    );
 
     return (
         <SafeAreaView className="flex-1">
@@ -170,28 +185,51 @@ export default function Rules() {
                             />
                         </View>
                     </View>
+
+                    {rulesLoading && (
+                        <View className="items-center py-6">
+                            <ActivityIndicator color="#16A34A" />
+                            <Text className="text-gray-500 mt-2">Loading rules...</Text>
+                        </View>
+                    )}
+
+                    {!!rulesError && (
+                        <Text className="text-red-500 mb-2">{rulesError}</Text>
+                    )}
+
                     {/* RULEES------------ */}
                     <FlatList
-                        data={RULES.filter(r =>
-                            r.name.toLowerCase().includes(search.toLowerCase())
-                        )}
-                        keyExtractor={(item) => item.id.toString()}
+                        data={filteredRules}
+                        keyExtractor={(item) => item._id}
                         numColumns={2}
                         scrollEnabled={false}
                         columnWrapperStyle={{ gap: 10 }}
                         contentContainerStyle={{ gap: 10 }}
-                        renderItem={({ item: r }) => (
+                        ListEmptyComponent={
+                            !rulesLoading && !rulesError ? (
+                                <Text className="text-gray-500 text-center py-6 w-full">
+                                    No rules found.
+                                </Text>
+                            ) : null
+                        }
+                        renderItem={({ item: r, index }) => (
                             <View className="flex-1 bg-gray-50 rounded-xl shadow-lg overflow-hidden">
 
-                                <Image
-                                    source={r.image}
-                                    className="w-full h-40"
-                                    resizeMode="cover"
-                                />
+                                {r.image ? (
+                                    <Image
+                                        source={{ uri: `${IMAGE_BASE}${r.image}` }}
+                                        className="w-full h-40"
+                                        resizeMode="cover"
+                                    />
+                                ) : (
+                                    <View className="w-full h-40 bg-gray-200 items-center justify-center">
+                                        <Text className="text-gray-400">No image</Text>
+                                    </View>
+                                )}
 
                                 <View className="p-3 gap-1">
                                     <Text className="text-sm font-bold">
-                                        Rule {r.id}
+                                        Rule {index + 1}
                                     </Text>
 
                                     <Text className="text-xs text-gray-500">
@@ -200,6 +238,10 @@ export default function Rules() {
 
                                     <Text className="text-xs text-gray-400">
                                         {r.decs}
+                                    </Text>
+
+                                    <Text className="text-xs text-gray-400">
+                                        {r.freq}
                                     </Text>
                                 </View>
 

@@ -1,7 +1,12 @@
-import { useState } from "react";
-import { View, Text, ScrollView, TouchableOpacity } from "react-native";
+import { useState, useEffect } from "react";
+import { View, Text, ScrollView, TouchableOpacity, Image, ActivityIndicator } from "react-native";
 import { Feather, MaterialCommunityIcons } from "@expo/vector-icons"; // Expo icons
 import { SafeAreaView } from "react-native-safe-area-context";
+
+import { getRewards } from "../../api/rewardAPI"; // API function to fetch rewards
+
+// Your backend's base URL — used to build full image URLs since the DB only stores a path like "/uploads/x.jpg"
+const IMAGE_BASE = "http://localhost:5000";
 
 // household information
 const household = {
@@ -33,34 +38,7 @@ const MONTHLY = {
     net: 80,
 };
 
-// Redeemable items
-const REWARDS = [
-    { id: 1, name: "30% off on use of Barangay Facilities", points: 1200, stocks: 15 },
-    { id: 2, name: "50% off to Barangay Clearance", points: 1200, stocks: 8 },
-    { id: 3, name: "Vitamins/Medicine", points: 500, stocks: 20 },
-    { id: 4, name: "50% off to Business Permit", points: 1500, stocks: 5 },
-
-];
-
-// Derived values
-const progressPercent = Math.round((POINTS.total / POINTS.maxTierPoints) * 100);
-
-// Penalty Data
-const penaltiesData = {
-    note:
-        "Repeated violations may result in additional penalties and suspension of waste disposal privileges.",
-    records: [
-        {
-            reason:
-                "Improper waste segregation (mixed biodegradable with non-biodegradable)",
-            date: "2026-01-15",
-            points: -500,
-            law: "RA 9003 Section 48",
-        },
-    ],
-};
-
-// recentActivityData
+// recentActivityData — still static, there's no reward-log API for the app yet.
 const recentActivityData = [
     {
         type: "Earned points",
@@ -92,6 +70,29 @@ const recentActivityData = [
 ];
 
 export default function Rewards() {
+    // ---- Rewards now come from the database ----
+    const [rewards, setRewards] = useState([]);
+    const [rewardsLoading, setRewardsLoading] = useState(true);
+    const [rewardsError, setRewardsError] = useState("");
+
+    const fetchRewards = async () => {
+        try {
+            setRewardsLoading(true);
+            const data = await getRewards();
+            setRewards(data);
+            setRewardsError("");
+        } catch (err) {
+            console.error(err);
+            setRewardsError("Failed to load rewards. Is the server running?");
+        } finally {
+            setRewardsLoading(false);
+        }
+    };
+
+    useEffect(() => {
+        fetchRewards();
+    }, []);
+
     return (
         <SafeAreaView className="flex-1">
 
@@ -163,12 +164,31 @@ export default function Rewards() {
                             <Text className="text-lg font-semibold">Redeemable Items</Text>
                         </View>
 
+                        {rewardsLoading && (
+                            <View className="items-center py-6">
+                                <ActivityIndicator color="#16A34A" />
+                                <Text className="text-gray-500 mt-2">Loading rewards...</Text>
+                            </View>
+                        )}
+
+                        {!!rewardsError && (
+                            <Text className="text-red-500 mb-2">{rewardsError}</Text>
+                        )}
+
                         <View className="flex flex-col">
-                            {REWARDS.map((item) => (
-                                <View key={item.id} className="bg-gray-50 rounded-xl p-4 flex-1 min-w-[140px] w-full">
-                                    <View className="h-24 bg-gray-200 rounded mb-4 items-center justify-center">
-                                        <Text>ICON</Text>
-                                    </View>
+                            {rewards.map((item) => (
+                                <View key={item._id} className="bg-gray-50 rounded-xl p-4 flex-1 min-w-[140px] w-full">
+                                    {item.image ? (
+                                        <Image
+                                            source={{ uri: `${IMAGE_BASE}${item.image}` }}
+                                            className="h-24 w-full rounded mb-4"
+                                            resizeMode="cover"
+                                        />
+                                    ) : (
+                                        <View className="h-24 bg-gray-200 rounded mb-4 items-center justify-center">
+                                            <Text>ICON</Text>
+                                        </View>
+                                    )}
                                     <Text className="font-semibold">{item.name}</Text>
                                     <View className="flex-row justify-between text-sm my-2">
                                         <Text className="text-green-600 font-semibold">{item.points} pts</Text>
@@ -179,6 +199,12 @@ export default function Rewards() {
                                     </TouchableOpacity>
                                 </View>
                             ))}
+
+                            {!rewardsLoading && rewards.length === 0 && !rewardsError && (
+                                <Text className="text-gray-500 text-center py-6">
+                                    No rewards available yet.
+                                </Text>
+                            )}
                         </View>
                     </View>
 

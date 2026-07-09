@@ -14,7 +14,7 @@ export default function CollectorProfile() {
     const fetchProfile = async () => {
       try {
         const token = await AsyncStorage.getItem("token");
-        const res = await fetch("http://192.168.1.226:5000/api/collectors/me", {
+        const res = await fetch("http://192.168.43.208:5000/api/collectors/me", {
           headers: { Authorization: `Bearer ${token}` },
         });
         const data = await res.json();

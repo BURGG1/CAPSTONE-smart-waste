@@ -37,7 +37,7 @@ export default function Profile() {
             const user = userStr ? JSON.parse(userStr) : null;
             if (!user?.id) return;
 
-            const res = await fetch(`http://192.168.1.226:5000/api/households/${user.id}`, {
+            const res = await fetch(`http://192.168.0.103:5000/api/households/${user.id}`, {
                 headers: { Authorization: `Bearer ${token}` },
             });
             const data = await res.json();
@@ -107,7 +107,7 @@ export default function Profile() {
                 body.newPassword = passwordForm.newPassword;
             }
 
-            const res = await fetch(`http://192.168.1.226:5000/api/households/${user.id}`, {
+            const res = await fetch(`http://localhost:5000/api/households/${user.id}`, {
                 method: "PUT",
                 headers: {
                     "Content-Type": "application/json",
