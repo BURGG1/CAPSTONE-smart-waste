@@ -95,4 +95,46 @@ const redeemReward = async (req, res) => {
   }
 };
 
-module.exports = { getAllRewards, redeemReward };
+// GET /api/rewards/logs?page=1&limit=10
+const getRewardLogs = async (req, res) => {
+  try {
+    const { page = 1, limit = 10 } = req.query;
+    const skip = (parseInt(page) - 1) * parseInt(limit);
+
+    const [logs, total] = await Promise.all([
+      RewardLog.find()
+        .populate("household", "fullname _id")
+        .populate("reward", "name")
+        .sort({ createdAt: -1 })
+        .skip(skip)
+        .limit(parseInt(limit))
+        .lean(),
+      RewardLog.countDocuments(),
+    ]);
+
+    res.json({
+      success: true,
+      data: logs.map((log) => ({
+        _id:           log._id,
+        date:          log.createdAt,
+        rewardName:    log.rewardName,
+        householdId:   log.household?._id
+                         ? `HH-${log.household._id.toString().slice(-8).toUpperCase()}`
+                         : "—",
+        householdName: log.household?.fullname ?? "—",
+        stockUpdate:   -1,
+        pointsSpent:   log.pointsSpent,
+      })),
+      pagination: {
+        total,
+        page:       parseInt(page),
+        limit:      parseInt(limit),
+        totalPages: Math.ceil(total / parseInt(limit)),
+      },
+    });
+  } catch (error) {
+    res.status(500).json({ success: false, message: error.message });
+  }
+};
+
+module.exports = { getAllRewards, redeemReward, getRewardLogs };

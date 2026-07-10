@@ -100,6 +100,7 @@ export default function AwardModal({ isOpen, onClose, rule, onAwarded }) {
                         points: awardedPoints,
                         ruleId: rule._id,
                         reason: `${rule.name} — ${quantity} × ${rulePoints} pts (manual award)`,
+                        quantity: quantity,
                     }),
                 }
             );

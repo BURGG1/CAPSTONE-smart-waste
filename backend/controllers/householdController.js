@@ -375,7 +375,7 @@ const checkContactExists = async (req, res) => {
 // POST /api/households/:id/award-points
 const awardPoints = async (req, res) => {
   try {
-    const { points, ruleId, reason } = req.body;
+    const { points, ruleId, reason, quantity } = req.body;  // ← add quantity
 
     if (!points || points < 1) {
       return res.status(400).json({ success: false, message: "Points must be at least 1." });
@@ -386,7 +386,7 @@ const awardPoints = async (req, res) => {
       return res.status(404).json({ success: false, message: "Household not found." });
     }
 
-    household.points.total     += points;
+    household.points.total += points;
     household.points.thisMonth += points;
     await household.save();
 
@@ -394,6 +394,7 @@ const awardPoints = async (req, res) => {
       household: household._id,
       rule: ruleId || null,
       points,
+      quantity: quantity || 1,   // ← save quantity
       reason: reason || "Manual award",
     });
 
@@ -402,7 +403,7 @@ const awardPoints = async (req, res) => {
       message: `${points} points awarded to ${household.fullname}`,
       data: {
         totalPoints: household.points.total,
-        thisMonth:   household.points.thisMonth,
+        thisMonth: household.points.thisMonth,
       },
     });
   } catch (error) {
@@ -410,42 +411,91 @@ const awardPoints = async (req, res) => {
   }
 };
 
-// GET /api/households/:id/activity?limit=10
+// GET /api/households/:id/activity?page=1&limit=15&from=2026-01-01
 const getHouseholdActivity = async (req, res) => {
   try {
     const { id } = req.params;
-    const limit = Math.min(parseInt(req.query.limit, 10) || 10, 50);
+    const { page = 1, limit = 15, from, to } = req.query;
 
-    const [earned, redeemed] = await Promise.all([
-      PointLog.find({ household: id })
-        .sort({ createdAt: -1 })
-        .limit(limit)
-        .populate("rule", "name")
-        .lean(),
-      RewardLog.find({ household: id })
-        .sort({ createdAt: -1 })
-        .limit(limit)
-        .lean(),
-    ]);
+    const skip = (parseInt(page) - 1) * parseInt(limit);
 
-    const activity = [
-      ...earned.map((e) => ({
+    // ── Date filter ───────────────────────────────────────────────────────────
+    const dateFilter = {};
+    if (from) dateFilter.$gte = new Date(from);
+    if (to) {
+      const toDate = new Date(to);
+      toDate.setHours(23, 59, 59, 999);
+      dateFilter.$lte = toDate;
+    }
+
+    // ── Point logs (earned) ───────────────────────────────────────────────────
+    const pointQuery = { household: id };
+    if (from || to) pointQuery.awardedAt = dateFilter;
+
+    const pointLogs = await PointLog.find(pointQuery)
+      .populate("rule", "name decs freq")
+      .sort({ awardedAt: -1 })
+      .lean();
+
+    // ── Reward logs (redeemed) ────────────────────────────────────────────────
+    const rewardQuery = { household: id };
+    if (from || to) rewardQuery.createdAt = dateFilter;
+
+    const rewardLogs = await RewardLog.find(rewardQuery)
+      .populate("reward", "name points")
+      .sort({ createdAt: -1 })
+      .lean();
+
+    // ── Build quantity label based on rule frequency ──────────────────────────
+    const buildQuantityLabel = (qty, freq) => {
+      const unitMap = {
+        "per kilo": `${qty} kilo${qty !== 1 ? "s" : ""}`,
+        "per brick": `${qty} brick${qty !== 1 ? "s" : ""}`,
+        "per item": `${qty} item${qty !== 1 ? "s" : ""}`,
+        "Per Collection": `${qty} collection${qty !== 1 ? "s" : ""}`,
+        "per streak": `${qty} streak${qty !== 1 ? "s" : ""}`,
+        "Weekly": `${qty} week${qty !== 1 ? "s" : ""}`,
+        "Monthly": `${qty} month${qty !== 1 ? "s" : ""}`,
+      };
+      return unitMap[freq] ?? `${qty}×`;
+    };
+
+    // ── Merge and sort by date ────────────────────────────────────────────────
+    const combined = [
+      ...pointLogs.map((log) => ({
+        _id: log._id,
         type: "Earned points",
-        via: e.rule?.name || e.reason || "Points awarded",
-        date: e.createdAt,
-        points: e.points,
+        via: log.rule?.name ?? log.reason ?? "Points awarded",
+        description: log.rule?.decs ?? log.reason ?? "—",
+        amount: buildQuantityLabel(log.quantity ?? 1, log.rule?.freq ?? ""),
+        date: log.awardedAt ?? log.createdAt,
+        points: log.points,
       })),
-      ...redeemed.map((r) => ({
+      ...rewardLogs.map((log) => ({
+        _id: log._id,
         type: "Redeemed Reward",
-        via: r.rewardName,
-        date: r.createdAt,
-        points: -r.pointsSpent,
+        via: log.rewardName,
+        description: log.rewardName,
+        amount: "1 reward",
+        date: log.createdAt,
+        points: -log.pointsSpent,
       })),
-    ]
-      .sort((a, b) => new Date(b.date) - new Date(a.date))
-      .slice(0, limit);
+    ].sort((a, b) => new Date(b.date) - new Date(a.date));
 
-    res.json({ success: true, data: activity });
+    // ── Paginate ──────────────────────────────────────────────────────────────
+    const total = combined.length;
+    const paginated = combined.slice(skip, skip + parseInt(limit));
+
+    res.json({
+      success: true,
+      data: paginated,
+      pagination: {
+        total,
+        page: parseInt(page),
+        limit: parseInt(limit),
+        totalPages: Math.ceil(total / parseInt(limit)),
+      },
+    });
   } catch (error) {
     res.status(500).json({ success: false, message: error.message });
   }

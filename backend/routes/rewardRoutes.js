@@ -1,7 +1,7 @@
 const express = require("express");
 const router = express.Router();
 const Reward = require("../models/Reward");
-const { getAllRewards, redeemReward } = require("../controllers/rewardsController");
+const { getAllRewards, redeemReward, getRewardLogs } = require("../controllers/rewardsController");
 const { upload, cloudinary } = require("../middleware/upload");
 
 // GET /api/rewards
@@ -10,6 +10,9 @@ router.get("/", getAllRewards);
 // POST /api/rewards/:id/redeem
 router.post("/:id/redeem", redeemReward);
 
+
+// GET /api/rewards/logs
+router.get("/logs", getRewardLogs);
 
 // GET /api/rewards/:id
 router.get("/:id", async (req, res) => {

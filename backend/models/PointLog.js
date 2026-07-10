@@ -13,6 +13,7 @@ const pointLogSchema = new mongoose.Schema(
       default: null,
     },
     points: { type: Number, required: true },
+    quantity: { type: Number, default: 1 },  // ← add this
     reason: { type: String, required: true },
     awardedAt: { type: Date, default: Date.now },
   },

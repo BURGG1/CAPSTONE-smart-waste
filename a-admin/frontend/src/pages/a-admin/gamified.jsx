@@ -22,98 +22,6 @@ import BASE_URL from "../../config";
 import { getRewards, createReward, updateReward } from "../../api/rewardApi";
 import { getRules } from "../../api/rulesAPI";
 
-// Your backend's base URL — used to build full image URLs since the DB only stores a path like "/uploads/x.jpg"
-
-
-// Points summary
-const POINTS = {
-    total: 1234,
-    tier: "Silver",
-    maxTierPoints: 1500,
-    remaining: 260,
-};
-
-// Monthly stats
-const MONTHLY = {
-    earned: 280,
-    redeemed: 200,
-    net: 80,
-};
-
-// Recent Activity — still static, there's no reward-log API yet.
-// Ask if you want this wired to a real collection too.
-const rewardLogs = [
-    {
-        id: 1,
-        date: "2026-02-18",
-        rewardName: "Free Clinical Checkup",
-        householdId: "HH-202610001",
-        householdName: "Joel Dela Cruz",
-        stockUpdate: -1,
-    },
-    {
-        id: 2,
-        date: "2026-02-18",
-        rewardName: "Vitamins/Medicine",
-        householdId: "HH-202610002",
-        householdName: "Martin Lopez",
-        stockUpdate: -1,
-    },
-    {
-        id: 3,
-        date: "2026-02-17",
-        rewardName: "Free Clinical Checkup",
-        householdId: "HH-202610003",
-        householdName: "Ramon Reyes",
-        stockUpdate: -1,
-    },
-    {
-        id: 4,
-        date: "2026-02-16",
-        rewardName: "50% off to Barangay Clearance",
-        householdId: "HH-202610004",
-        householdName: "Remedio Delo Santos",
-        stockUpdate: -1,
-    },
-    {
-        id: 5,
-        date: "2026-02-15",
-        rewardName: "50% off to Business Permit",
-        householdId: "HH-202610005",
-        householdName: "Cecilia Garcia",
-        stockUpdate: -1,
-    },
-    {
-        id: 6,
-        date: "2026-02-14",
-        rewardName: "50% off to Business Permit",
-        householdId: "HH-202610006",
-        householdName: "Rolando Martinez",
-        stockUpdate: -1,
-    },
-    {
-        id: 7,
-        date: "2026-02-13",
-        rewardName: "50% off to Barangay Clearance",
-        householdId: "HH-202610007",
-        householdName: "Rolando Martinez",
-        stockUpdate: -1,
-    },
-    {
-        id: 8,
-        date: "2026-02-12",
-        rewardName: "Vitamins/Medicine",
-        householdId: "HH-202610008",
-        householdName: "Joel Dela Cruz",
-        stockUpdate: -1,
-    },
-];
-
-// Derived values
-const progressPercent = Math.round(
-    (POINTS.total / POINTS.maxTierPoints) * 100
-);
-
 export default function Gamified() {
     const [activeTab, setActiveTab] = useState("rewards");
     const [openConModal, setOpenConModal] = useState(false);
@@ -137,6 +45,10 @@ export default function Gamified() {
     const [rulesError, setRulesError] = useState("");
     const [editRuleData, setEditRuleData] = useState(null); // which rule is being edited
 
+    const [rewardLogs, setRewardLogs] = useState([]);
+    const [rewardLogsLoading, setRewardLogsLoading] = useState(true);
+    const [rewardLogsError, setRewardLogsError] = useState("");
+
     // for reward form -----------
     const [Name, setName] = useState("");
     const [Points, setPoints] = useState("");
@@ -149,27 +61,27 @@ export default function Gamified() {
     const [search, setSearch] = useState("");
 
     const fetchRewards = async () => {
-    try {
-        setRewardsLoading(true);
-        const data = await getRewards();
+        try {
+            setRewardsLoading(true);
+            const data = await getRewards();
 
-        if (Array.isArray(data)) {
-            setRewards(data);
-        } else if (data?.data && Array.isArray(data.data)) {
-            setRewards(data.data);
-        } else {
+            if (Array.isArray(data)) {
+                setRewards(data);
+            } else if (data?.data && Array.isArray(data.data)) {
+                setRewards(data.data);
+            } else {
+                setRewards([]);
+            }
+
+            setRewardsError("");
+        } catch (err) {
+            console.error(err);
             setRewards([]);
+            setRewardsError("Failed to load rewards. Is the server running?");
+        } finally {
+            setRewardsLoading(false);
         }
-
-        setRewardsError("");
-    } catch (err) {
-        console.error(err);
-        setRewards([]);
-        setRewardsError("Failed to load rewards. Is the server running?");
-    } finally {
-        setRewardsLoading(false);
-    }
-};
+    };
 
     const fetchRules = async () => {
         try {
@@ -195,9 +107,28 @@ export default function Gamified() {
         }
     };
 
+    const fetchRewardLogs = async () => {
+        try {
+            setRewardLogsLoading(true);
+            const res = await fetch(`${BASE_URL}/api/rewards/logs?limit=20`);
+            const data = await res.json();
+            if (data.success) {
+                setRewardLogs(data.data);
+            } else {
+                setRewardLogsError("Failed to load reward logs.");
+            }
+        } catch (err) {
+            console.error(err);
+            setRewardLogsError("Failed to load reward logs.");
+        } finally {
+            setRewardLogsLoading(false);
+        }
+    };
+
     useEffect(() => {
         fetchRewards();
         fetchRules();
+        fetchRewardLogs();
     }, []);
 
     const handleRewardEdit = (id) => {
@@ -492,39 +423,45 @@ export default function Gamified() {
                             <section className="bg-white rounded-xl p-6 shadow">
                                 <h2 className="text-lg font-bold">Recent Reward Logs</h2>
 
-                                {/* TABLE */}
                                 <div className="max-h-[350px] overflow-y-auto overflow-x-auto mt-4">
-                                    <table className="w-full  text-sm">
-                                        <thead className="bg-gray-100">
-                                            <tr>
-                                                <th className="py-3">Date</th>
-                                                <th>Reward Name</th>
-                                                <th>Household ID</th>
-                                                <th>Resident</th>
-                                                <th className="px-4">Stock</th>
-                                            </tr>
-                                        </thead>
-
-                                        <tbody className="text-center">
-                                            {rewardLogs.map((log) => (
-                                                <tr key={log.id}>
-                                                    <td className="py-3 font-medium">{log.date}</td>
-                                                    <td>{log.rewardName}</td>
-                                                    <td>{log.householdId}</td>
-                                                    <td>{log.householdName}</td>
-                                                    <td className="text-red-500">{log.stockUpdate}</td>
-                                                </tr>
-                                            ))}
-
-                                            {rewardLogs.length === 0 && (
+                                    {rewardLogsLoading ? (
+                                        <p className="text-center py-6 text-gray-400">Loading logs...</p>
+                                    ) : rewardLogsError ? (
+                                        <p className="text-center py-6 text-red-500">{rewardLogsError}</p>
+                                    ) : (
+                                        <table className="w-full text-sm">
+                                            <thead className="bg-gray-100 sticky top-0">
                                                 <tr>
-                                                    <td colSpan="6" className="text-center py-6 text-gray-500">
-                                                        No records found for selected dates
-                                                    </td>
+                                                    <th className="py-3">Date</th>
+                                                    <th>Reward Name</th>
+                                                    <th>Household ID</th>
+                                                    <th>Resident</th>
+                                                    <th className="px-4">Stock</th>
                                                 </tr>
-                                            )}
-                                        </tbody>
-                                    </table>
+                                            </thead>
+                                            <tbody className="text-center">
+                                                {rewardLogs.length === 0 ? (
+                                                    <tr>
+                                                        <td colSpan="5" className="text-center py-6 text-gray-500">
+                                                            No reward logs yet.
+                                                        </td>
+                                                    </tr>
+                                                ) : (
+                                                    rewardLogs.map((log) => (
+                                                        <tr key={log._id} className="border-b hover:bg-gray-50">
+                                                            <td className="py-3 font-medium">
+                                                                {new Date(log.date).toLocaleDateString("en-CA")}
+                                                            </td>
+                                                            <td>{log.rewardName}</td>
+                                                            <td>{log.householdId}</td>
+                                                            <td>{log.householdName}</td>
+                                                            <td className="text-red-500 px-4">{log.stockUpdate}</td>
+                                                        </tr>
+                                                    ))
+                                                )}
+                                            </tbody>
+                                        </table>
+                                    )}
                                 </div>
                             </section>
                         </>
