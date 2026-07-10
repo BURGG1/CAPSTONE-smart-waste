@@ -17,6 +17,10 @@ const collectorSchema = new mongoose.Schema(
       type: String,
       default: null,
     },
+    assignedBins: {
+      type: [String], // stores Bin.binId values, e.g. "BIN-001"
+      default: [],
+    },
     contact: {
       type: String,
       default: null,

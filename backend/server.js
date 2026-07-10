@@ -15,27 +15,28 @@ const rewardRoutes = require("./routes/rewardRoutes");
 const ruleRoutes = require("./routes/ruleRoutes");
 const collectorRoutes = require("./routes/collectorRoutes");
 
-
 const errorHandler = require("./middleware/errorHandler");
 const authRoutes = require("./routes/authRoutes");
 const registrationRequestRoutes = require("./routes/registrationRequestRoutes");
-  
+
+const { startBinStatusChecker } = require("./jobs/binStatusChecker");
+const { checkAndAutoSchedule } = require("./services/autoScheduleService");
+
 const app = express();
 const PORT = process.env.PORT || 5000;
-const { startBinStatusChecker } = require("./jobs/binStatusChecker");
 
 connectDB();
 startBinStatusChecker();
 
 app.use(cors({
-    origin: function(origin, callback) {
-        if (!origin || origin.includes("localhost") || origin.includes("192.168.")) {
-            callback(null, true);
-        } else {
-            callback(new Error("Not allowed by CORS"));
-        }
-    },
-    credentials: true
+  origin: function (origin, callback) {
+    if (!origin || origin.includes("localhost") || origin.includes("192.168.")) {
+      callback(null, true);
+    } else {
+      callback(new Error("Not allowed by CORS"));
+    }
+  },
+  credentials: true
 }));
 
 app.use(express.json());
@@ -63,6 +64,18 @@ app.use((req, res) => {
 });
 
 app.use(errorHandler);
+
+// Run auto-schedule every 30 seconds
+setInterval(async () => {
+  try {
+    await checkAndAutoSchedule();
+  } catch (err) {
+    console.error("[AutoSchedule] Error:", err.message);
+  }
+}, 30000);
+
+// Also run once on startup
+checkAndAutoSchedule().catch(console.error);
 
 app.listen(PORT, "0.0.0.0", () => {
   // console.log(`Server running on http://localhost:${PORT}`);

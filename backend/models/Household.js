@@ -40,7 +40,6 @@ const householdSchema = new mongoose.Schema(
   { timestamps: true }
 );
 
-householdSchema.index({ rfid: 1 });
 householdSchema.index({ fullname: "text" });
 
 module.exports = mongoose.model("Household", householdSchema);

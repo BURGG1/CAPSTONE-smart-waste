@@ -1,11 +1,13 @@
-const Bin = require("../models/Bin");
-const Disposal = require("../models/Disposal");
-const Household = require("../models/Household");
-const PointLog = require("../models/PointLog");
-const Device = require("../models/Device");
-const { checkAndAwardPoints } = require("../services/streakService");
+const Bin         = require("../models/Bin");
+const Disposal    = require("../models/Disposal");
+const Household   = require("../models/Household");
+const PointLog    = require("../models/PointLog");
+const Device      = require("../models/Device");
+const BinSchedule = require("../models/BinSchedule");
+const { checkAndAwardPoints }    = require("../services/streakService");
+const { checkAndAutoSchedule, unassignBinFromCollector } = require("../services/autoScheduleService");
 
-// Helper: auto-generate next Bin ID
+// ── Helper: auto-generate next Bin ID ────────────────────────────────────────
 async function generateBinId() {
   const last = await Bin.findOne().sort({ createdAt: -1 }).select("binId");
   if (!last) return "BIN-001";
@@ -34,42 +36,47 @@ const dispose = async (req, res) => {
     const pointsMap = { Biodegradable: 10, "Non-biodegradable": 5, Recyclable: 15 };
     const basePoints = pointsMap[bin.type] || 10;
 
-    // Add base points to household
     if (!household.points) household.points = { total: 0, thisMonth: 0 };
-    household.points.total += basePoints;
+    household.points.total     += basePoints;
     household.points.thisMonth += basePoints;
 
-    // Log the disposal
     const disposal = await Disposal.create({
-      household: household._id,
-      bin: bin._id,
+      household:    household._id,
+      bin:          bin._id,
       rfid,
       binId,
-      wasteType: bin.type,
+      wasteType:    bin.type,
       pointsEarned: basePoints,
     });
 
-    // Log base points
     await PointLog.create({
       household: household._id,
-      points: basePoints,
-      reason: `Disposed ${bin.type} waste at ${binId}`,
+      points:    basePoints,
+      reason:    `Disposed ${bin.type} waste at ${binId}`,
     });
 
-    // ── Check and award streak/weekly/monthly points ──
     const streakAwards = await checkAndAwardPoints(household);
+
+    // ── Auto-schedule check after every disposal ──────────────────────────────
+    // Re-fetch the bin to get the latest fill level before checking
+    const updatedBin = await Bin.findOne({ binId });
+    if (updatedBin && (updatedBin.fill ?? 0) >= 75) {
+      checkAndAutoSchedule().catch((err) =>
+        console.error("[AutoSchedule] Error after disposal:", err.message)
+      );
+    }
 
     res.json({
       success: true,
       message: `Disposal logged. ${basePoints} base points earned!`,
       data: {
-        household: household.fullname,
-        wasteType: bin.type,
+        household:        household.fullname,
+        wasteType:        bin.type,
         basePointsEarned: basePoints,
         streakAwards,
-        currentStreak: household.streak?.currentStreak ?? 1,
-        totalPoints: household.points.total,
-        disposedAt: disposal.disposedAt,
+        currentStreak:    household.streak?.currentStreak ?? 1,
+        totalPoints:      household.points.total,
+        disposedAt:       disposal.disposedAt,
       },
     });
   } catch (error) {
@@ -86,12 +93,34 @@ const getAllBins = async (req, res) => {
     if (search) {
       query.$or = [
         { binId: { $regex: search, $options: "i" } },
-        { type: { $regex: search, $options: "i" } },
-        { name: { $regex: search, $options: "i" } },
+        { type:  { $regex: search, $options: "i" } },
+        { name:  { $regex: search, $options: "i" } },
       ];
     }
+
     const bins = await Bin.find(query).sort({ createdAt: 1 });
-    res.json({ success: true, data: bins });
+
+    // ── Attach pending schedule to each bin ───────────────────────────────────
+    const pendingSchedules = await BinSchedule.find({ status: "pending" })
+      .select("binId collectorName scheduledAt triggeredBy");
+
+    const scheduleMap = new Map(
+      pendingSchedules.map((s) => [
+        s.binId,
+        {
+          collector:   s.collectorName,
+          date:        new Date(s.scheduledAt).toLocaleDateString(),
+          auto:        s.triggeredBy === "auto",
+        },
+      ])
+    );
+
+    const binsWithSchedule = bins.map((b) => ({
+      ...b.toObject(),
+      schedule: scheduleMap.get(b.binId) ?? null,
+    }));
+
+    res.json({ success: true, data: binsWithSchedule });
   } catch (error) {
     res.status(500).json({ success: false, message: error.message });
   }
@@ -123,14 +152,14 @@ const createBin = async (req, res) => {
     }
 
     const bin = await Bin.create({
-      binId: deviceId, // the ESP32's hardcoded ID becomes the bin's official ID
+      binId:       deviceId,
       name,
       type,
       capacity,
       location,
-      lat: device.lat,
-      lng: device.lng,
-      fill: 0,
+      lat:         device.lat,
+      lng:         device.lng,
+      fill:        0,
       lastEmptied: null,
     });
 
@@ -162,6 +191,14 @@ const deleteBin = async (req, res) => {
   try {
     const bin = await Bin.findByIdAndDelete(req.params.id);
     if (!bin) return res.status(404).json({ success: false, message: "Bin not found." });
+
+    // Cancel any pending schedules and unassign from collector
+    await BinSchedule.updateMany(
+      { binId: bin.binId, status: "pending" },
+      { status: "cancelled" }
+    );
+    await unassignBinFromCollector(bin.binId);
+
     res.json({ success: true, message: "Bin deleted." });
   } catch (error) {
     res.status(500).json({ success: false, message: error.message });
@@ -194,7 +231,7 @@ const getBinByMac = async (req, res) => {
 // GET /api/bins/count
 const getBinCount = async (req, res) => {
   try {
-    const count = await Bin.countDocuments(); 
+    const count = await Bin.countDocuments();
     res.json({ success: true, count });
   } catch (error) {
     res.status(500).json({ success: false, message: error.message });
@@ -205,24 +242,42 @@ const getBinCount = async (req, res) => {
 const heartbeat = async (req, res) => {
   try {
     const { binId } = req.body;
-    if (!binId) return res.status(400).json({ success: false, message: "binId is required." });
+    if (!binId) {
+      return res.status(400).json({ success: false, message: "binId is required." });
+    }
 
     const bin = await Bin.findOneAndUpdate(
       { binId },
-      {
-        status: "online",
-        isActive: true,
-        lastHeartbeat: new Date(),
-      },
+      { status: "online", isActive: true, lastHeartbeat: new Date() },
       { new: true }
     );
 
     if (!bin) return res.status(404).json({ success: false, message: "Bin not found." });
 
-    res.json({ success: true, message: "Heartbeat received.", data: { binId, status: "online" } });
+    // ── Trigger auto-schedule if fill crossed threshold ───────────────────────
+    if ((bin.fill ?? 0) >= 75) {
+      checkAndAutoSchedule().catch((err) =>
+        console.error("[AutoSchedule] Error after heartbeat:", err.message)
+      );
+    }
+
+    res.json({
+      success: true,
+      message: "Heartbeat received.",
+      data: { binId, status: "online" },
+    });
   } catch (error) {
     res.status(500).json({ success: false, message: error.message });
   }
 };
 
-module.exports = { dispose, getAllBins, createBin, updateBin, deleteBin, getBinByMac, heartbeat, getBinCount };
+module.exports = {
+  dispose,
+  getAllBins,
+  createBin,
+  updateBin,
+  deleteBin,
+  getBinByMac,
+  heartbeat,
+  getBinCount,
+};

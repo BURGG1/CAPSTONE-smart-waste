@@ -16,44 +16,39 @@ import {
   Trash,
 } from "lucide-react";
 
-const API = `${BASE_URL}/api/bins`;
-const SCHEDULE_API = `${BASE_URL}/api/bins`; // -> /:binId/schedule
-
-// How often to re-fetch bins from the server. Matches the ESP32's
-// FILL_SEND_INTERVAL_MS (10s) so the dashboard stays roughly live.
-const POLL_INTERVAL_MS = 10000;
-
-// How many bins show per page in the "Bins in Barangay" list.
+const API            = `${BASE_URL}/api/bins`;
+const SCHEDULE_API   = `${BASE_URL}/api/bins`;
+const POLL_INTERVAL_MS  = 10000;
 const MAP_LIST_PER_PAGE = 5;
 
 const statusColors = {
   good: {
-    border: "border-green-300",
-    badge: "bg-green-100 text-green-700",
-    bar: "bg-green-600",
-    icon: CheckCircle,
+    border:    "border-green-300",
+    badge:     "bg-green-100 text-green-700",
+    bar:       "bg-green-600",
+    icon:      CheckCircle,
     iconColor: "text-green-600",
   },
   warning: {
-    border: "border-yellow-300",
-    badge: "bg-yellow-100 text-yellow-700",
-    bar: "bg-yellow-500",
-    icon: AlertTriangle,
+    border:    "border-yellow-300",
+    badge:     "bg-yellow-100 text-yellow-700",
+    bar:       "bg-yellow-500",
+    icon:      AlertTriangle,
     iconColor: "text-yellow-600",
   },
   critical: {
-    border: "border-red-300",
-    badge: "bg-red-100 text-red-700",
-    bar: "bg-red-600",
-    icon: XCircle,
+    border:    "border-red-300",
+    badge:     "bg-red-100 text-red-700",
+    bar:       "bg-red-600",
+    icon:      XCircle,
     iconColor: "text-red-600",
   },
 };
 
 const typeColors = {
-  Biodegradable: "bg-green-600",
+  Biodegradable:      "bg-green-600",
   "Non-biodegradable": "bg-orange-600",
-  Recyclable: "bg-blue-600",
+  Recyclable:         "bg-blue-600",
 };
 
 function getStatusFromFill(fill) {
@@ -62,39 +57,23 @@ function getStatusFromFill(fill) {
   return "good";
 }
 
-const initialCollectors = [
-  { id: 1, name: "Juan Carlos", status: "available", currentLoad: 1 },
-  { id: 2, name: "Pedro Penduko", status: "available", currentLoad: 2 },
-  { id: 3, name: "Maria Teresa", status: "busy", currentLoad: 2 },
-];
-
 export default function BinMonitoring() {
-  const [bins, setBins] = useState([]);
+  const [bins, setBins]               = useState([]);
   const [binsLoading, setBinsLoading] = useState(true);
   const [activeBinId, setActiveBinId] = useState(null);
   const [alertDismissed, setAlertDismissed] = useState(false);
-  const [collectors, setCollectors] = useState(initialCollectors);
-
-  // ── Pagination for the "Bins in Barangay" map list ──
   const [mapListPage, setMapListPage] = useState(1);
 
-  // Keep a ref mirror of bins so the polling interval always sees the
-  // latest schedules without having to be re-created on every bins change.
   const binsRef = useRef(bins);
   useEffect(() => {
     binsRef.current = bins;
   }, [bins]);
 
-  // ── Fetch bins from database ──────────────────────────────────────────────
-  // On the very first load there is nothing to preserve, so we just map
-  // the payload straight in. On every subsequent poll we merge the fresh
-  // fill/lastEmptied data into the bins we already have, so we don't
-  // clobber locally-set schedules with server data that doesn't know
-  // about them yet.
+  // ── Fetch bins ────────────────────────────────────────────────────────────
   const fetchBins = useCallback(async (isInitial = false) => {
     if (isInitial) setBinsLoading(true);
     try {
-      const res = await fetch(API);
+      const res  = await fetch(API);
       const data = await res.json();
       if (!data.success) return;
 
@@ -103,20 +82,18 @@ export default function BinMonitoring() {
       const nextBins = data.data.map((bin) => {
         const prev = prevById.get(bin.binId);
         return {
-          id: bin.binId,
-          _id: bin._id,
-          name: bin.name,
-          location: bin.location,
-          type: bin.type,
-          fill: bin.fill ?? 0,
-          capacity: bin.capacity,
+          id:          bin.binId,
+          _id:         bin._id,
+          name:        bin.name,
+          location:    bin.location,
+          type:        bin.type,
+          fill:        bin.fill ?? 0,
+          capacity:    bin.capacity,
           lastEmptied: bin.lastEmptied ? new Date(bin.lastEmptied) : null,
-          // Preserve any schedule we already know about locally, unless
-          // the server tells us about one directly.
-          schedule: bin.schedule ?? prev?.schedule ?? null,
-          lat: bin.lat ?? 14.86515,
-          lng: bin.lng ?? 120.75615,
-          status: bin.status ?? "offline",
+          schedule:    bin.schedule ?? prev?.schedule ?? null,
+          lat:         bin.lat ?? 14.86515,
+          lng:         bin.lng ?? 120.75615,
+          status:      bin.status ?? "offline",
         };
       });
 
@@ -134,7 +111,7 @@ export default function BinMonitoring() {
     return () => clearInterval(interval);
   }, [fetchBins]);
 
-  // Keep the map-list page valid whenever the bins list changes
+  // Keep map-list page valid
   useEffect(() => {
     const totalPages = Math.max(1, Math.ceil(bins.length / MAP_LIST_PER_PAGE));
     if (mapListPage > totalPages) setMapListPage(totalPages);
@@ -144,74 +121,18 @@ export default function BinMonitoring() {
     (mapListPage - 1) * MAP_LIST_PER_PAGE,
     mapListPage * MAP_LIST_PER_PAGE
   );
-  // Number of empty placeholder slots needed to keep the list's height
-  // fixed at MAP_LIST_PER_PAGE items, regardless of how many bins are on
-  // the current page.
-  const mapListEmptySlots = Math.max(
-    0,
-    MAP_LIST_PER_PAGE - paginatedMapListBins.length
-  );
+  const mapListEmptySlots = Math.max(0, MAP_LIST_PER_PAGE - paginatedMapListBins.length);
 
-  // ── Assign the least-loaded available collector ──────────────────────────
-  const assignCollector = useCallback(() => {
-    let assigned = null;
-    setCollectors((prev) => {
-      const available = prev
-        .filter((c) => c.status === "available")
-        .sort((a, b) => a.currentLoad - b.currentLoad);
-      if (available.length === 0) return prev;
-
-      assigned = available[0];
-      return prev.map((c) =>
-        c.id === assigned.id ? { ...c, currentLoad: c.currentLoad + 1 } : c
-      );
-    });
-    return assigned;
-  }, []);
-
-  // ── Auto-schedule critical bins ───────────────────────────────────────────
-  const autoScheduleBins = useCallback(() => {
-    setBins((prevBins) => {
-      let updated = false;
-      const newBins = prevBins.map((bin) => {
-        const status = getStatusFromFill(bin.fill);
-        if ((status === "warning" || status === "critical") && !bin.schedule) {
-          const collector = assignCollector();
-          if (!collector) return bin;
-          updated = true;
-          return {
-            ...bin,
-            schedule: {
-              collector: collector.name,
-              date: new Date().toLocaleDateString(),
-              auto: true,
-            },
-          };
-        }
-        return bin;
-      });
-      return updated ? newBins : prevBins;
-    });
-  }, [assignCollector]);
-
-  useEffect(() => {
-    if (bins.length === 0) return;
-    const needsScheduling = bins.some((bin) => bin.fill >= 90 && !bin.schedule);
-    if (needsScheduling) autoScheduleBins();
-  }, [bins, autoScheduleBins]);
-
-  // ── Manual "Schedule Collection" button handler ───────────────────────────
-  // This was referenced in the JSX (onConfirm) but never defined — that's
-  // what was crashing the page. It posts the schedule to the backend and,
-  // whether or not the request succeeds, reflects it in local state so the
-  // UI updates immediately (optimistic update), rolling back on failure.
+  // ── Manual schedule handler ───────────────────────────────────────────────
   const handleSchedule = useCallback(
     async (binId, data) => {
-      const collector = data?.collector ?? assignCollector()?.name ?? "Unassigned";
-      const date = data?.date ?? new Date().toLocaleDateString();
-      const schedule = { collector, date, auto: false };
+      const schedule = {
+        collector: data?.collector ?? "Unassigned",
+        date:      data?.date ?? new Date().toLocaleDateString(),
+        auto:      false,
+      };
 
-      // Optimistic UI update
+      // Optimistic update
       setBins((prev) =>
         prev.map((b) => (b.id === binId ? { ...b, schedule } : b))
       );
@@ -219,11 +140,14 @@ export default function BinMonitoring() {
 
       try {
         const res = await fetch(`${SCHEDULE_API}/${binId}/schedule`, {
-          method: "POST",
+          method:  "POST",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ collector, date }),
+          body:    JSON.stringify({ collector: schedule.collector, date: schedule.date }),
         });
         if (!res.ok) throw new Error(`Server responded ${res.status}`);
+
+        // Refresh to get server-confirmed schedule
+        await fetchBins(false);
       } catch (err) {
         console.error("Failed to save schedule, rolling back:", err);
         setBins((prev) =>
@@ -231,23 +155,23 @@ export default function BinMonitoring() {
         );
       }
     },
-    [assignCollector]
+    [fetchBins]
   );
 
-  // ── Derived stats from real bins ──────────────────────────────────────────
-  const totalBins = bins.length;
-  const normalBins = bins.filter((b) => getStatusFromFill(b.fill) === "good").length;
-  const warningBins = bins.filter((b) => getStatusFromFill(b.fill) === "warning").length;
+  // ── Derived stats ─────────────────────────────────────────────────────────
+  const totalBins    = bins.length;
+  const normalBins   = bins.filter((b) => getStatusFromFill(b.fill) === "good").length;
+  const warningBins  = bins.filter((b) => getStatusFromFill(b.fill) === "warning").length;
   const criticalBins = bins.filter((b) => getStatusFromFill(b.fill) === "critical").length;
   const aveFillLevel = bins.length
     ? Math.round(bins.reduce((sum, b) => sum + b.fill, 0) / bins.length)
     : 0;
 
   const stats = [
-    { title: "Total Bins", value: totalBins, icon: Trash, iconBg: "bg-blue-100", iconColor: "text-blue-600", percentage: null },
-    { title: "Normal", value: normalBins, icon: CheckCircle, iconBg: "bg-green-100", iconColor: "text-green-600", percentage: totalBins ? `${Math.round((normalBins / totalBins) * 100)}%` : "0%", percentColor: "text-green-600" },
-    { title: "Warning", value: warningBins, icon: AlertTriangle, iconBg: "bg-yellow-100", iconColor: "text-yellow-600", percentage: totalBins ? `${Math.round((warningBins / totalBins) * 100)}%` : "0%", percentColor: "text-yellow-600" },
-    { title: "Critical", value: criticalBins, icon: XCircle, iconBg: "bg-red-100", iconColor: "text-red-600", percentage: totalBins ? `${Math.round((criticalBins / totalBins) * 100)}%` : "0%", percentColor: "text-red-600" },
+    { title: "Total Bins",  value: totalBins,    icon: Trash,         iconBg: "bg-blue-100",   iconColor: "text-blue-600",   percentage: null },
+    { title: "Normal",      value: normalBins,   icon: CheckCircle,   iconBg: "bg-green-100",  iconColor: "text-green-600",  percentage: totalBins ? `${Math.round((normalBins   / totalBins) * 100)}%` : "0%", percentColor: "text-green-600"  },
+    { title: "Warning",     value: warningBins,  icon: AlertTriangle, iconBg: "bg-yellow-100", iconColor: "text-yellow-600", percentage: totalBins ? `${Math.round((warningBins  / totalBins) * 100)}%` : "0%", percentColor: "text-yellow-600" },
+    { title: "Critical",    value: criticalBins, icon: XCircle,       iconBg: "bg-red-100",    iconColor: "text-red-600",    percentage: totalBins ? `${Math.round((criticalBins / totalBins) * 100)}%` : "0%", percentColor: "text-red-600"    },
   ];
 
   const getColor = () => {
@@ -256,7 +180,6 @@ export default function BinMonitoring() {
     return "bg-green-600";
   };
 
-  // ── Critical bins for alert ───────────────────────────────────────────────
   const criticalBinList = bins.filter((b) => getStatusFromFill(b.fill) === "critical");
 
   return (
@@ -287,7 +210,7 @@ export default function BinMonitoring() {
             </p>
           </div>
 
-          {/* ALERT — only show if there are critical bins */}
+          {/* ALERT */}
           {criticalBinList.length > 0 && !alertDismissed && (
             <div className="border border-red-300 bg-red-50 rounded-xl p-5 flex justify-between items-start">
               <div className="flex gap-3">
@@ -328,7 +251,7 @@ export default function BinMonitoring() {
               return (
                 <div
                   key={item.title}
-                  className="w-full bg-white rounded-xl shadow-sm p-5 flex justify-between items-center"
+                  className="w-full bg-white rounded-xl shadow-sm p-5"
                 >
                   <div className="w-full flex flex-col gap-4">
                     <div className="w-full flex justify-between">
@@ -373,8 +296,8 @@ export default function BinMonitoring() {
           ) : (
             <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
               {bins.map((bin) => {
-                const status = getStatusFromFill(bin.fill);
-                const style = statusColors[status];
+                const status     = getStatusFromFill(bin.fill);
+                const style      = statusColors[status];
                 const StatusIcon = style.icon;
 
                 return (
@@ -382,20 +305,23 @@ export default function BinMonitoring() {
                     key={bin.id}
                     className={`bg-white rounded-xl border ${style.border} p-6 shadow-sm`}
                   >
+                    {/* Card Header */}
                     <div className="flex justify-between items-start">
                       <div>
-                        <div className="flex items-center gap-2">
+                        <div className="flex items-center gap-2 flex-wrap">
                           <h3 className="font-bold">{bin.id} - {bin.name}</h3>
-                          <span className={`inline-flex items-center gap-1 px-2 py-0.5 text-xs rounded-full font-medium ${bin.status === "online"
+                          <span className={`inline-flex items-center gap-1 px-2 py-0.5 text-xs rounded-full font-medium ${
+                            bin.status === "online"
                               ? "bg-green-100 text-green-700"
                               : "bg-gray-100 text-gray-500"
-                            }`}>
-                            <span className={`w-1.5 h-1.5 rounded-full ${bin.status === "online" ? "bg-green-500" : "bg-gray-400"
-                              }`} />
+                          }`}>
+                            <span className={`w-1.5 h-1.5 rounded-full ${
+                              bin.status === "online" ? "bg-green-500" : "bg-gray-400"
+                            }`} />
                             {bin.status === "online" ? "Online" : "Offline"}
                           </span>
                         </div>
-                        <p className="flex items-center gap-1 text-sm text-gray-500">
+                        <p className="flex items-center gap-1 text-sm text-gray-500 mt-1">
                           <MapPin size={14} />
                           {bin.location}
                         </p>
@@ -403,10 +329,12 @@ export default function BinMonitoring() {
                       <StatusIcon className={style.iconColor} />
                     </div>
 
-                    <span className={`mt-3 inline-block px-3 py-1 text-xs text-white rounded-full ${typeColors[bin.type]}`}>
+                    {/* Type badge */}
+                    <span className={`mt-3 inline-block px-3 py-1 text-xs text-white rounded-full ${typeColors[bin.type] ?? "bg-gray-500"}`}>
                       {bin.type}
                     </span>
 
+                    {/* Fill level */}
                     <div className="mt-4">
                       <div className="flex justify-between mb-1">
                         <span className="text-sm">Fill Level</span>
@@ -420,6 +348,7 @@ export default function BinMonitoring() {
                       </div>
                     </div>
 
+                    {/* Details */}
                     <div className="mt-4 text-sm space-y-1">
                       <p>Capacity: <strong>{bin.capacity}</strong></p>
                       <p>
@@ -430,26 +359,42 @@ export default function BinMonitoring() {
                       </p>
                     </div>
 
+                    {/* Status badge */}
                     <span className={`mt-4 inline-flex items-center gap-1 px-3 py-1 text-sm rounded-full ${style.badge}`}>
                       <StatusIcon size={14} />
                       Status: {status}
                     </span>
 
-                    {status === "critical" && (
+                    {/* ── Schedule section — shows for warning (75%+) and critical ── */}
+                    {(status === "warning" || status === "critical") && (
                       <div className="relative mt-4">
-                        {!bin.schedule ? (
+                        {bin.schedule ? (
+                          // Collector is assigned
+                          <div className="bg-green-100 border border-green-200 p-3 rounded-lg text-sm space-y-1">
+                            <div className="flex items-center gap-2 mb-1">
+                              <span className="w-2 h-2 rounded-full bg-green-500 inline-block" />
+                              <p className="text-green-700 font-semibold text-xs uppercase tracking-wide">
+                                {bin.schedule.auto ? "Auto-Assigned" : "Manually Assigned"}
+                              </p>
+                            </div>
+                            <p><strong>Collector:</strong> {bin.schedule.collector}</p>
+                            <p><strong>Date:</strong> {bin.schedule.date}</p>
+                          </div>
+                        ) : status === "critical" ? (
+                          // Critical but no collector yet — show button
                           <button
                             onClick={() => setActiveBinId(bin.id)}
-                            className="w-full cursor-pointer bg-gray-900 text-white py-2 rounded-lg"
+                            className="w-full cursor-pointer bg-gray-900 text-white py-2 rounded-lg hover:bg-gray-800 transition"
                           >
                             Schedule Collection
                           </button>
                         ) : (
-                          <div className="bg-green-100 p-3 rounded-lg text-sm">
-                            <p><strong>Collector:</strong> {bin.schedule.collector}</p>
-                            <p><strong>Date:</strong> {bin.schedule.date}</p>
+                          // Warning — waiting for auto-assign
+                          <div className="bg-yellow-50 border border-yellow-200 p-3 rounded-lg text-sm text-yellow-700">
+                            ⏳ Awaiting auto-assignment...
                           </div>
                         )}
+
                         <SetSched
                           isOpen={activeBinId === bin.id}
                           onClose={() => setActiveBinId(null)}
@@ -508,6 +453,8 @@ export default function BinMonitoring() {
             </div>
 
             <div className="grid grid-cols-1 lg:grid-cols-4 gap-4 h-[500px]">
+
+              {/* Map */}
               <div className="lg:col-span-3 rounded-xl overflow-hidden border">
                 {!binsLoading && bins.length > 0 && (
                   <MapContainer
@@ -521,7 +468,7 @@ export default function BinMonitoring() {
                     />
                     {bins.filter((bin) => bin.lat && bin.lng).map((bin) => {
                       const status = getStatusFromFill(bin.fill);
-                      const style = statusColors[status];
+                      const style  = statusColors[status];
                       return (
                         <Marker key={bin.id} position={[bin.lat, bin.lng]}>
                           <Tooltip direction="top" offset={[0, -10]} permanent>
@@ -544,6 +491,12 @@ export default function BinMonitoring() {
                               <p className="text-xs mt-2">
                                 Capacity: <strong>{bin.capacity}</strong>
                               </p>
+                              {bin.schedule && (
+                                <div className="mt-2 pt-2 border-t text-xs text-green-700">
+                                  <p>👷 {bin.schedule.collector}</p>
+                                  <p>📅 {bin.schedule.date}</p>
+                                </div>
+                              )}
                             </div>
                           </Popup>
                         </Marker>
@@ -553,18 +506,17 @@ export default function BinMonitoring() {
                 )}
               </div>
 
+              {/* Bins list */}
               <div className="border rounded-xl p-3 flex flex-col">
                 <h3 className="font-semibold mb-3">Bins in Barangay</h3>
                 <div className="flex-1 overflow-y-auto">
                   {paginatedMapListBins.length === 0 ? (
-                    <p className="text-center text-sm text-gray-400 py-6">
-                      No bins found.
-                    </p>
+                    <p className="text-center text-sm text-gray-400 py-6">No bins found.</p>
                   ) : (
                     <>
                       {paginatedMapListBins.map((bin) => {
                         const status = getStatusFromFill(bin.fill);
-                        const style = statusColors[status];
+                        const style  = statusColors[status];
                         return (
                           <div key={bin.id} className="mb-3 p-2 border rounded-lg hover:bg-gray-50">
                             <div className="flex justify-between text-sm font-medium">
@@ -578,21 +530,22 @@ export default function BinMonitoring() {
                                 style={{ width: `${bin.fill}%` }}
                               />
                             </div>
+                            {bin.schedule && (
+                              <p className="text-xs text-green-600 mt-1">
+                                👷 {bin.schedule.collector}
+                              </p>
+                            )}
                           </div>
                         );
                       })}
-                      {/* Invisible placeholder slots so the list panel keeps a
-                          constant height at MAP_LIST_PER_PAGE items, even when
-                          the last page has fewer bins. */}
                       {Array.from({ length: mapListEmptySlots }).map((_, i) => (
                         <div
-                          key={`map-list-empty-${i}`}
+                          key={`empty-${i}`}
                           aria-hidden="true"
                           className="mb-3 p-2 border border-transparent invisible pointer-events-none"
                         >
                           <div className="flex justify-between text-sm font-medium">
-                            <span>&nbsp;</span>
-                            <span>&nbsp;</span>
+                            <span>&nbsp;</span><span>&nbsp;</span>
                           </div>
                           <p className="text-xs">&nbsp;</p>
                           <div className="w-full h-2 rounded mt-1" />
