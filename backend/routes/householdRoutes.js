@@ -11,6 +11,7 @@ const {
   checkContactExists,
   awardPoints,
   getHouseholdActivity,
+  getLeaderboard,
 } = require("../controllers/householdController");
 const { protect, allowRoles } = require("../middleware/authMiddleware");
 
@@ -22,6 +23,7 @@ router.route("/")
 router.get("/count", getHouseholdCount);
 router.get("/check-email", checkEmailExists);      
 router.get("/check-contact", checkContactExists); 
+router.get("/leaderboard", getLeaderboard);
 
 
 router.route("/:id")

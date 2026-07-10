@@ -5,12 +5,12 @@ import { SafeAreaView } from "react-native-safe-area-context";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { API_BASE } from "@/config";
 
-const POLL_INTERVAL_MS = 5000;
+const POLL_INTERVAL_MS = 10000;
 
 const tierStyles = {
-  Gold: "bg-yellow-100 text-yellow-700",
-  Silver: "bg-gray-100 text-gray-700",
-  Bronze: "bg-orange-100 text-orange-700",
+  Gold:   { bg: "bg-yellow-100", text: "text-yellow-700" },
+  Silver: { bg: "bg-gray-100",   text: "text-gray-700"   },
+  Bronze: { bg: "bg-orange-100", text: "text-orange-700" },
 };
 
 const getTierByRank = (rank) => {
@@ -21,50 +21,41 @@ const getTierByRank = (rank) => {
 };
 
 export default function Leaderboard() {
-  const [rankedData, setRankedData] = useState([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState(false);
-  const [refreshing, setRefreshing] = useState(false);
-  const myHouseholdIdRef = useRef(null);
-  const isMountedRef = useRef(true);
+  const [rankedData, setRankedData]   = useState([]);
+  const [loading, setLoading]         = useState(true);
+  const [error, setError]             = useState(false);
+  const [refreshing, setRefreshing]   = useState(false);
+  const myHouseholdIdRef              = useRef(null);
+  const isMountedRef                  = useRef(true);
 
-  // ── Resolve which household is "me", once per mount ──
   useEffect(() => {
     (async () => {
       try {
-        const storedId = await AsyncStorage.getItem("householdId");
-        myHouseholdIdRef.current = storedId || null;
+        const raw  = await AsyncStorage.getItem("user");
+        const user = raw ? JSON.parse(raw) : null;
+        myHouseholdIdRef.current = user?.id ?? null;
       } catch (err) {
-        console.error("Failed to read household id from storage:", err);
+        console.error("Failed to read user from storage:", err);
       }
     })();
   }, []);
 
-  // ── Fetch + rank households from the API ──
   const fetchLeaderboard = useCallback(async ({ silent = false } = {}) => {
     if (!silent) setLoading(true);
-
     try {
-      const res = await fetch(`${API_BASE}/api/households?limit=50&isActive=true`);
+      const res  = await fetch(`${API_BASE}/api/households/leaderboard?limit=50`);
       const data = await res.json();
 
       if (!data.success) throw new Error("Failed to fetch leaderboard");
 
-      const ranked = [...(data.data ?? [])]
-        .sort((a, b) => (b.points?.total ?? 0) - (a.points?.total ?? 0))
-        .slice(0, 50)
-        .map((hh, index) => ({
-          family: hh.fullname,
-          address: [hh.address?.houseNo, hh.address?.street].filter(Boolean).join(", ") || "—",
-          householdId: `HH-${hh._id.slice(-8).toUpperCase()}`,
-          rawId: hh._id,
-          points: hh.points?.total ?? 0,
-          disposals: hh.disposals ?? 0,
-          trend: "up",
-          rank: index + 1,
-          tier: getTierByRank(index + 1),
-          isYou: myHouseholdIdRef.current ? hh._id === myHouseholdIdRef.current : false,
-        }));
+      const ranked = (data.data ?? []).map((hh) => ({
+        ...hh,
+        householdId: `HH-${hh._id.slice(-8).toUpperCase()}`,
+        tier:        getTierByRank(hh.rank),
+        isYou:       myHouseholdIdRef.current
+                       ? hh._id === myHouseholdIdRef.current
+                       : false,
+      }));
 
       if (isMountedRef.current) {
         setRankedData(ranked);
@@ -81,23 +72,13 @@ export default function Leaderboard() {
     }
   }, []);
 
-  // ── Initial load + polling for real-time updates ──
   useEffect(() => {
     isMountedRef.current = true;
-
     fetchLeaderboard();
-
-    const intervalId = setInterval(() => {
-      fetchLeaderboard({ silent: true });
-    }, POLL_INTERVAL_MS);
-
-    return () => {
-      isMountedRef.current = false;
-      clearInterval(intervalId);
-    };
+    const id = setInterval(() => fetchLeaderboard({ silent: true }), POLL_INTERVAL_MS);
+    return () => { isMountedRef.current = false; clearInterval(id); };
   }, [fetchLeaderboard]);
 
-  // ── Pull-to-refresh ──
   const handleRefresh = () => {
     setRefreshing(true);
     fetchLeaderboard({ silent: true });
@@ -105,7 +86,6 @@ export default function Leaderboard() {
 
   const podiumData = rankedData.slice(0, 3);
 
-  // ── Loading skeleton (first load only) ──
   if (loading) {
     return (
       <SafeAreaView className="flex-1 justify-center items-center bg-gray-50">
@@ -115,7 +95,6 @@ export default function Leaderboard() {
     );
   }
 
-  // ── Error state ──
   if (error && rankedData.length === 0) {
     return (
       <SafeAreaView className="flex-1 justify-center items-center bg-gray-50 px-6">
@@ -137,7 +116,6 @@ export default function Leaderboard() {
         }
         ListHeaderComponent={() => (
           <View className="space-y-6">
-            {/* Header */}
             <View>
               <Text className="text-3xl font-bold">Community Leaderboard</Text>
               <Text className="text-gray-500">
@@ -145,7 +123,6 @@ export default function Leaderboard() {
               </Text>
             </View>
 
-            {/* Empty state */}
             {rankedData.length === 0 ? (
               <View className="bg-white rounded-xl shadow p-8 items-center">
                 <Text className="text-gray-400">No household data yet.</Text>
@@ -157,16 +134,16 @@ export default function Leaderboard() {
                   {podiumData.map((item) => (
                     <View
                       key={item.rank}
-                      className={`bg-white rounded-xl shadow p-4 flex-row items-center gap-4 ${item.isYou ? "border border-green-400" : ""
-                        }`}
+                      className={`bg-white rounded-xl shadow p-4 flex-row items-center gap-4 ${item.isYou ? "border border-green-400" : ""}`}
                     >
                       <View className="w-12 h-12 rounded-full bg-green-100 flex items-center justify-center">
                         <Text className="font-bold">#{item.rank}</Text>
                       </View>
                       <View className="flex-1">
-                        <Text className="font-semibold">{item.family}</Text>
+                        <Text className="font-semibold">{item.fullname}</Text>
                         <Text className="text-xs text-gray-400">{item.address}</Text>
                         <Text className="text-sm text-green-600 font-bold">{item.points} pts</Text>
+                        <Text className="text-xs text-gray-400">{item.disposals} disposals</Text>
                         {item.isYou && (
                           <Text className="mt-1 text-xs bg-green-600 text-white px-2 py-0.5 rounded-full self-start">
                             You
@@ -196,36 +173,32 @@ export default function Leaderboard() {
           </View>
         )}
         renderItem={({ item }) => (
-          <View className={`flex-row justify-between items-center px-4 py-2 ${item.isYou ? "bg-green-50" : ""}`}>
-            <Text className="font-semibold">#{item.rank}</Text>
+          <View className={`flex-row justify-between items-center px-4 py-2 border-b border-gray-100 ${item.isYou ? "bg-green-50" : ""}`}>
+            <Text className="font-semibold w-8">#{item.rank}</Text>
 
             <View className="flex-1 px-2">
-              <Text className="font-medium">{item.family}</Text>
+              <Text className="font-medium">{item.fullname}</Text>
               <Text className="text-xs text-gray-500">{item.householdId}</Text>
               {item.isYou && (
-                <Text className="mt-1 text-xs bg-green-600 text-white px-2 py-0.5 rounded-full">You</Text>
+                <Text className="mt-1 text-xs bg-green-600 text-white px-2 py-0.5 rounded-full self-start">You</Text>
               )}
             </View>
 
             <View className="px-2">
               {item.tier ? (
-                <Text className={`px-3 py-1 rounded-full text-xs font-medium ${tierStyles[item.tier]}`}>
+                <Text className={`px-3 py-1 rounded-full text-xs font-medium ${tierStyles[item.tier].bg} ${tierStyles[item.tier].text}`}>
                   {item.tier}
                 </Text>
               ) : (
-                <Text className="text-gray-400 text-xs">—</Text>
+                <Text className="text-gray-400 text-xs px-3">—</Text>
               )}
             </View>
 
-            <Text className="px-2">{item.disposals}</Text>
+            <Text className="px-2 text-gray-500 text-sm">{item.disposals}</Text>
             <Text className="px-2 font-bold text-green-600">{item.points}</Text>
 
             <View className="px-2">
-              {item.trend === "up" ? (
-                <Feather name="trending-up" size={18} color="#16A34A" />
-              ) : (
-                <Feather name="trending-down" size={18} color="#DC2626" />
-              )}
+              <Feather name="trending-up" size={18} color="#16A34A" />
             </View>
           </View>
         )}

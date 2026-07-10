@@ -174,9 +174,11 @@ export default function Rewards() {
                                 </View>
                                 <View className="bg-green-600 p-2 rounded-xl border border-green-700 items-center justify-center">
                                     <Text className="text-2xl font-bold text-white">
-                                        {household?.streak?.currentStreak ?? 0} days
+                                        {household?.streak?.currentStreak ?? 0}
                                     </Text>
-                                    <Text className="text-white text-center">Streak</Text>
+                                    <Text className="text-white text-center text-xs">
+                                        {(household?.streak?.currentStreak ?? 0) === 1 ? "day streak" : "days streak"}
+                                    </Text>
                                 </View>
                             </View>
                             <View className="flex-row justify-between text-sm text-green-100">
@@ -209,6 +211,21 @@ export default function Rewards() {
                             </View>
                         </View>
                     </View>
+
+                    {/* Streak Card */}
+                    {(household?.streak?.currentStreak ?? 0) > 0 && (
+                        <View className="bg-orange-50 border border-orange-200 rounded-xl p-4 flex-row items-center gap-3">
+                            <Text className="text-2xl">🔥</Text>
+                            <View>
+                                <Text className="font-bold text-orange-700">
+                                    {household?.streak?.currentStreak} Day Streak!
+                                </Text>
+                                <Text className="text-xs text-orange-500">
+                                    Keep disposing daily to maintain your streak and earn bonus points.
+                                </Text>
+                            </View>
+                        </View>
+                    )}
 
                     {/* Redeemable Items */}
                     <View className="bg-white rounded-xl p-6 shadow space-y-4">

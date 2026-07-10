@@ -501,10 +501,65 @@ const getHouseholdActivity = async (req, res) => {
   }
 };
 
+// GET /api/households/leaderboard
+const getLeaderboard = async (req, res) => {
+  try {
+    const { limit = 50 } = req.query;
+
+    const households = await Household.find({ isActive: true })
+      .select("fullname address points streak")
+      .sort({ "points.total": -1 })
+      .limit(parseInt(limit))
+      .lean();
+
+    // ── Count disposals from RfidLog (action: "dispose") ─────────────────────
+    // Same source as HouseholdRecordModal's disposal log tab
+    const RfidLog = require("../models/RfidLog");
+
+    const householdIds = households.map((h) => h._id);
+
+    const disposalCounts = await RfidLog.aggregate([
+      {
+        $match: {
+          household: { $in: householdIds },
+          action: "dispose",
+        },
+      },
+      {
+        $group: {
+          _id:   "$household",
+          count: { $sum: 1 },
+        },
+      },
+    ]);
+
+    const countMap = {};
+    disposalCounts.forEach((d) => {
+      countMap[d._id.toString()] = d.count;
+    });
+
+    const ranked = households.map((hh, index) => ({
+      _id:       hh._id,
+      fullname:  hh.fullname,
+      address:   [hh.address?.houseNo, hh.address?.street].filter(Boolean).join(", ") || "—",
+      points:    hh.points?.total ?? 0,
+      thisMonth: hh.points?.thisMonth ?? 0,
+      disposals: countMap[hh._id.toString()] ?? 0,
+      streak:    hh.streak?.currentStreak ?? 0,
+      rank:      index + 1,
+    }));
+
+    res.json({ success: true, data: ranked });
+  } catch (error) {
+    res.status(500).json({ success: false, message: error.message });
+  }
+};
+
 module.exports = {
   getAllHouseholds,
   getHouseholdById,
   createHousehold,
+  getLeaderboard,
   updateHousehold,
   deleteHousehold,
   getHouseholdCount,

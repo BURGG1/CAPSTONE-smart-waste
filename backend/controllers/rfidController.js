@@ -66,10 +66,7 @@ const scanAtBin = async (req, res) => {
     const household = await Household.findOne({ rfid });
     if (!household) {
       await RfidLog.create({
-        rfid,
-        household: null,
-        binId,
-        action: "scan",
+        rfid, household: null, binId, action: "scan",
         note: `Unregistered RFID scanned at ${binId}`,
       });
       return res.status(404).json({ success: false, message: "RFID not registered", rfid });
@@ -79,33 +76,57 @@ const scanAtBin = async (req, res) => {
     if (!bin)
       return res.status(404).json({ success: false, message: `Bin ${binId} not found` });
 
-    // ── Auto-update bin's GPS coordinates if ESP32 sent a valid fix ──────────
+    // ── GPS + fill level update ───────────────────────────────────────────────
     const hasValidCoords =
-      typeof lat === "number" &&
-      typeof lng === "number" &&
-      !Number.isNaN(lat) &&
-      !Number.isNaN(lng) &&
-      (lat !== 0 || lng !== 0); // guards against uninitialised 0.0/0.0 from GPS lib
+      typeof lat === "number" && typeof lng === "number" &&
+      !Number.isNaN(lat) && !Number.isNaN(lng) && (lat !== 0 || lng !== 0);
 
-    if (hasValidCoords) {
-      bin.lat = lat;
-      bin.lng = lng;
+    if (hasValidCoords) { bin.lat = lat; bin.lng = lng; }
+    if (typeof fillLevel === "number" && fillLevel >= 0) bin.fill = fillLevel;
+    if (hasValidCoords || typeof fillLevel === "number") await bin.save();
+
+    // ── Update streak ─────────────────────────────────────────────────────────
+    const now   = new Date();
+    const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+
+    const lastDate = household.streak?.lastDisposalDate
+      ? new Date(
+          household.streak.lastDisposalDate.getFullYear(),
+          household.streak.lastDisposalDate.getMonth(),
+          household.streak.lastDisposalDate.getDate()
+        )
+      : null;
+
+    let streakChanged = false;
+
+    if (!lastDate) {
+      // First ever disposal
+      household.streak.currentStreak  = 1;
+      household.streak.lastDisposalDate = now;
+      streakChanged = true;
+    } else {
+      const diffDays = Math.floor((today - lastDate) / (1000 * 60 * 60 * 24));
+
+      if (diffDays === 0) {
+        // Already scanned today — don't update streak
+      } else if (diffDays === 1) {
+        // Consecutive day
+        household.streak.currentStreak += 1;
+        household.streak.lastDisposalDate = now;
+        streakChanged = true;
+      } else {
+        // Streak broken
+        household.streak.currentStreak   = 1;
+        household.streak.lastDisposalDate = now;
+        household.streak.awardedStreaks   = []; // reset so they can re-earn
+        streakChanged = true;
+      }
     }
 
-    // ── While we're at it, the ESP32 also sends fill level on scan ───────────
-    if (typeof fillLevel === "number" && fillLevel >= 0) {
-      bin.fill = fillLevel;
-    }
+    if (streakChanged) await household.save();
 
-    if (hasValidCoords || typeof fillLevel === "number") {
-      await bin.save();
-    }
-
-    // Count how many dispose logs already exist for this bin → next order number
-    const existingCount = await RfidLog.countDocuments({
-      binId,
-      action: "dispose",
-    });
+    // ── Disposal log ──────────────────────────────────────────────────────────
+    const existingCount = await RfidLog.countDocuments({ binId, action: "dispose" });
     const disposalOrder = existingCount + 1;
 
     await RfidLog.create({
@@ -121,21 +142,23 @@ const scanAtBin = async (req, res) => {
       success: true,
       message: `Logged: ${household.fullname} tapped at ${binId}`,
       data: {
-        household: household.fullname,
+        household:    household.fullname,
         binId,
-        binType: bin.type,
+        binType:      bin.type,
         disposalOrder,
+        currentStreak: household.streak.currentStreak,
         coordsUpdated: hasValidCoords,
-        lat: bin.lat,
-        lng: bin.lng,
-        fill: bin.fill,
-        scannedAt: new Date(),
+        lat:          bin.lat,
+        lng:          bin.lng,
+        fill:         bin.fill,
+        scannedAt:    new Date(),
       },
     });
   } catch (error) {
     res.status(500).json({ success: false, message: error.message });
   }
 };
+
 // GET /api/rfid/check/:rfid
 const checkRfid = async (req, res) => {
   try {

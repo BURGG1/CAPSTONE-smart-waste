@@ -7,6 +7,7 @@ import { useFocusEffect } from "expo-router";
 import { getRules } from "../../api/rulesAPI";
 import { getHouseholdActivity } from "../../api/rewardAPI";
 import { useHousehold, fetchHousehold } from "../store/householdStore";
+import { API_BASE } from "@/config";
 
 type Rule = {
     _id: string;
@@ -24,6 +25,7 @@ export default function Home() {
     const [search, setSearch] = useState("");
     const household = useHousehold();
     const [householdLoading, setHouseholdLoading] = useState(!household);
+    const [myRank, setMyRank] = useState<number | null>(null);
 
     const [rules, setRules] = useState<Rule[]>([]);
     const [rulesLoading, setRulesLoading] = useState(true);
@@ -65,6 +67,23 @@ export default function Home() {
             setRulesLoading(false);
         }
     }, []);
+
+    useEffect(() => {
+    if (!household?._id) return;
+    const fetchRank = async () => {
+        try {
+            const res  = await fetch(`${API_BASE}/api/households/leaderboard?limit=200`);
+            const data = await res.json();
+            if (data.success) {
+                const me = data.data.find((h: any) => h._id === household._id);
+                if (me) setMyRank(me.rank);
+            }
+        } catch (err) {
+            console.error("Failed to fetch rank:", err);
+        }
+    };
+    fetchRank();
+}, [household?._id, household?.points?.total]); // re-fetch rank when points change
 
     useEffect(() => {
         loadHousehold();
@@ -116,7 +135,7 @@ export default function Home() {
                             <Text className="text-green-100">Total Points Earned</Text>
                         </View>
                         <View className="bg-green-600 p-2 rounded-xl border border-green-700 items-center justify-center">
-                            <Text className="text-2xl font-bold text-white">#{household?.rank ?? "—"}</Text>
+                            <Text className="text-2xl font-bold text-white">#{myRank ?? "—"}</Text>
                             <Text className="text-white text-center">Current rank</Text>
                         </View>
                     </View>
