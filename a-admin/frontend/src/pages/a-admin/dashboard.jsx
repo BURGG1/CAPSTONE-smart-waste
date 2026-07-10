@@ -31,13 +31,6 @@ const monthlyCompliance = [
     { month: "Mar", compliant: 92, nonCompliant: 2 },
 ];
 
-const rawData = [
-    { family: "Joel Dela Cruz", address: "Rizal St.", householdId: "HH-13579246", disposals: 62, points: 1580, trend: "up", isYou: false },
-    { family: "Rolando Martinez", address: "Mabini St.", householdId: "HH-75391482", disposals: 54, points: 1350, trend: "up", isYou: false },
-    { family: "Remedios Delo Santos", address: "Mabini St.", householdId: "HH-24680135", disposals: 48, points: 1240, trend: "up", isYou: true },
-    { family: "Lopez Household", address: "Bonifacio St.", householdId: "HH-15948673", disposals: 38, points: 920, trend: "down", isYou: false },
-];
-
 const medalStyles = {
     Gold: { ring: "border-yellow-400 text-yellow-500", podium: "bg-yellow-400" },
     Silver: { ring: "border-gray-300 text-gray-400", podium: "bg-gray-300" },
@@ -60,6 +53,9 @@ export default function ComplianceDashboard() {
     const [avgFill, setAvgFill] = useState(null);
     const [criticalBins, setCriticalBins] = useState(0);
     const [countError, setCountError] = useState(false);
+    const [leaderboard, setLeaderboard] = useState([]);
+    const [leaderboardLoading, setLeaderboardLoading] = useState(true);
+    const [leaderboardError, setLeaderboardError] = useState(false);
 
     useEffect(() => {
         const fetchCounts = async () => {
@@ -70,9 +66,7 @@ export default function ComplianceDashboard() {
                     fetch(`${BASE_URL}/api/bins`),
                 ]);
 
-                if (!hhRes.ok || !binRes.ok || !binsListRes.ok) {
-                    throw new Error("Failed to fetch counts");
-                }
+                if (!hhRes.ok || !binRes.ok || !binsListRes.ok) throw new Error("Failed to fetch counts");
 
                 const [hhData, binData, binsListData] = await Promise.all([
                     hhRes.json(),
@@ -93,18 +87,54 @@ export default function ComplianceDashboard() {
                     setCriticalBins(0);
                 }
 
-                setCountError(false); // clear any previous error once a fetch succeeds
+                setCountError(false);
             } catch (err) {
                 console.error("Dashboard count fetch error:", err);
                 setCountError(true);
             }
         };
 
-        fetchCounts(); // run once immediately on mount
+        // ── Leaderboard fetch ─────────────────────────────────────────────────────
+        const fetchLeaderboard = async () => {
+            try {
+                const res = await fetch(`${BASE_URL}/api/households?limit=10&isActive=true`);
+                const data = await res.json();
 
-        const intervalId = setInterval(fetchCounts, 5000); // then every 5 seconds
+                if (!data.success) throw new Error("Failed to fetch leaderboard");
 
-        return () => clearInterval(intervalId); // cleanup on unmount
+                const ranked = [...(data.data ?? [])]
+                    .sort((a, b) => (b.points?.total ?? 0) - (a.points?.total ?? 0))
+                    .slice(0, 10)
+                    .map((hh, index) => ({
+                        family: hh.fullname,
+                        address: [hh.address?.houseNo, hh.address?.street].filter(Boolean).join(", ") || "—",
+                        householdId: `HH-${hh._id.slice(-8).toUpperCase()}`,
+                        points: hh.points?.total ?? 0,
+                        disposals: 0,
+                        trend: "up",
+                        rank: index + 1,
+                        tier: getTierByRank(index + 1),
+                    }));
+
+                setLeaderboard(ranked);
+                setLeaderboardError(false);
+            } catch (err) {
+                console.error("Leaderboard fetch error:", err);
+                setLeaderboardError(true);
+            } finally {
+                setLeaderboardLoading(false);
+            }
+        };
+
+        fetchCounts();
+        fetchLeaderboard();
+
+        const intervalId = setInterval(() => {
+            fetchCounts();
+            fetchLeaderboard();
+        }, 5000);
+
+        return () => clearInterval(intervalId);
     }, []);
     // ── Stats built inside component so they read live state ─────────────────
     const stats = [
@@ -136,15 +166,8 @@ export default function ComplianceDashboard() {
     ];
 
     // ── Leaderboard ───────────────────────────────────────────────────────────
-    const rankedData = [...rawData]
-        .sort((a, b) => b.points - a.points)
-        .map((item, index) => ({
-            ...item,
-            rank: index + 1,
-            tier: getTierByRank(index + 1),
-        }));
 
-    const podiumData = rankedData.slice(0, 3);
+    const podiumData = leaderboard.slice(0, 3);
 
     // ── Stat value renderer: skeleton → error → number ────────────────────────
     const StatValue = ({ value }) => {
@@ -238,64 +261,77 @@ export default function ComplianceDashboard() {
                     </section>
 
                     {/* Leaderboard */}
+                    {/* Leaderboard */}
                     <section className="w-full bg-gradient-to-b from-green-50 to-white rounded-xl p-4 sm:p-6 shadow">
 
-                        {/* Mobile */}
-                        <div className="flex flex-col gap-4 lg:hidden">
-                            <h3 className="text-lg font-semibold mb-4">Leaderboard</h3>
-                            {[1, 2, 3].map((pos) => {
-                                const item = podiumData.find((i) => i.rank === pos);
-                                if (!item) return null;
-                                return (
-                                    <div key={item.rank} className="bg-white rounded-xl shadow p-4 flex items-center gap-4">
-                                        <div className="w-12 h-12 rounded-full bg-green-100 flex items-center justify-center font-bold">
-                                            #{item.rank}
-                                        </div>
-                                        <div className="flex-1">
-                                            <h3 className="font-semibold">{item.family}</h3>
-                                            <p className="text-xs text-gray-400">{item.address}</p>
-                                            <p className="text-sm text-green-600 font-bold">{item.points} pts</p>
-                                        </div>
-                                        {item.rank === 1 && <Trophy className="text-yellow-500" />}
-                                    </div>
-                                );
-                            })}
-                        </div>
-
-                        {/* Desktop */}
-                        <div className="hidden lg:flex w-full justify-center items-end gap-6 p-10">
-                            {[2, 1, 3].map((pos) => {
-                                const item = podiumData.find((i) => i.rank === pos);
-                                if (!item) return null;
-                                const style = medalStyles[item.tier];
-                                return (
-                                    <div key={item.rank} className={`flex flex-col items-center ${item.rank === 1 ? "-mt-6" : ""}`}>
-                                        <div className={`w-20 h-20 rounded-full border-4 flex items-center justify-center mb-3 ${style.ring}`}>
-                                            {item.rank === 1 ? <Trophy /> : <Medal />}
-                                        </div>
-                                        <div className="bg-white rounded-xl shadow px-6 py-4 text-center min-w-[180px]">
-                                            <p className="text-2xl font-bold">
-                                                {item.rank === 1 ? "1st" : item.rank === 2 ? "2nd" : "3rd"}
-                                            </p>
-                                            <h3 className="font-bold">{item.family}</h3>
-                                            <p className="text-green-600 font-bold mt-1">{item.points} pts</p>
-                                            <p className="text-xs text-gray-400">{item.address}</p>
-                                        </div>
-                                        <div
-                                            className={`w-full mt-4 rounded-t-xl ${style.podium}`}
-                                            style={{ height: item.rank === 1 ? "120px" : item.rank === 2 ? "90px" : "70px" }}
-                                        />
-                                    </div>
-                                );
-                            })}
-                        </div>
-
-                        <div className="mt-8 flex justify-center">
-                            <div className="flex items-center gap-2 bg-white px-4 py-2 rounded-full shadow text-sm font-medium">
-                                <Star className="text-yellow-400" size={16} />
-                                Top performers this month!
+                        {leaderboardLoading ? (
+                            <div className="flex justify-center py-12">
+                                <div className="h-8 w-48 bg-gray-200 animate-pulse rounded" />
                             </div>
-                        </div>
+                        ) : leaderboardError ? (
+                            <p className="text-center text-red-400 py-8">Failed to load leaderboard.</p>
+                        ) : leaderboard.length === 0 ? (
+                            <p className="text-center text-gray-400 py-8">No household data yet.</p>
+                        ) : (
+                            <>
+                                {/* Mobile */}
+                                <div className="flex flex-col gap-4 lg:hidden">
+                                    <h3 className="text-lg font-semibold mb-4">Leaderboard</h3>
+                                    {[1, 2, 3].map((pos) => {
+                                        const item = podiumData.find((i) => i.rank === pos);
+                                        if (!item) return null;
+                                        return (
+                                            <div key={item.rank} className="bg-white rounded-xl shadow p-4 flex items-center gap-4">
+                                                <div className="w-12 h-12 rounded-full bg-green-100 flex items-center justify-center font-bold">
+                                                    #{item.rank}
+                                                </div>
+                                                <div className="flex-1">
+                                                    <h3 className="font-semibold">{item.family}</h3>
+                                                    <p className="text-xs text-gray-400">{item.address}</p>
+                                                    <p className="text-sm text-green-600 font-bold">{item.points} pts</p>
+                                                </div>
+                                                {item.rank === 1 && <Trophy className="text-yellow-500" />}
+                                            </div>
+                                        );
+                                    })}
+                                </div>
+
+                                {/* Desktop */}
+                                <div className="hidden lg:flex w-full justify-center items-end gap-6 p-10">
+                                    {[2, 1, 3].map((pos) => {
+                                        const item = podiumData.find((i) => i.rank === pos);
+                                        if (!item) return null;
+                                        const style = medalStyles[item.tier];
+                                        return (
+                                            <div key={item.rank} className={`flex flex-col items-center ${item.rank === 1 ? "-mt-6" : ""}`}>
+                                                <div className={`w-20 h-20 rounded-full border-4 flex items-center justify-center mb-3 ${style.ring}`}>
+                                                    {item.rank === 1 ? <Trophy /> : <Medal />}
+                                                </div>
+                                                <div className="bg-white rounded-xl shadow px-6 py-4 text-center min-w-[180px]">
+                                                    <p className="text-2xl font-bold">
+                                                        {item.rank === 1 ? "1st" : item.rank === 2 ? "2nd" : "3rd"}
+                                                    </p>
+                                                    <h3 className="font-bold">{item.family}</h3>
+                                                    <p className="text-green-600 font-bold mt-1">{item.points} pts</p>
+                                                    <p className="text-xs text-gray-400">{item.address}</p>
+                                                </div>
+                                                <div
+                                                    className={`w-full mt-4 rounded-t-xl ${style.podium}`}
+                                                    style={{ height: item.rank === 1 ? "120px" : item.rank === 2 ? "90px" : "70px" }}
+                                                />
+                                            </div>
+                                        );
+                                    })}
+                                </div>
+
+                                <div className="mt-8 flex justify-center">
+                                    <div className="flex items-center gap-2 bg-white px-4 py-2 rounded-full shadow text-sm font-medium">
+                                        <Star className="text-yellow-400" size={16} />
+                                        Top performers this month!
+                                    </div>
+                                </div>
+                            </>
+                        )}
                     </section>
 
                 </main>
