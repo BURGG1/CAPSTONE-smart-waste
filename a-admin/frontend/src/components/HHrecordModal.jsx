@@ -1,7 +1,11 @@
 import { X, Calendar, Clipboard, Trash2, Award } from "lucide-react";
 import { useState, useEffect, useCallback } from "react";
 import AssignPointsModal from "./AssignPointsModal";
+import Pagination from "./Pagination";
 import BASE_URL from "../config";
+
+const DISPOSAL_LIMIT = 5;
+const ACTIVITY_LIMIT = 5;
 
 function computeAge(birthday) {
     if (!birthday) return null;
@@ -21,7 +25,7 @@ function formatDate(dateStr) {
 }
 
 export default function HouseholdRecordModal({ isOpen, onClose, household: householdProp }) {
-    const [household, setHousehold]     = useState(null);  // ← local fresh copy
+    const [household, setHousehold]     = useState(null);
     const [activeTab, setActiveTab]     = useState("disposal");
     const [fromDate, setFromDate]       = useState("");
     const [toDate, setToDate]           = useState("");
@@ -31,6 +35,7 @@ export default function HouseholdRecordModal({ isOpen, onClose, household: house
     const [disposalLogs, setDisposalLogs]   = useState([]);
     const [logsLoading, setLogsLoading]     = useState(false);
     const [logsError, setLogsError]         = useState("");
+    const [disposalPage, setDisposalPage]   = useState(1);
 
     // Activity logs
     const [activityLogs, setActivityLogs]       = useState([]);
@@ -38,9 +43,7 @@ export default function HouseholdRecordModal({ isOpen, onClose, household: house
     const [activityError, setActivityError]     = useState("");
     const [activityPage, setActivityPage]       = useState(1);
     const [activityTotal, setActivityTotal]     = useState(0);
-    const ACTIVITY_LIMIT = 15;
 
-    // ── Fetch fresh household data ────────────────────────────────────────────
     const fetchHousehold = useCallback(async () => {
         if (!householdProp?._id) return;
         try {
@@ -52,7 +55,6 @@ export default function HouseholdRecordModal({ isOpen, onClose, household: house
         }
     }, [householdProp?._id]);
 
-    // ── Fetch disposal logs ───────────────────────────────────────────────────
     const fetchDisposalLogs = useCallback(async () => {
         if (!householdProp?.rfid) return;
         setLogsLoading(true);
@@ -72,7 +74,6 @@ export default function HouseholdRecordModal({ isOpen, onClose, household: house
         }
     }, [householdProp?.rfid]);
 
-    // ── Fetch activity logs ───────────────────────────────────────────────────
     const fetchActivityLogs = useCallback(async (page = 1) => {
         if (!householdProp?._id) return;
         setActivityLoading(true);
@@ -102,10 +103,9 @@ export default function HouseholdRecordModal({ isOpen, onClose, household: house
         }
     }, [householdProp?._id, fromDate, toDate]);
 
-    // ── On open: load everything fresh ───────────────────────────────────────
     useEffect(() => {
         if (!isOpen || !householdProp?._id) return;
-        setHousehold(householdProp); // show immediately while fetching
+        setHousehold(householdProp);
         fetchHousehold();
         fetchDisposalLogs();
         fetchActivityLogs(1);
@@ -113,23 +113,25 @@ export default function HouseholdRecordModal({ isOpen, onClose, household: house
         setFromDate("");
         setToDate("");
         setActivityPage(1);
+        setDisposalPage(1);
     }, [isOpen, householdProp?._id]);
 
-    // ── Re-fetch activity when date filter changes ────────────────────────────
     useEffect(() => {
         if (!isOpen || activeTab !== "reward") return;
         fetchActivityLogs(1);
     }, [fromDate, toDate]);
 
-    // ── Called after points are awarded ──────────────────────────────────────
+    useEffect(() => {
+        setDisposalPage(1);
+    }, [fromDate, toDate]);
+
     const handlePointsAwarded = useCallback(async () => {
-        await fetchHousehold();        // refresh points in header
-        await fetchActivityLogs(1);   // refresh activity log
+        await fetchHousehold();
+        await fetchActivityLogs(1);
     }, [fetchHousehold, fetchActivityLogs]);
 
     if (!isOpen || !household) return null;
 
-    // ── Derived display values ────────────────────────────────────────────────
     const fullname        = household.fullname || "—";
     const address         = [household.address?.houseNo, household.address?.street].filter(Boolean).join(", ") || "—";
     const age             = computeAge(household.birthday);
@@ -143,7 +145,6 @@ export default function HouseholdRecordModal({ isOpen, onClose, household: house
     const violation       = household.violation ?? 0;
     const suffix          = ["st", "nd", "rd"];
 
-    // ── Filter disposal logs ──────────────────────────────────────────────────
     const filteredLogs = disposalLogs.filter((log) => {
         if (!fromDate && !toDate) return true;
         const logDate = new Date(log.scannedAt);
@@ -153,11 +154,16 @@ export default function HouseholdRecordModal({ isOpen, onClose, household: house
         );
     });
 
-    const totalActivityPages = Math.ceil(activityTotal / ACTIVITY_LIMIT);
+    const paginatedDisposalLogs = filteredLogs.slice(
+        (disposalPage - 1) * DISPOSAL_LIMIT,
+        disposalPage * DISPOSAL_LIMIT
+    );
+    const disposalEmptyRows = Math.max(0, DISPOSAL_LIMIT - paginatedDisposalLogs.length);
+    const activityEmptyRows = Math.max(0, ACTIVITY_LIMIT - activityLogs.length);
 
     return (
         <div className="fixed inset-0 z-50 bg-black/40 flex items-center justify-center p-4">
-            <div className="bg-white w-full max-h-[500px] max-w-5xl rounded-2xl shadow-lg overflow-hidden">
+            <div className="bg-white w-full max-h-[90vh] overflow-y-auto max-w-5xl rounded-2xl shadow-lg overflow-hidden">
 
                 {/* HEADER */}
                 <div className="flex justify-between items-center px-5 py-1 border-b">
@@ -251,69 +257,87 @@ export default function HouseholdRecordModal({ isOpen, onClose, household: house
 
                 {/* DISPOSAL LOG */}
                 {activeTab === "disposal" && (
-                    <div className="overflow-x-auto overflow-y-auto max-h-[160px]">
-                        {logsLoading ? (
-                            <p className="text-center py-6 text-gray-400">Loading logs...</p>
-                        ) : logsError ? (
-                            <p className="text-center py-6 text-red-500">{logsError}</p>
-                        ) : (
-                            <table className="w-full text-sm">
-                                <thead className="bg-gray-400 sticky top-0">
-                                    <tr>
-                                        <th className="py-3">Bin ID</th>
-                                        <th>Bin Type</th>
-                                        <th>Disposal Order</th>
-                                        <th>Date & Time</th>
-                                        <th>Resident</th>
-                                    </tr>
-                                </thead>
-                                <tbody className="text-center">
-                                    {filteredLogs.length === 0 ? (
+                    <div className="px-2">
+                        <div className="overflow-x-auto">
+                            {logsLoading ? (
+                                <p className="text-center py-6 text-gray-400">Loading logs...</p>
+                            ) : logsError ? (
+                                <p className="text-center py-6 text-red-500">{logsError}</p>
+                            ) : (
+                                <table className="w-full text-sm">
+                                    <thead className="bg-gray-400 sticky top-0">
                                         <tr>
-                                            <td colSpan="5" className="text-center py-6 text-gray-500">
-                                                No records found for selected dates
-                                            </td>
+                                            <th className="py-3">Bin ID</th>
+                                            <th>Bin Type</th>
+                                            <th>Disposal Order</th>
+                                            <th>Date & Time</th>
+                                            <th>Resident</th>
                                         </tr>
-                                    ) : (
-                                        filteredLogs.map((log) => {
-                                            const scannedAt    = new Date(log.scannedAt);
-                                            const date         = scannedAt.toLocaleDateString("en-CA");
-                                            const time         = scannedAt.toLocaleTimeString("en-US", {
-                                                hour: "2-digit", minute: "2-digit", second: "2-digit",
-                                            });
-                                            const binTypeMatch = log.note?.match(/\((.+)\)/);
-                                            const binType      = binTypeMatch ? binTypeMatch[1] : "—";
-                                            return (
-                                                <tr key={log._id}>
-                                                    <td className="py-3 font-medium">#{log.binId ?? "—"}</td>
-                                                    <td className="py-3 font-medium">{binType}</td>
-                                                    <td className="py-3 font-medium">#{log.disposalOrder ?? "—"}</td>
-                                                    <td>
-                                                        <p>{date}</p>
-                                                        <p className="text-xs text-gray-500">{time}</p>
-                                                    </td>
-                                                    <td>{log.household?.fullname ?? fullname}</td>
+                                    </thead>
+                                    <tbody className="text-center">
+                                        {paginatedDisposalLogs.length === 0 && disposalEmptyRows === DISPOSAL_LIMIT ? (
+                                            <tr>
+                                                <td colSpan="5" className="text-center py-6 text-gray-500">
+                                                    No records found for selected dates
+                                                </td>
+                                            </tr>
+                                        ) : (
+                                            paginatedDisposalLogs.map((log) => {
+                                                const scannedAt    = new Date(log.scannedAt);
+                                                const date         = scannedAt.toLocaleDateString("en-CA");
+                                                const time         = scannedAt.toLocaleTimeString("en-US", {
+                                                    hour: "2-digit", minute: "2-digit", second: "2-digit",
+                                                });
+                                                const binTypeMatch = log.note?.match(/\((.+)\)/);
+                                                const binType      = binTypeMatch ? binTypeMatch[1] : "—";
+                                                return (
+                                                    <tr key={log._id}>
+                                                        <td className="py-3 font-medium">#{log.binId ?? "—"}</td>
+                                                        <td className="py-3 font-medium">{binType}</td>
+                                                        <td className="py-3 font-medium">#{log.disposalOrder ?? "—"}</td>
+                                                        <td>
+                                                            <p>{date}</p>
+                                                            <p className="text-xs text-gray-500">{time}</p>
+                                                        </td>
+                                                        <td>{log.household?.fullname ?? fullname}</td>
+                                                    </tr>
+                                                );
+                                            })
+                                        )}
+                                        {/* Pad remaining slots so table height stays constant at DISPOSAL_LIMIT rows */}
+                                        {paginatedDisposalLogs.length > 0 &&
+                                            Array.from({ length: disposalEmptyRows }).map((_, i) => (
+                                                <tr key={`disposal-empty-${i}`} aria-hidden="true">
+                                                    <td className="py-3" colSpan="5">&nbsp;</td>
                                                 </tr>
-                                            );
-                                        })
-                                    )}
-                                </tbody>
-                            </table>
+                                            ))}
+                                    </tbody>
+                                </table>
+                            )}
+                        </div>
+
+                        {!logsLoading && !logsError && (
+                            <Pagination
+                                currentPage={disposalPage}
+                                totalItems={filteredLogs.length}
+                                itemsPerPage={DISPOSAL_LIMIT}
+                                onPageChange={setDisposalPage}
+                            />
                         )}
                     </div>
                 )}
 
                 {/* ACTIVITY LOG */}
                 {activeTab === "reward" && (
-                    <div className="overflow-x-auto">
-                        {activityLoading ? (
-                            <p className="text-center py-6 text-gray-400">Loading activity...</p>
-                        ) : activityError ? (
-                            <p className="text-center py-6 text-red-500">{activityError}</p>
-                        ) : (
-                            <>
+                    <div className="px-2">
+                        <div className="overflow-x-auto">
+                            {activityLoading ? (
+                                <p className="text-center py-6 text-gray-400">Loading activity...</p>
+                            ) : activityError ? (
+                                <p className="text-center py-6 text-red-500">{activityError}</p>
+                            ) : (
                                 <table className="w-full text-sm">
-                                    <thead className="bg-gray-400">
+                                    <thead className="bg-gray-400 sticky top-0">
                                         <tr>
                                             <th className="py-3">Date</th>
                                             <th>Type</th>
@@ -344,31 +368,25 @@ export default function HouseholdRecordModal({ isOpen, onClose, household: house
                                                 </tr>
                                             ))
                                         )}
+                                        {/* Pad remaining slots so table height stays constant at ACTIVITY_LIMIT rows */}
+                                        {activityLogs.length > 0 &&
+                                            Array.from({ length: activityEmptyRows }).map((_, i) => (
+                                                <tr key={`activity-empty-${i}`} aria-hidden="true">
+                                                    <td className="py-3" colSpan="5">&nbsp;</td>
+                                                </tr>
+                                            ))}
                                     </tbody>
                                 </table>
+                            )}
+                        </div>
 
-                                {totalActivityPages > 1 && (
-                                    <div className="flex justify-center items-center gap-2 py-2 border-t">
-                                        <button
-                                            disabled={activityPage === 1}
-                                            onClick={() => fetchActivityLogs(activityPage - 1)}
-                                            className="px-3 py-1 text-sm rounded-lg border disabled:opacity-40 hover:bg-gray-100"
-                                        >
-                                            Previous
-                                        </button>
-                                        <span className="text-sm text-gray-500">
-                                            {activityPage} / {totalActivityPages}
-                                        </span>
-                                        <button
-                                            disabled={activityPage === totalActivityPages}
-                                            onClick={() => fetchActivityLogs(activityPage + 1)}
-                                            className="px-3 py-1 text-sm rounded-lg border disabled:opacity-40 hover:bg-gray-100"
-                                        >
-                                            Next
-                                        </button>
-                                    </div>
-                                )}
-                            </>
+                        {!activityLoading && !activityError && (
+                            <Pagination
+                                currentPage={activityPage}
+                                totalItems={activityTotal}
+                                itemsPerPage={ACTIVITY_LIMIT}
+                                onPageChange={fetchActivityLogs}
+                            />
                         )}
                     </div>
                 )}

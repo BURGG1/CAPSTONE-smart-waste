@@ -18,9 +18,14 @@ import RulesModal from "../../components/RulesModal";
 import AwardModal from "../../components/AwardModal";
 import ClaimReward from "../../components/ClaimReward";
 import BASE_URL from "../../config";
+import Pagination from "../../components/Pagination";
 
 import { getRewards, createReward, updateReward } from "../../api/rewardApi";
 import { getRules } from "../../api/rulesAPI";
+
+const REWARDS_PER_PAGE = 4;
+const RULES_PER_PAGE = 4;
+const LOGS_PER_PAGE = 10;
 
 export default function Gamified() {
     const [activeTab, setActiveTab] = useState("rewards");
@@ -59,6 +64,11 @@ export default function Gamified() {
     const [openRewardModal, setOpenRewardModal] = useState(false);
 
     const [search, setSearch] = useState("");
+
+    // ── Pagination ──
+    const [rewardPage, setRewardPage] = useState(1);
+    const [rulePage, setRulePage] = useState(1);
+    const [logPage, setLogPage] = useState(1);
 
     const fetchRewards = async () => {
         try {
@@ -131,6 +141,12 @@ export default function Gamified() {
         fetchRewardLogs();
     }, []);
 
+    // Reset to page 1 whenever the search term changes
+    useEffect(() => {
+        setRewardPage(1);
+        setRulePage(1);
+    }, [search]);
+
     const handleRewardEdit = (id) => {
         const item = rewards.find((reward) => reward._id === id);
         if (!item) return;
@@ -189,6 +205,44 @@ export default function Gamified() {
     const filteredRules = rules.filter((r) =>
         r.name.toLowerCase().includes(search.toLowerCase())
     );
+
+    // Keep pages valid whenever the underlying/filtered lists change
+    useEffect(() => {
+        const totalPages = Math.max(1, Math.ceil(filteredData.length / REWARDS_PER_PAGE));
+        if (rewardPage > totalPages) setRewardPage(totalPages);
+    }, [filteredData.length, rewardPage]);
+
+    useEffect(() => {
+        const totalPages = Math.max(1, Math.ceil(filteredRules.length / RULES_PER_PAGE));
+        if (rulePage > totalPages) setRulePage(totalPages);
+    }, [filteredRules.length, rulePage]);
+
+    useEffect(() => {
+        const totalPages = Math.max(1, Math.ceil(rewardLogs.length / LOGS_PER_PAGE));
+        if (logPage > totalPages) setLogPage(totalPages);
+    }, [rewardLogs.length, logPage]);
+
+    const paginatedRewards = filteredData.slice(
+        (rewardPage - 1) * REWARDS_PER_PAGE,
+        rewardPage * REWARDS_PER_PAGE
+    );
+
+    const paginatedRules = filteredRules.slice(
+        (rulePage - 1) * RULES_PER_PAGE,
+        rulePage * RULES_PER_PAGE
+    );
+
+    const paginatedLogs = rewardLogs.slice(
+        (logPage - 1) * LOGS_PER_PAGE,
+        logPage * LOGS_PER_PAGE
+    );
+
+    // Placeholder counts so each paginated section keeps a constant number
+    // of slots (cards/rows) on screen, regardless of how many real items
+    // land on the current page.
+    const rewardEmptySlots = Math.max(0, REWARDS_PER_PAGE - paginatedRewards.length);
+    const ruleEmptySlots = Math.max(0, RULES_PER_PAGE - paginatedRules.length);
+    const logEmptyRows = Math.max(0, LOGS_PER_PAGE - paginatedLogs.length);
 
     return (
         <div className="flex-1">
@@ -354,7 +408,7 @@ export default function Gamified() {
                                 {rewardsError && <p className="text-red-500 mb-4">{rewardsError}</p>}
 
                                 <div className=" overflow-y-auto grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
-                                    {filteredData.map((item) => (
+                                    {paginatedRewards.map((item) => (
                                         <div
                                             key={item._id}
                                             className="bg-gray-50 rounded-xl p-4 flex flex-col shadow-lg"
@@ -416,7 +470,39 @@ export default function Gamified() {
                                             No rewards found.
                                         </p>
                                     )}
+
+                                    {/* Invisible placeholder cards so the grid keeps a
+                                        constant number of rows/slots at REWARDS_PER_PAGE,
+                                        even when the current page has fewer items. */}
+                                    {paginatedRewards.length > 0 &&
+                                        Array.from({ length: rewardEmptySlots }).map((_, i) => (
+                                            <div
+                                                key={`reward-empty-${i}`}
+                                                aria-hidden="true"
+                                                className="invisible pointer-events-none rounded-xl p-4 flex flex-col"
+                                            >
+                                                <div className="h-24 w-full mb-4" />
+                                                <h3 className="font-semibold">&nbsp;</h3>
+                                                <div className="flex justify-between text-sm my-2">
+                                                    <span>&nbsp;</span>
+                                                    <span>&nbsp;</span>
+                                                </div>
+                                                <div className="flex flex-col gap-2">
+                                                    <div className="w-full flex items-center gap-2">
+                                                        <div className="flex-1 py-2">&nbsp;</div>
+                                                        <div className="flex-1 py-2">&nbsp;</div>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        ))}
                                 </div>
+
+                                <Pagination
+                                    currentPage={rewardPage}
+                                    totalItems={filteredData.length}
+                                    itemsPerPage={REWARDS_PER_PAGE}
+                                    onPageChange={setRewardPage}
+                                />
                             </section>
 
                             {/* RECENT ACTIVITIES */}
@@ -440,15 +526,15 @@ export default function Gamified() {
                                                 </tr>
                                             </thead>
                                             <tbody className="text-center">
-                                                {rewardLogs.length === 0 ? (
+                                                {paginatedLogs.length === 0 ? (
                                                     <tr>
                                                         <td colSpan="5" className="text-center py-6 text-gray-500">
                                                             No reward logs yet.
                                                         </td>
                                                     </tr>
                                                 ) : (
-                                                    rewardLogs.map((log) => (
-                                                        <tr key={log._id} className="border-b hover:bg-gray-50">
+                                                    paginatedLogs.map((log) => (
+                                                        <tr key={log._id} className="hover:bg-gray-50">
                                                             <td className="py-3 font-medium">
                                                                 {new Date(log.date).toLocaleDateString("en-CA")}
                                                             </td>
@@ -459,10 +545,25 @@ export default function Gamified() {
                                                         </tr>
                                                     ))
                                                 )}
+                                                {/* Pad remaining slots so the table height stays
+                                                    constant at LOGS_PER_PAGE rows. */}
+                                                {paginatedLogs.length > 0 &&
+                                                    Array.from({ length: logEmptyRows }).map((_, i) => (
+                                                        <tr key={`log-empty-${i}`} aria-hidden="true">
+                                                            <td className="py-3" colSpan="5">&nbsp;</td>
+                                                        </tr>
+                                                    ))}
                                             </tbody>
                                         </table>
                                     )}
                                 </div>
+
+                                <Pagination
+                                    currentPage={logPage}
+                                    totalItems={rewardLogs.length}
+                                    itemsPerPage={LOGS_PER_PAGE}
+                                    onPageChange={setLogPage}
+                                />
                             </section>
                         </>
                     )}
@@ -511,7 +612,7 @@ export default function Gamified() {
                                 {rulesError && <p className="text-red-500 mb-4">{rulesError}</p>}
 
                                 <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-                                    {filteredRules.map((r, idx) => (
+                                    {paginatedRules.map((r, idx) => (
                                         <div
                                             key={r._id}
                                             className="relative bg-gray-50 rounded-xl flex flex-col shadow-lg"
@@ -532,7 +633,7 @@ export default function Gamified() {
 
                                             <div className="flex flex-col p-4 gap-2">
                                                 <div className="flex justify-between items-center">
-                                                    <h1 className="text-lg font-bold"><span>Rule {idx + 1}</span> - {r.name}</h1>
+                                                    <h1 className="text-lg font-bold"><span>Rule {(rulePage - 1) * RULES_PER_PAGE + idx + 1}</span> - {r.name}</h1>
                                                     <p className="text-sm text-gray-400 font-semibold text-center px-4 py-1 rounded-full">
                                                         {r.freq}
                                                     </p>
@@ -584,7 +685,39 @@ export default function Gamified() {
                                             No rules found.
                                         </p>
                                     )}
+
+                                    {/* Invisible placeholder cards so the grid keeps a
+                                        constant number of rows/slots at RULES_PER_PAGE,
+                                        even when the current page has fewer items. */}
+                                    {paginatedRules.length > 0 &&
+                                        Array.from({ length: ruleEmptySlots }).map((_, i) => (
+                                            <div
+                                                key={`rule-empty-${i}`}
+                                                aria-hidden="true"
+                                                className="invisible pointer-events-none rounded-xl flex flex-col"
+                                            >
+                                                <div className="w-full h-40" />
+                                                <div className="flex flex-col p-4 gap-2">
+                                                    <div className="flex justify-between items-center">
+                                                        <h1 className="text-lg font-bold">&nbsp;</h1>
+                                                        <p>&nbsp;</p>
+                                                    </div>
+                                                    <p>&nbsp;</p>
+                                                    <div className="w-full flex items-center gap-2 mt-4">
+                                                        <div className="flex-1 py-2">&nbsp;</div>
+                                                        <div className="flex-1 py-2">&nbsp;</div>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        ))}
                                 </div>
+
+                                <Pagination
+                                    currentPage={rulePage}
+                                    totalItems={filteredRules.length}
+                                    itemsPerPage={RULES_PER_PAGE}
+                                    onPageChange={setRulePage}
+                                />
                             </section>
                         </>
                     )}

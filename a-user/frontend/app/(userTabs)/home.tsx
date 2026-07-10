@@ -8,6 +8,7 @@ import { getRules } from "../../api/rulesAPI";
 import { getHouseholdActivity } from "../../api/rewardAPI";
 import { useHousehold, fetchHousehold } from "../store/householdStore";
 import { API_BASE } from "@/config";
+import Pagination from "../../components/UserPagination";
 
 type Rule = {
     _id: string;
@@ -21,6 +22,10 @@ type Rule = {
 
 type ActivityItem = { type: string; via: string; date: string; points: number; amount?: string };
 
+const RULES_PER_PAGE = 4;
+const ACTIVITY_PER_PAGE = 7;
+const ACTIVITY_FETCH_LIMIT = 50; // fetch enough rows to paginate client-side
+
 export default function Home() {
     const [search, setSearch] = useState("");
     const household = useHousehold();
@@ -30,9 +35,11 @@ export default function Home() {
     const [rules, setRules] = useState<Rule[]>([]);
     const [rulesLoading, setRulesLoading] = useState(true);
     const [rulesError, setRulesError] = useState("");
+    const [rulesPage, setRulesPage] = useState(1);
 
     const [activity, setActivity] = useState<ActivityItem[]>([]);
     const [activityLoading, setActivityLoading] = useState(true);
+    const [activityPage, setActivityPage] = useState(1);
 
     const loadHousehold = useCallback(async () => {
         setHouseholdLoading(true);
@@ -44,7 +51,7 @@ export default function Home() {
         if (!householdId) return;
         try {
             setActivityLoading(true);
-            const data = await getHouseholdActivity(householdId, 5);
+            const data = await getHouseholdActivity(householdId, ACTIVITY_FETCH_LIMIT);
             setActivity(data);
         } catch (err) {
             console.error("Failed to load activity:", err);
@@ -69,21 +76,21 @@ export default function Home() {
     }, []);
 
     useEffect(() => {
-    if (!household?._id) return;
-    const fetchRank = async () => {
-        try {
-            const res  = await fetch(`${API_BASE}/api/households/leaderboard?limit=200`);
-            const data = await res.json();
-            if (data.success) {
-                const me = data.data.find((h: any) => h._id === household._id);
-                if (me) setMyRank(me.rank);
+        if (!household?._id) return;
+        const fetchRank = async () => {
+            try {
+                const res = await fetch(`${API_BASE}/api/households/leaderboard?limit=200`);
+                const data = await res.json();
+                if (data.success) {
+                    const me = data.data.find((h: any) => h._id === household._id);
+                    if (me) setMyRank(me.rank);
+                }
+            } catch (err) {
+                console.error("Failed to fetch rank:", err);
             }
-        } catch (err) {
-            console.error("Failed to fetch rank:", err);
-        }
-    };
-    fetchRank();
-}, [household?._id, household?.points?.total]); // re-fetch rank when points change
+        };
+        fetchRank();
+    }, [household?._id, household?.points?.total]); // re-fetch rank when points change
 
     useEffect(() => {
         loadHousehold();
@@ -91,7 +98,10 @@ export default function Home() {
     }, []);
 
     useEffect(() => {
-        if (household?._id) loadActivity(household._id);
+        if (household?._id) {
+            loadActivity(household._id);
+            setActivityPage(1);
+        }
     }, [household?._id]);
 
     // Refresh points & activity whenever Home regains focus — catches a
@@ -104,6 +114,46 @@ export default function Home() {
     );
 
     const filteredRules = rules.filter((r) => r.name.toLowerCase().includes(search.toLowerCase()));
+
+    // Reset to page 1 whenever the search term changes
+    useEffect(() => {
+        setRulesPage(1);
+    }, [search]);
+
+    // Clamp pages if the underlying data shrinks (e.g. a refetch returns fewer rows)
+    useEffect(() => {
+        const totalPages = Math.max(1, Math.ceil(filteredRules.length / RULES_PER_PAGE));
+        if (rulesPage > totalPages) setRulesPage(totalPages);
+    }, [filteredRules.length]);
+
+    useEffect(() => {
+        const totalPages = Math.max(1, Math.ceil(activity.length / ACTIVITY_PER_PAGE));
+        if (activityPage > totalPages) setActivityPage(totalPages);
+    }, [activity.length]);
+
+    const paginatedRules = filteredRules.slice(
+        (rulesPage - 1) * RULES_PER_PAGE,
+        rulesPage * RULES_PER_PAGE
+    );
+    type RuleItem = Rule & {
+        __filler?: boolean;
+    };
+
+    const rulesFillerCount = Math.max(0, RULES_PER_PAGE - paginatedRules.length);
+    const rulesForDisplay: RuleItem[] = [
+        ...paginatedRules,
+        ...Array.from({ length: rulesFillerCount }, (_, i) => ({
+            _id: `__filler-${i}`,
+            name: "",
+            __filler: true,
+        })),
+    ];
+    const paginatedActivity = activity.slice(
+        (activityPage - 1) * ACTIVITY_PER_PAGE,
+        activityPage * ACTIVITY_PER_PAGE
+    );
+
+    const activityFillerCount = Math.max(0, ACTIVITY_PER_PAGE - paginatedActivity.length);
 
     if (householdLoading) {
         return (
@@ -173,7 +223,7 @@ export default function Home() {
                     {!!rulesError && <Text className="text-red-500 mb-2">{rulesError}</Text>}
 
                     <FlatList
-                        data={filteredRules}
+                        data={rulesForDisplay}
                         keyExtractor={(item) => item._id}
                         numColumns={2}
                         scrollEnabled={false}
@@ -185,26 +235,39 @@ export default function Home() {
                             ) : null
                         }
                         renderItem={({ item: r, index }) => (
-                            <View className="flex-1 bg-gray-50 rounded-xl shadow-lg overflow-hidden">
-                                {r.image ? (
-                                    <Image source={{ uri: r.image }} className="w-full h-40" resizeMode="cover" />
-                                ) : (
-                                    <View className="w-full h-40 bg-gray-200 items-center justify-center">
-                                        <Text className="text-gray-400">No image</Text>
+                            r.__filler ? (
+                                <View className="flex-1 h-56" style={{ opacity: 0 }} />
+                            ) : (
+                                <View className="flex-1 bg-gray-50 rounded-xl shadow-lg overflow-hidden">
+                                    {r.image ? (
+                                        <Image source={{ uri: r.image }} className="w-full h-40" resizeMode="cover" />
+                                    ) : (
+                                        <View className="w-full h-40 bg-gray-200 items-center justify-center">
+                                            <Text className="text-gray-400">No image</Text>
+                                        </View>
+                                    )}
+                                    <View className="p-3 gap-1">
+                                        <Text className="text-sm font-bold">Rule {(rulesPage - 1) * RULES_PER_PAGE + index + 1}</Text>
+                                        <Text className="text-xs text-gray-500">{r.name}</Text>
+                                        <Text className="text-xs text-gray-400">{r.description}</Text>
+                                        <Text className="text-xs text-gray-400">{r.frequency}</Text>
                                     </View>
-                                )}
-                                <View className="p-3 gap-1">
-                                    <Text className="text-sm font-bold">Rule {index + 1}</Text>
-                                    <Text className="text-xs text-gray-500">{r.name}</Text>
-                                    <Text className="text-xs text-gray-400">{r.description}</Text>
-                                    <Text className="text-xs text-gray-400">{r.frequency}</Text>
+                                    <View className="absolute top-2 right-2 bg-white rounded-lg p-1 shadow-md">
+                                        <Text className="text-green-500 font-bold text-sm text-center">+{r.points}</Text>
+                                    </View>
                                 </View>
-                                <View className="absolute top-2 right-2 bg-white rounded-lg p-1 shadow-md">
-                                    <Text className="text-green-500 font-bold text-sm text-center">+{r.points}</Text>
-                                </View>
-                            </View>
+                            )
                         )}
                     />
+
+                    {!rulesLoading && !rulesError && (
+                        <Pagination
+                            currentPage={rulesPage}
+                            totalItems={filteredRules.length}
+                            itemsPerPage={RULES_PER_PAGE}
+                            onPageChange={setRulesPage}
+                        />
+                    )}
                 </View>
 
                 {/* RA 9003 */}
@@ -254,7 +317,7 @@ export default function Home() {
                         </View>
                     )}
 
-                    {activity.map((a, i) => (
+                    {paginatedActivity.map((a, i) => (
                         <View key={i} className="flex-row justify-between items-center mb-2">
                             <View>
                                 <Text className="font-medium">{a.type}</Text>
@@ -270,8 +333,21 @@ export default function Home() {
                         </View>
                     ))}
 
+                    {Array.from({ length: activityFillerCount }).map((_, i) => (
+                        <View key={`filler-${i}`} className="h-11 mb-2" style={{ opacity: 0 }} />
+                    ))}
+
                     {!activityLoading && activity.length === 0 && (
                         <Text className="text-gray-500 text-center py-6">No activity yet.</Text>
+                    )}
+
+                    {!activityLoading && activity.length > 0 && (
+                        <Pagination
+                            currentPage={activityPage}
+                            totalItems={activity.length}
+                            itemsPerPage={ACTIVITY_PER_PAGE}
+                            onPageChange={setActivityPage}
+                        />
                     )}
                 </View>
             </ScrollView>

@@ -2,6 +2,7 @@ import Navbar from "../../components/Navbar";
 import NavigationShell from "../../navigation/mainNav";
 import SetSched from "../../components/setCollectionSched";
 import Footer from "../../components/Footer";
+import Pagination from "../../components/Pagination";
 import { useState, useEffect, useCallback, useRef } from "react";
 import { MapContainer, TileLayer, Marker, Popup, Tooltip } from "react-leaflet";
 import BASE_URL from "../../config";
@@ -21,6 +22,9 @@ const SCHEDULE_API = `${BASE_URL}/api/bins`; // -> /:binId/schedule
 // How often to re-fetch bins from the server. Matches the ESP32's
 // FILL_SEND_INTERVAL_MS (10s) so the dashboard stays roughly live.
 const POLL_INTERVAL_MS = 10000;
+
+// How many bins show per page in the "Bins in Barangay" list.
+const MAP_LIST_PER_PAGE = 5;
 
 const statusColors = {
   good: {
@@ -70,6 +74,9 @@ export default function BinMonitoring() {
   const [activeBinId, setActiveBinId] = useState(null);
   const [alertDismissed, setAlertDismissed] = useState(false);
   const [collectors, setCollectors] = useState(initialCollectors);
+
+  // ── Pagination for the "Bins in Barangay" map list ──
+  const [mapListPage, setMapListPage] = useState(1);
 
   // Keep a ref mirror of bins so the polling interval always sees the
   // latest schedules without having to be re-created on every bins change.
@@ -126,6 +133,24 @@ export default function BinMonitoring() {
     const interval = setInterval(() => fetchBins(false), POLL_INTERVAL_MS);
     return () => clearInterval(interval);
   }, [fetchBins]);
+
+  // Keep the map-list page valid whenever the bins list changes
+  useEffect(() => {
+    const totalPages = Math.max(1, Math.ceil(bins.length / MAP_LIST_PER_PAGE));
+    if (mapListPage > totalPages) setMapListPage(totalPages);
+  }, [bins.length, mapListPage]);
+
+  const paginatedMapListBins = bins.slice(
+    (mapListPage - 1) * MAP_LIST_PER_PAGE,
+    mapListPage * MAP_LIST_PER_PAGE
+  );
+  // Number of empty placeholder slots needed to keep the list's height
+  // fixed at MAP_LIST_PER_PAGE items, regardless of how many bins are on
+  // the current page.
+  const mapListEmptySlots = Math.max(
+    0,
+    MAP_LIST_PER_PAGE - paginatedMapListBins.length
+  );
 
   // ── Assign the least-loaded available collector ──────────────────────────
   const assignCollector = useCallback(() => {
@@ -528,27 +553,61 @@ export default function BinMonitoring() {
                 )}
               </div>
 
-              <div className="border rounded-xl p-3 overflow-y-auto">
+              <div className="border rounded-xl p-3 flex flex-col">
                 <h3 className="font-semibold mb-3">Bins in Barangay</h3>
-                {bins.map((bin) => {
-                  const status = getStatusFromFill(bin.fill);
-                  const style = statusColors[status];
-                  return (
-                    <div key={bin.id} className="mb-3 p-2 border rounded-lg hover:bg-gray-50">
-                      <div className="flex justify-between text-sm font-medium">
-                        <span>{bin.id} - {bin.name}</span>
-                        <span>{bin.fill}%</span>
-                      </div>
-                      <p className="text-xs text-gray-500">{bin.location}</p>
-                      <div className="w-full bg-gray-200 h-2 rounded mt-1">
+                <div className="flex-1 overflow-y-auto">
+                  {paginatedMapListBins.length === 0 ? (
+                    <p className="text-center text-sm text-gray-400 py-6">
+                      No bins found.
+                    </p>
+                  ) : (
+                    <>
+                      {paginatedMapListBins.map((bin) => {
+                        const status = getStatusFromFill(bin.fill);
+                        const style = statusColors[status];
+                        return (
+                          <div key={bin.id} className="mb-3 p-2 border rounded-lg hover:bg-gray-50">
+                            <div className="flex justify-between text-sm font-medium">
+                              <span>{bin.id} - {bin.name}</span>
+                              <span>{bin.fill}%</span>
+                            </div>
+                            <p className="text-xs text-gray-500">{bin.location}</p>
+                            <div className="w-full bg-gray-200 h-2 rounded mt-1">
+                              <div
+                                className={`h-2 rounded ${style.bar}`}
+                                style={{ width: `${bin.fill}%` }}
+                              />
+                            </div>
+                          </div>
+                        );
+                      })}
+                      {/* Invisible placeholder slots so the list panel keeps a
+                          constant height at MAP_LIST_PER_PAGE items, even when
+                          the last page has fewer bins. */}
+                      {Array.from({ length: mapListEmptySlots }).map((_, i) => (
                         <div
-                          className={`h-2 rounded ${style.bar}`}
-                          style={{ width: `${bin.fill}%` }}
-                        />
-                      </div>
-                    </div>
-                  );
-                })}
+                          key={`map-list-empty-${i}`}
+                          aria-hidden="true"
+                          className="mb-3 p-2 border border-transparent invisible pointer-events-none"
+                        >
+                          <div className="flex justify-between text-sm font-medium">
+                            <span>&nbsp;</span>
+                            <span>&nbsp;</span>
+                          </div>
+                          <p className="text-xs">&nbsp;</p>
+                          <div className="w-full h-2 rounded mt-1" />
+                        </div>
+                      ))}
+                    </>
+                  )}
+                </div>
+
+                <Pagination
+                  currentPage={mapListPage}
+                  totalItems={bins.length}
+                  itemsPerPage={MAP_LIST_PER_PAGE}
+                  onPageChange={setMapListPage}
+                />
               </div>
             </div>
           </div>

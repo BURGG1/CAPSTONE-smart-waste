@@ -3,6 +3,7 @@ import Navbar from "../../components/Navbar";
 import NavigationShell from "../../navigation/mainNav";
 import Footer from "../../components/Footer";
 import BASE_URL from "../../config";
+import Pagination from "../../components/Pagination";
 
 import {
     CheckCircle,
@@ -19,6 +20,7 @@ import ConfirmationModal from "../../components/confirmationModal";
 import CounterInfoModal from "../../components/CounterInfoModal";
 
 const API = `${BASE_URL}/api/bins`;
+const BINS_PER_PAGE = 6;
 
 const statusColors = {
     good: {
@@ -90,12 +92,18 @@ export default function WasteBin() {
     const [editedLocation, setEditedLocation] = useState("");
     const [saving, setSaving] = useState(false);
 
+    // ── Pagination ──
+    const [binPage, setBinPage] = useState(1);
+
     useEffect(() => {
         fetchBins();
         fetchDevices();
     }, []);
 
-
+    // Reset to page 1 whenever the search or filter changes
+    useEffect(() => {
+        setBinPage(1);
+    }, [search, filter]);
 
     async function fetchBins() {
         setLoading(true);
@@ -251,6 +259,21 @@ export default function WasteBin() {
         const matchFilter = filter === "all" || h.type === filter;
         return matchSearch && matchFilter;
     });
+
+    // Keep the current page valid whenever the filtered list changes
+    useEffect(() => {
+        const totalPages = Math.max(1, Math.ceil(filteredData.length / BINS_PER_PAGE));
+        if (binPage > totalPages) setBinPage(totalPages);
+    }, [filteredData.length, binPage]);
+
+    const paginatedData = filteredData.slice(
+        (binPage - 1) * BINS_PER_PAGE,
+        binPage * BINS_PER_PAGE
+    );
+    // Placeholder row count so the table keeps a constant height at
+    // BINS_PER_PAGE rows, regardless of how many bins land on the current
+    // page.
+    const binEmptyRows = Math.max(0, BINS_PER_PAGE - paginatedData.length);
 
     return (
         <div className="flex-1">
@@ -411,7 +434,7 @@ export default function WasteBin() {
                             </div>
                         </div>
 
-                        <div className="max-h-[400px] overflow-y-auto overflow-x-auto">
+                        <div className="overflow-x-auto">
                             {loading ? (
                                 <p className="text-center text-gray-400 py-8">Loading bins...</p>
                             ) : filteredData.length === 0 ? (
@@ -429,7 +452,7 @@ export default function WasteBin() {
                                         </tr>
                                     </thead>
                                     <tbody>
-                                        {filteredData.map((item) => (
+                                        {paginatedData.map((item) => (
                                             <tr key={item._id} className="hover:bg-gray-50 text-sm md:text-[16px]">
                                                 <td className="px-4 py-3">{item.id}</td>
                                                 <td className="px-4 py-3 font-medium">{item.name}</td>
@@ -472,10 +495,26 @@ export default function WasteBin() {
                                                 </td>
                                             </tr>
                                         ))}
+                                        {/* Pad remaining slots so the table height stays
+                                            constant at BINS_PER_PAGE rows. */}
+                                        {Array.from({ length: binEmptyRows }).map((_, i) => (
+                                            <tr key={`bin-empty-${i}`} aria-hidden="true">
+                                                <td className="px-4 py-3" colSpan={6}>&nbsp;</td>
+                                            </tr>
+                                        ))}
                                     </tbody>
                                 </table>
                             )}
                         </div>
+
+                        {!loading && (
+                            <Pagination
+                                currentPage={binPage}
+                                totalItems={filteredData.length}
+                                itemsPerPage={BINS_PER_PAGE}
+                                onPageChange={setBinPage}
+                            />
+                        )}
                     </section>
 
                     {/* ── Counter Section ───────────────────────────────────── */}

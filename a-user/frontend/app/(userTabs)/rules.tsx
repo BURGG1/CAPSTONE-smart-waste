@@ -5,6 +5,7 @@ import { SafeAreaView } from "react-native-safe-area-context";
 import { API_BASE } from "@/config"; // Import the API_BASE constant
 
 import { getRules } from "../../api/rulesAPI"; // API function to fetch rules
+import Pagination from "../../components/UserPagination";
 
 // household info
 const household = {
@@ -55,6 +56,8 @@ type Rule = {
     [key: string]: any;
 };
 
+const RULES_PER_PAGE = 4;
+
 export default function Rules() {
     const [search, setSearch] = useState("");
 
@@ -62,6 +65,7 @@ export default function Rules() {
     const [rules, setRules] = useState<Rule[]>([]);
     const [rulesLoading, setRulesLoading] = useState(true);
     const [rulesError, setRulesError] = useState("");
+    const [rulesPage, setRulesPage] = useState(1);
 
     const fetchRules = async () => {
         try {
@@ -91,6 +95,37 @@ export default function Rules() {
     const filteredRules = rules.filter((r) =>
         r.name.toLowerCase().includes(search.toLowerCase())
     );
+
+    
+    // Reset to page 1 whenever the search term changes
+    useEffect(() => {
+        setRulesPage(1);
+    }, [search]);
+
+    // Clamp pages if the underlying data shrinks (e.g. a refetch returns fewer rows)
+    useEffect(() => {
+        const totalPages = Math.max(1, Math.ceil(filteredRules.length / RULES_PER_PAGE));
+        if (rulesPage > totalPages) setRulesPage(totalPages);
+    }, [filteredRules.length]);
+
+    const paginatedRules = filteredRules.slice(
+        (rulesPage - 1) * RULES_PER_PAGE,
+        rulesPage * RULES_PER_PAGE
+    );
+    const rulesFillerCount = Math.max(0, RULES_PER_PAGE - paginatedRules.length);
+    
+    type RuleItem = Rule & {
+        __filler?: boolean;
+    };
+    
+    const rulesForDisplay: RuleItem[] = [
+        ...paginatedRules,
+        ...Array.from({ length: rulesFillerCount }, (_, i) => ({
+            _id: `__filler-${i}`,
+            name: "",
+            __filler: true,
+        })),
+    ];
 
     return (
         <SafeAreaView className="flex-1">
@@ -184,7 +219,7 @@ export default function Rules() {
 
 
 
-                 {/* Rules Section */}
+                {/* Rules Section */}
                 <View className="bg-white rounded-xl p-6 shadow">
                     <View className="flex-col justify-between items-center mb-4 gap-2">
                         <View className="flex-row items-center gap-2">
@@ -215,7 +250,7 @@ export default function Rules() {
 
                     {/* RULEES------------ */}
                     <FlatList
-                        data={filteredRules}
+                        data={rulesForDisplay}
                         keyExtractor={(item) => item._id}
                         numColumns={2}
                         scrollEnabled={false}
@@ -229,46 +264,59 @@ export default function Rules() {
                             ) : null
                         }
                         renderItem={({ item: r, index }) => (
-                            <View className="flex-1 bg-gray-50 rounded-xl shadow-lg overflow-hidden">
+                            r.__filler ? (
+                                <View className="flex-1 h-56" style={{ opacity: 0 }} />
+                            ) : (
+                                <View className="flex-1 bg-gray-50 rounded-xl shadow-lg overflow-hidden">
 
-                                {r.image ? (
-                                    <Image
-                                        source={{ uri: r.image }}
-                                        className="w-full h-40"
-                                        resizeMode="cover"
-                                    />
-                                ) : (
-                                    <View className="w-full h-40 bg-gray-200 items-center justify-center">
-                                        <Text className="text-gray-400">No image</Text>
+                                    {r.image ? (
+                                        <Image
+                                            source={{ uri: r.image }}
+                                            className="w-full h-40"
+                                            resizeMode="cover"
+                                        />
+                                    ) : (
+                                        <View className="w-full h-40 bg-gray-200 items-center justify-center">
+                                            <Text className="text-gray-400">No image</Text>
+                                        </View>
+                                    )}
+
+                                    <View className="p-3 gap-1">
+                                        <Text className="text-sm font-bold">
+                                            Rule {(rulesPage - 1) * RULES_PER_PAGE + index + 1}
+                                        </Text>
+
+                                        <Text className="text-xs text-gray-500">
+                                            {r.name}
+                                        </Text>
+
+                                        <Text className="text-xs text-gray-400">
+                                            {r.decs}
+                                        </Text>
+
+                                        <Text className="text-xs text-gray-400">
+                                            {r.freq}
+                                        </Text>
                                     </View>
-                                )}
 
-                                <View className="p-3 gap-1">
-                                    <Text className="text-sm font-bold">
-                                        Rule {index + 1}
-                                    </Text>
-
-                                    <Text className="text-xs text-gray-500">
-                                        {r.name}
-                                    </Text>
-
-                                    <Text className="text-xs text-gray-400">
-                                        {r.decs}
-                                    </Text>
-
-                                    <Text className="text-xs text-gray-400">
-                                        {r.freq}
-                                    </Text>
+                                    <View className="absolute top-2 right-2 bg-white rounded-lg p-1 shadow-md">
+                                        <Text className="text-green-500 font-bold text-sm text-center">
+                                            +{r.points}
+                                        </Text>
+                                    </View>
                                 </View>
-
-                                <View className="absolute top-2 right-2 bg-white rounded-lg p-1 shadow-md">
-                                    <Text className="text-green-500 font-bold text-sm text-center">
-                                        +{r.points}
-                                    </Text>
-                                </View>
-                            </View>
+                            )
                         )}
                     />
+
+                    {!rulesLoading && !rulesError && (
+                        <Pagination
+                            currentPage={rulesPage}
+                            totalItems={filteredRules.length}
+                            itemsPerPage={RULES_PER_PAGE}
+                            onPageChange={setRulesPage}
+                        />
+                    )}
                 </View>
 
 

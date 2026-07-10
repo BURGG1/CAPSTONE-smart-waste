@@ -6,6 +6,7 @@ import { useFocusEffect } from "expo-router";
 
 import { getRewards, redeemReward, getHouseholdActivity } from "../../api/rewardAPI";
 import { useHousehold, fetchHousehold, updatePointsLocally } from "../store/householdStore";
+import Pagination from "../../components/UserPagination";
 
 type Reward = {
     _id: string;
@@ -23,6 +24,11 @@ type ActivityItem = {
     amount?: string;
 };
 
+const REWARDS_PER_PAGE = 4;
+const ACTIVITY_PER_PAGE = 7;
+const ACTIVITY_FETCH_LIMIT = 50; // fetch enough rows to paginate client-side
+const ACTIVITY_HISTORY_CAP = 50; // how much locally-prepended history to retain after a redemption
+
 export default function Rewards() {
     const household = useHousehold();
     const [householdLoading, setHouseholdLoading] = useState(!household);
@@ -30,9 +36,11 @@ export default function Rewards() {
     const [rewards, setRewards] = useState<Reward[]>([]);
     const [rewardsLoading, setRewardsLoading] = useState(true);
     const [rewardsError, setRewardsError] = useState("");
+    const [rewardsPage, setRewardsPage] = useState(1);
 
     const [activity, setActivity] = useState<ActivityItem[]>([]);
     const [activityLoading, setActivityLoading] = useState(true);
+    const [activityPage, setActivityPage] = useState(1);
 
     const [selectedReward, setSelectedReward] = useState<Reward | null>(null);
     const [redeeming, setRedeeming] = useState(false);
@@ -63,7 +71,7 @@ export default function Rewards() {
         if (!householdId) return;
         try {
             setActivityLoading(true);
-            const data = await getHouseholdActivity(householdId, 10);
+            const data = await getHouseholdActivity(householdId, ACTIVITY_FETCH_LIMIT);
             setActivity(data);
         } catch (err) {
             console.error("Failed to load activity:", err);
@@ -78,7 +86,10 @@ export default function Rewards() {
     }, []);
 
     useEffect(() => {
-        if (household?._id) loadActivity(household._id);
+        if (household?._id) {
+            loadActivity(household._id);
+            setActivityPage(1);
+        }
     }, [household?._id]);
 
     // Refresh on screen focus — catches points awarded elsewhere (e.g. RFID scan)
@@ -88,6 +99,17 @@ export default function Rewards() {
             if (household?._id) loadActivity(household._id);
         }, [household?._id])
     );
+
+    // Clamp pages if the underlying data shrinks
+    useEffect(() => {
+        const totalPages = Math.max(1, Math.ceil(rewards.length / REWARDS_PER_PAGE));
+        if (rewardsPage > totalPages) setRewardsPage(totalPages);
+    }, [rewards.length]);
+
+    useEffect(() => {
+        const totalPages = Math.max(1, Math.ceil(activity.length / ACTIVITY_PER_PAGE));
+        if (activityPage > totalPages) setActivityPage(totalPages);
+    }, [activity.length]);
 
     const openConfirm = (reward: Reward) => {
         if (!household) {
@@ -126,8 +148,9 @@ export default function Rewards() {
                         points: -selectedReward.points,
                     },
                     ...prev,
-                ].slice(0, 10)
+                ].slice(0, ACTIVITY_HISTORY_CAP)
             );
+            setActivityPage(1); // jump back to the newest page so the redemption is visible
 
             setSelectedReward(null);
             Alert.alert("Success", res.message || "Reward redeemed successfully!");
@@ -140,6 +163,18 @@ export default function Rewards() {
             setRedeeming(false);
         }
     };
+
+    const paginatedRewards = rewards.slice(
+        (rewardsPage - 1) * REWARDS_PER_PAGE,
+        rewardsPage * REWARDS_PER_PAGE
+    );
+    const rewardsFillerCount = Math.max(0, REWARDS_PER_PAGE - paginatedRewards.length);
+
+    const paginatedActivity = activity.slice(
+        (activityPage - 1) * ACTIVITY_PER_PAGE,
+        activityPage * ACTIVITY_PER_PAGE
+    );
+    const activityFillerCount = Math.max(0, ACTIVITY_PER_PAGE - paginatedActivity.length);
 
     if (householdLoading) {
         return (
@@ -244,7 +279,7 @@ export default function Rewards() {
                         {!!rewardsError && <Text className="text-red-500 mb-2">{rewardsError}</Text>}
 
                         <View className="flex flex-col gap-3">
-                            {rewards.map((item) => {
+                            {paginatedRewards.map((item) => {
                                 const canRedeem = item.stocks > 0 && (household?.points?.total ?? 0) >= item.points;
                                 return (
                                     <View key={item._id} className="bg-gray-50 rounded-xl p-4 w-full">
@@ -278,8 +313,21 @@ export default function Rewards() {
                                 );
                             })}
 
+                            {!rewardsLoading && rewards.length > 0 && Array.from({ length: rewardsFillerCount }).map((_, i) => (
+                                <View key={`filler-${i}`} className="h-60 w-full" style={{ opacity: 0 }} />
+                            ))}
+
                             {!rewardsLoading && rewards.length === 0 && !rewardsError && (
                                 <Text className="text-gray-500 text-center py-6">No rewards available yet.</Text>
+                            )}
+
+                            {!rewardsLoading && rewards.length > 0 && (
+                                <Pagination
+                                    currentPage={rewardsPage}
+                                    totalItems={rewards.length}
+                                    itemsPerPage={REWARDS_PER_PAGE}
+                                    onPageChange={setRewardsPage}
+                                />
                             )}
                         </View>
                     </View>
@@ -295,7 +343,7 @@ export default function Rewards() {
                         )}
 
                         <View className="flex-1 gap-4">
-                            {activity.map((a, index) => (
+                            {paginatedActivity.map((a, index) => (
                                 <View key={index} className="flex-row justify-between items-center">
                                     <View>
                                         <Text className="font-medium">{a.type}</Text>
@@ -313,8 +361,21 @@ export default function Rewards() {
                                 </View>
                             ))}
 
+                            {!activityLoading && activity.length > 0 && Array.from({ length: activityFillerCount }).map((_, i) => (
+                                <View key={`filler-${i}`} className="h-11" style={{ opacity: 0 }} />
+                            ))}
+
                             {!activityLoading && activity.length === 0 && (
                                 <Text className="text-gray-500 text-center py-6">No activity yet.</Text>
+                            )}
+
+                            {!activityLoading && activity.length > 0 && (
+                                <Pagination
+                                    currentPage={activityPage}
+                                    totalItems={activity.length}
+                                    itemsPerPage={ACTIVITY_PER_PAGE}
+                                    onPageChange={setActivityPage}
+                                />
                             )}
                         </View>
                     </View>

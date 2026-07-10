@@ -1,8 +1,10 @@
 import { X, Calendar } from "lucide-react";
 import { useState, useEffect } from "react";
 import ViolationModal from "./ViolationModal";
+import Pagination from "./Pagination";
 
 const API = "http://localhost:5000/api";
+const LOGS_LIMIT = 7;
 
 export default function CounterInfoModal({ isOpen, onClose, bin }) {
 
@@ -12,8 +14,8 @@ export default function CounterInfoModal({ isOpen, onClose, bin }) {
     const [disposalLogs, setDisposalLogs] = useState([]);
     const [loading, setLoading]       = useState(false);
     const [error, setError]           = useState("");
+    const [page, setPage]             = useState(1);
 
-    // Fetch disposal logs for this bin when modal opens
     useEffect(() => {
         if (!isOpen || !bin?.id) return;
 
@@ -36,20 +38,31 @@ export default function CounterInfoModal({ isOpen, onClose, bin }) {
         };
 
         fetchLogs();
+        setPage(1);
+        setFromDate("");
     }, [isOpen, bin?.id]);
+
+    useEffect(() => {
+        setPage(1);
+    }, [fromDate]);
 
     if (!isOpen || !bin) return null;
 
-    // Filter by selected date
     const filteredLogs = disposalLogs.filter((log) => {
         if (!fromDate) return true;
         const logDate = new Date(log.scannedAt).toISOString().split("T")[0];
         return logDate === fromDate;
     });
 
+    const paginatedLogs = filteredLogs.slice(
+        (page - 1) * LOGS_LIMIT,
+        page * LOGS_LIMIT
+    );
+    const emptyRows = Math.max(0, LOGS_LIMIT - paginatedLogs.length);
+
     return (
         <div className="fixed inset-0 z-50 bg-black/40 flex items-center justify-center p-4">
-            <div className="bg-white max-h-[500px] w-full max-w-5xl rounded-2xl shadow-lg flex flex-col">
+            <div className="bg-white max-h-[90vh] w-full max-w-5xl rounded-2xl shadow-lg flex flex-col overflow-y-auto">
 
                 {/* HEADER */}
                 <div className="flex justify-between items-center px-6 py-1 border-b">
@@ -79,7 +92,7 @@ export default function CounterInfoModal({ isOpen, onClose, bin }) {
                 </div>
 
                 {/* TABLE */}
-                <div className="flex-1 overflow-y-auto overflow-x-auto">
+                <div className="overflow-x-auto">
                     {loading ? (
                         <p className="text-center py-6 text-gray-400">Loading logs...</p>
                     ) : error ? (
@@ -98,14 +111,14 @@ export default function CounterInfoModal({ isOpen, onClose, bin }) {
                                 </tr>
                             </thead>
                             <tbody className="text-center">
-                                {filteredLogs.length === 0 ? (
+                                {paginatedLogs.length === 0 ? (
                                     <tr>
                                         <td colSpan="7" className="text-center py-6 text-gray-500">
                                             No records found for selected dates
                                         </td>
                                     </tr>
                                 ) : (
-                                    filteredLogs.map((log) => {
+                                    paginatedLogs.map((log) => {
                                         const scannedAt = new Date(log.scannedAt);
                                         const date      = scannedAt.toISOString().split("T")[0];
                                         const time      = scannedAt.toLocaleTimeString("en-US", {
@@ -147,10 +160,28 @@ export default function CounterInfoModal({ isOpen, onClose, bin }) {
                                         );
                                     })
                                 )}
+                                {/* Pad remaining slots so table height stays constant at LOGS_LIMIT rows */}
+                                {paginatedLogs.length > 0 &&
+                                    Array.from({ length: emptyRows }).map((_, i) => (
+                                        <tr key={`counter-empty-${i}`} aria-hidden="true">
+                                            <td className="py-3" colSpan="7">&nbsp;</td>
+                                        </tr>
+                                    ))}
                             </tbody>
                         </table>
                     )}
                 </div>
+
+                {!loading && !error && (
+                    <div className="px-6 pb-2">
+                        <Pagination
+                            currentPage={page}
+                            totalItems={filteredLogs.length}
+                            itemsPerPage={LOGS_LIMIT}
+                            onPageChange={setPage}
+                        />
+                    </div>
+                )}
             </div>
 
             <ViolationModal

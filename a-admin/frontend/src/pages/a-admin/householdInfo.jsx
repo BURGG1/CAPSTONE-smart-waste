@@ -3,6 +3,7 @@ import Navbar from "../../components/Navbar";
 import NavigationShell from "../../navigation/mainNav";
 import Footer from "../../components/Footer";
 import AddHousehold from "../../components/AddHouseholdModal";
+import Pagination from "../../components/Pagination";
 
 import {
     MailPlus,
@@ -14,6 +15,9 @@ import BASE_URL from "../../config";
 import HouseholdRecordModal from "../../components/HHrecordModal";
 import ConfirmationModal from "../../components/confirmationModal";
 import AssignRFIDModal from "../../components/AssignRFID";
+
+const REQUESTS_PER_PAGE = 10;
+const HOUSEHOLDS_PER_PAGE = 10;
 
 const householdRequest = [
     {
@@ -42,6 +46,9 @@ function RequestTab() {
     const [declineActive, setDeclineActive] = useState(false);
     const [selectedDeclineId, setSelectedDeclineId] = useState(null);
 
+    // ── Pagination ──
+    const [requestPage, setRequestPage] = useState(1);
+
     const fetchRequests = async () => {
         setLoading(true);
         try {
@@ -58,6 +65,20 @@ function RequestTab() {
     useEffect(() => {
         fetchRequests();
     }, []);
+
+    useEffect(() => {
+        const totalPages = Math.max(1, Math.ceil(requests.length / REQUESTS_PER_PAGE));
+        if (requestPage > totalPages) setRequestPage(totalPages);
+    }, [requests, requestPage]);
+
+    const paginatedRequests = requests.slice(
+        (requestPage - 1) * REQUESTS_PER_PAGE,
+        requestPage * REQUESTS_PER_PAGE
+    );
+    // Placeholder row count so the table keeps a constant height at
+    // REQUESTS_PER_PAGE rows, regardless of how many requests land on the
+    // current page.
+    const requestEmptyRows = Math.max(0, REQUESTS_PER_PAGE - paginatedRequests.length);
 
     const handleApprove = (item) => {
         setSelectedRequest(item);
@@ -167,35 +188,51 @@ function RequestTab() {
                                     </td>
                                 </tr>
                             ) : (
-                                requests.map((item) => (
-                                    <tr key={item._id} className="hover:bg-gray-50 text-center">
-                                        <td className="px-4 py-3 font-medium">{item.fullname}</td>
-                                        <td className="px-4 py-3 text-gray-600">
-                                            {[item.address?.houseNo, item.address?.street]
-                                                .filter(Boolean)
-                                                .join(", ") || "—"}
-                                        </td>
-                                        <td className="px-4 py-3">{item.email || "—"}</td>
-                                        <td className="px-4 py-3">{item.contactNumber || "—"}</td>
-                                        <td className="flex flex-row justify-center items-center gap-2 py-3">
-                                            <button
-                                                onClick={() => handleApprove(item)}
-                                                className="cursor-pointer bg-green-600 text-white px-3 py-1 rounded-lg"
-                                            >
-                                                Approve
-                                            </button>
-                                            <button
-                                                  onClick={() => handleDeclineClick(item._id)}
-                                                className="cursor-pointer bg-red-600 text-white px-3 py-1 rounded-lg"
-                                            >
-                                                Decline
-                                            </button>
-                                        </td>
-                                    </tr>
-                                ))
+                                <>
+                                    {paginatedRequests.map((item) => (
+                                        <tr key={item._id} className="hover:bg-gray-50 text-center">
+                                            <td className="px-4 py-3 font-medium">{item.fullname}</td>
+                                            <td className="px-4 py-3 text-gray-600">
+                                                {[item.address?.houseNo, item.address?.street]
+                                                    .filter(Boolean)
+                                                    .join(", ") || "—"}
+                                            </td>
+                                            <td className="px-4 py-3">{item.email || "—"}</td>
+                                            <td className="px-4 py-3">{item.contactNumber || "—"}</td>
+                                            <td className="flex flex-row justify-center items-center gap-2 py-3">
+                                                <button
+                                                    onClick={() => handleApprove(item)}
+                                                    className="cursor-pointer bg-green-600 text-white px-3 py-1 rounded-lg"
+                                                >
+                                                    Approve
+                                                </button>
+                                                <button
+                                                      onClick={() => handleDeclineClick(item._id)}
+                                                    className="cursor-pointer bg-red-600 text-white px-3 py-1 rounded-lg"
+                                                >
+                                                    Decline
+                                                </button>
+                                            </td>
+                                        </tr>
+                                    ))}
+                                    {/* Pad remaining slots so the table height stays
+                                        constant at REQUESTS_PER_PAGE rows. */}
+                                    {Array.from({ length: requestEmptyRows }).map((_, i) => (
+                                        <tr key={`request-empty-${i}`} aria-hidden="true">
+                                            <td className="px-4 py-3" colSpan={5}>&nbsp;</td>
+                                        </tr>
+                                    ))}
+                                </>
                             )}
                         </tbody>
                     </table>
+
+                    <Pagination
+                        currentPage={requestPage}
+                        totalItems={requests.length}
+                        itemsPerPage={REQUESTS_PER_PAGE}
+                        onPageChange={setRequestPage}
+                    />
                 </div>
             )}
 
@@ -243,6 +280,9 @@ export default function HouseholdInfo() {
     const [loadingHouseholds, setLoadingHouseholds] = useState(true);
     const [fetchError, setFetchError] = useState("");
 
+    // ── Pagination ──
+    const [householdPage, setHouseholdPage] = useState(1);
+
     // ── Fetch households from backend ─────────────────
     const fetchHouseholds = async () => {
         setLoadingHouseholds(true);
@@ -268,6 +308,11 @@ export default function HouseholdInfo() {
         fetchHouseholds();
     }, [search]);
 
+    // Reset to page 1 whenever the search term changes
+    useEffect(() => {
+        setHouseholdPage(1);
+    }, [search]);
+
     const handleAddModalClose = () => {
         setOpenAddModal(false);
         fetchHouseholds();
@@ -285,6 +330,21 @@ export default function HouseholdInfo() {
             h.rfidUid?.toLowerCase().includes(search.toLowerCase())
         );
     });
+
+    // Keep the current page valid whenever the filtered list changes
+    useEffect(() => {
+        const totalPages = Math.max(1, Math.ceil(filteredData.length / HOUSEHOLDS_PER_PAGE));
+        if (householdPage > totalPages) setHouseholdPage(totalPages);
+    }, [filteredData.length, householdPage]);
+
+    const paginatedHouseholdData = filteredData.slice(
+        (householdPage - 1) * HOUSEHOLDS_PER_PAGE,
+        householdPage * HOUSEHOLDS_PER_PAGE
+    );
+    // Placeholder row count so the table keeps a constant height at
+    // HOUSEHOLDS_PER_PAGE rows, regardless of how many households land on
+    // the current page.
+    const householdEmptyRows = Math.max(0, HOUSEHOLDS_PER_PAGE - paginatedHouseholdData.length);
 
     return (
         <div className="flex-1">
@@ -397,37 +457,53 @@ export default function HouseholdInfo() {
                                                     </td>
                                                 </tr>
                                             ) : (
-                                                filteredData.map((item) => (
-                                                    <tr key={item._id} className="hover:bg-gray-50 text-center">
-                                                        <td className="px-4 py-3 font-mono text-sm">
-                                                            {item._id.slice(-8).toUpperCase()}
-                                                        </td>
-                                                        <td className="px-4 py-3 font-medium">{item.fullname}</td>
-                                                        <td className="px-4 py-3 text-gray-600">
-                                                            {[item.address?.houseNo, item.address?.street]
-                                                                .filter(Boolean)
-                                                                .join(", ") || "—"}
-                                                        </td>
-                                                        <td className="px-4 py-3 text-gray-600">
-                                                            +63 {item.contactNumber}
-                                                        </td>
-                                                        <td className="px-4 py-3 font-mono text-sm text-gray-600">
-                                                            {item.rfid || "—"}
-                                                        </td>
-                                                        <td className="px-4 py-3">
-                                                            {/* ── Pass the full item object to the modal ── */}
-                                                            <button
-                                                                onClick={() => setActiveHousehold(item)}
-                                                                className="cursor-pointer bg-gray-900 text-white px-3 py-1 rounded-lg"
-                                                            >
-                                                                View
-                                                            </button>
-                                                        </td>
-                                                    </tr>
-                                                ))
+                                                <>
+                                                    {paginatedHouseholdData.map((item) => (
+                                                        <tr key={item._id} className="hover:bg-gray-50 text-center">
+                                                            <td className="px-4 py-3 font-mono text-sm">
+                                                                {item._id.slice(-8).toUpperCase()}
+                                                            </td>
+                                                            <td className="px-4 py-3 font-medium">{item.fullname}</td>
+                                                            <td className="px-4 py-3 text-gray-600">
+                                                                {[item.address?.houseNo, item.address?.street]
+                                                                    .filter(Boolean)
+                                                                    .join(", ") || "—"}
+                                                            </td>
+                                                            <td className="px-4 py-3 text-gray-600">
+                                                                +63 {item.contactNumber}
+                                                            </td>
+                                                            <td className="px-4 py-3 font-mono text-sm text-gray-600">
+                                                                {item.rfid || "—"}
+                                                            </td>
+                                                            <td className="px-4 py-3">
+                                                                {/* ── Pass the full item object to the modal ── */}
+                                                                <button
+                                                                    onClick={() => setActiveHousehold(item)}
+                                                                    className="cursor-pointer bg-gray-900 text-white px-3 py-1 rounded-lg"
+                                                                >
+                                                                    View
+                                                                </button>
+                                                            </td>
+                                                        </tr>
+                                                    ))}
+                                                    {/* Pad remaining slots so the table height stays
+                                                        constant at HOUSEHOLDS_PER_PAGE rows. */}
+                                                    {Array.from({ length: householdEmptyRows }).map((_, i) => (
+                                                        <tr key={`household-empty-${i}`} aria-hidden="true">
+                                                            <td className="px-4 py-3" colSpan={6}>&nbsp;</td>
+                                                        </tr>
+                                                    ))}
+                                                </>
                                             )}
                                         </tbody>
                                     </table>
+
+                                    <Pagination
+                                        currentPage={householdPage}
+                                        totalItems={filteredData.length}
+                                        itemsPerPage={HOUSEHOLDS_PER_PAGE}
+                                        onPageChange={setHouseholdPage}
+                                    />
                                 </div>
                             )}
                         </section>

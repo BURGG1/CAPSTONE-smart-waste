@@ -4,8 +4,10 @@ import { Feather } from "@expo/vector-icons";
 import { SafeAreaView } from "react-native-safe-area-context";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { API_BASE } from "@/config";
+import Pagination from "../../components/UserPagination";
 
 const POLL_INTERVAL_MS = 10000;
+const RANKINGS_PER_PAGE = 5;
 
 const tierStyles = {
   Gold:   { bg: "bg-yellow-100", text: "text-yellow-700" },
@@ -25,6 +27,7 @@ export default function Leaderboard() {
   const [loading, setLoading]         = useState(true);
   const [error, setError]             = useState(false);
   const [refreshing, setRefreshing]   = useState(false);
+  const [rankingsPage, setRankingsPage] = useState(1);
   const myHouseholdIdRef              = useRef(null);
   const isMountedRef                  = useRef(true);
 
@@ -79,12 +82,31 @@ export default function Leaderboard() {
     return () => { isMountedRef.current = false; clearInterval(id); };
   }, [fetchLeaderboard]);
 
+  // Clamp the current page if a refresh returns fewer rows than before
+  useEffect(() => {
+    const totalPages = Math.max(1, Math.ceil(rankedData.length / RANKINGS_PER_PAGE));
+    if (rankingsPage > totalPages) setRankingsPage(totalPages);
+  }, [rankedData.length]);
+
   const handleRefresh = () => {
     setRefreshing(true);
     fetchLeaderboard({ silent: true });
   };
 
   const podiumData = rankedData.slice(0, 3);
+
+  const paginatedRankingsRaw = rankedData.slice(
+    (rankingsPage - 1) * RANKINGS_PER_PAGE,
+    rankingsPage * RANKINGS_PER_PAGE
+  );
+  const rankingsFillerCount = Math.max(0, RANKINGS_PER_PAGE - paginatedRankingsRaw.length);
+  const paginatedRankings = [
+    ...paginatedRankingsRaw,
+    ...Array.from({ length: rankingsFillerCount }, (_, i) => ({
+      householdId: `__filler-${i}`,
+      __filler: true,
+    })),
+  ];
 
   if (loading) {
     return (
@@ -108,7 +130,7 @@ export default function Leaderboard() {
   return (
     <SafeAreaView className="flex-1">
       <FlatList
-        data={rankedData}
+        data={paginatedRankings}
         keyExtractor={(item) => item.householdId}
         className="flex-1 px-4 py-2 bg-gray-50"
         refreshControl={
@@ -173,6 +195,9 @@ export default function Leaderboard() {
           </View>
         )}
         renderItem={({ item }) => (
+          item.__filler ? (
+            <View className="h-12" style={{ opacity: 0 }} />
+          ) : (
           <View className={`flex-row justify-between items-center px-4 py-2 border-b border-gray-100 ${item.isYou ? "bg-green-50" : ""}`}>
             <Text className="font-semibold w-8">#{item.rank}</Text>
 
@@ -201,7 +226,20 @@ export default function Leaderboard() {
               <Feather name="trending-up" size={18} color="#16A34A" />
             </View>
           </View>
+          )
         )}
+        ListFooterComponent={
+          rankedData.length > 0 ? (
+            <View className="bg-white px-4 pb-4">
+              <Pagination
+                currentPage={rankingsPage}
+                totalItems={rankedData.length}
+                itemsPerPage={RANKINGS_PER_PAGE}
+                onPageChange={setRankingsPage}
+              />
+            </View>
+          ) : null
+        }
       />
     </SafeAreaView>
   );
